@@ -6,7 +6,7 @@
 package _charnames;
 use strict;
 use warnings;
-our $VERSION = '1.45';
+our $VERSION = '1.46';
 use unicore::Name;    # mktables-generated algorithmically-defined names
 
 use bytes ();          # for $bytes::hint_bits
@@ -263,8 +263,9 @@ my %dummy_H = (
               );
 
 
-sub lookup_name ($$$) {
-  my ($name, $wants_ord, $runtime) = @_;
+sub lookup_name ($$$;$) {
+  my ($name, $wants_ord, $runtime, $always_loose) = @_;
+  $always_loose //= 0;
 
   # Lookup the name or sequence $name in the tables.  If $wants_ord is false,
   # returns the string equivalent of $name; if true, returns the ordinal value
@@ -307,7 +308,7 @@ sub lookup_name ($$$) {
     $^H{charnames_short} = $hints_ref->{charnames_short};
   }
 
-  my $loose = $^H{charnames_loose};
+  my $loose = $always_loose || $^H{charnames_loose};
   my $lookup_name;  # Input name suitably modified for grepping for in the
                     # table
 
@@ -422,7 +423,7 @@ sub lookup_name ($$$) {
       # the other way around slows down finding these immensely.
       # Algorithmically determinables are not placed in the cache because
       # that uses up memory, and finding these again is fast.
-      if (($loose || $^H{charnames_full})
+      if (   ($loose || $^H{charnames_full})
           && (defined (my $ord = charnames::name_to_code_point_special($lookup_name, $loose))))
       {
         $result = chr $ord;
@@ -463,6 +464,10 @@ sub lookup_name ($$$) {
         if (($loose || $^H{charnames_full}) && $txt =~ /\t$lookup_name$/m) {
           @off = ($-[0] + 1, $+[0]);    # The 1 is for the tab
           $cache_ref = ($loose) ? \%loose_names_cache : \%full_names_cache;
+        }
+        elsif ($always_loose) {
+          # Currently don't allow :short when this is set
+          return;
         }
         else {
 
@@ -615,6 +620,13 @@ sub charnames {
   # The first 0 arg means wants a string returned; the second that we are in
   # compile time
   return lookup_name($_[0], 0, 0);
+}
+
+sub _loose_lookup {
+  # For use only by regcomp.c to compile \p{name=...}
+  return lookup_name($_[0], 0, 1,
+                     1  # Always use :loose matching
+                    );
 }
 
 sub import
