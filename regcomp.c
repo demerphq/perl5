@@ -23188,7 +23188,9 @@ Perl_parse_uniprop_string(pTHX_
     dVAR;
     char* lookup_name;          /* normalized name for lookup in our tables */
     unsigned lookup_len;        /* Its length */
-    bool stricter = FALSE;      /* Some properties have stricter name
+    enum { NOT_STRICT,
+           STRICT,
+     } stricter= NOT_STRICT;    /* Some properties have stricter name
                                    normalization rules, which we decide upon
                                    based on parsing */
 
@@ -23341,7 +23343,7 @@ Perl_parse_uniprop_string(pTHX_
      * or are positioned just after the '=' if it is compound. */
 
     if (equals_pos >= 0) {
-        assert(! stricter); /* We shouldn't have set this yet */
+        assert(stricter == NOT_STRICT); /* We shouldn't have set this yet */
 
         /* Space immediately after the '=' is ignored */
         i++;
@@ -23572,12 +23574,12 @@ Perl_parse_uniprop_string(pTHX_
              * But the numeric type properties can have the alphas [Ee] to
              * signify an exponent, and it is still a number with stricter
              * rules.  So look for an alpha that signifies not-strict */
-            stricter = TRUE;
+            stricter = STRICT;
             for (k = i; k < name_len; k++) {
                 if (   isALPHA_A(name[k])
                     && (! is_nv_type || ! isALPHA_FOLD_EQ(name[k], 'E')))
                 {
-                    stricter = FALSE;
+                    stricter = NOT_STRICT;
                     break;
                 }
             }
@@ -23615,7 +23617,7 @@ Perl_parse_uniprop_string(pTHX_
             && memNEs(lookup_name + 4, j - 4, "space")
             && memNEs(lookup_name + 4, j - 4, "word"))
         {
-            stricter = TRUE;
+            stricter = STRICT;
 
             /* We set the inputs back to 0 and the code below will reparse,
              * using strict */
