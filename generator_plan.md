@@ -124,6 +124,10 @@ Compiler direction:
   debugger COP, regex-interpolation, multideref, taint, warning, and magic
   flags. These are still copied field-by-field; the contiguous-record/one-
   assignment optimization remains a follow-up investigation.
+- A dedicated stackinfo was also tested for generator startup, but the
+  callable-wrapper smoke test still segfaulted. That change is not being
+  treated as a working runtime proof; the wrapper remains reverted while the
+  call-context invariant is audited further.
 
 Follow-up design investigation:
 

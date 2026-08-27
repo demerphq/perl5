@@ -1429,6 +1429,7 @@ typedef struct perl_generator {
     PERL_GENERATOR_STATE    state;
     bool                    captured;
     bool                    yield_pending;
+    bool                    stack_pushed;
 } PERL_GENERATOR;
 
 #define PERL_GENERATOR_MAGIC 0x47594C44U

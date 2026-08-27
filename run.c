@@ -208,7 +208,15 @@ Perl_generator_new(pTHX_ CV *body)
 void
 Perl_generator_free(pTHX_ PERL_GENERATOR *generator)
 {
+    PERL_PROCESS_STATE caller_state;
+
     PERL_ARGS_ASSERT_GENERATOR_FREE;
+    if (generator->stack_pushed) {
+        process_state_save(&caller_state);
+        process_state_restore(&generator->process);
+        pop_stackinfo();
+        process_state_restore(&caller_state);
+    }
     SvREFCNT_dec(generator->value);
     SvREFCNT_dec((SV *)generator->body);
     Safefree(generator);
@@ -290,6 +298,8 @@ Perl_generator_resume(pTHX_ PERL_GENERATOR *generator)
     case 0:
         if (generator->state == PERL_GENERATOR_RUNNING
             && !generator->captured) {
+            push_stackinfo(PERLSI_UNKNOWN, 0);
+            generator->stack_pushed = TRUE;
             PUSHMARK(PL_stack_sp);
             rpp_xpush_1(MUTABLE_SV(generator->body));
             PL_op = (OP *)&generator->invoke;
@@ -300,6 +310,9 @@ Perl_generator_resume(pTHX_ PERL_GENERATOR *generator)
         break;
     default:
         generator->state = PERL_GENERATOR_FAILED;
+        if (generator->stack_pushed)
+            pop_stackinfo();
+        generator->stack_pushed = FALSE;
         JMPENV_POP;
         PL_runops_boundary_hook = old_hook;
         PL_runops_boundary_data = old_data;
@@ -311,6 +324,12 @@ Perl_generator_resume(pTHX_ PERL_GENERATOR *generator)
 
     PL_runops_boundary_hook = old_hook;
     PL_runops_boundary_data = old_data;
+    if (generator->state == PERL_GENERATOR_EXHAUSTED) {
+        process_state_restore(&generator->process);
+        pop_stackinfo();
+        generator->captured = FALSE;
+        generator->stack_pushed = FALSE;
+    }
     process_state_restore(&caller_state);
     return generator->state == PERL_GENERATOR_YIELDED ? 1 : 0;
 }
