@@ -81,6 +81,15 @@ Implementation notes:
 - Added resume logic with a fresh `JMPENV`, boundary capture, exhaustion, and
   failed-generator handling. The compiler-side body setup and explicit yield
   operation are still pending.
+- Nullable yielded values are retained conditionally, so an empty yielded
+  value cannot be mistaken for an owned SV reference.
+
+Compiler constraint:
+
+- The existing anonymous-sub compiler path cannot be reused as a surface-only
+  implementation: generator bodies need dedicated CV setup and a yield op so
+  resumption returns at the explicit yield point rather than at an arbitrary
+  opcode boundary.
 
 Follow-up design investigation:
 
