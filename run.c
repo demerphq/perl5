@@ -271,17 +271,22 @@ Perl_generator_free(pTHX_ PERL_GENERATOR *generator)
         if (PL_phase == PERL_PHASE_DESTRUCT) {
             /* The interpreter's normal context stack is already being torn
              * down.  Do not run scope cleanup against that stack here; the
-             * generator's private stack is about to become unreachable with
-             * the rest of the interpreter. */
-            process_state_save(&caller_state);
+             * generator's private stack is about to be purged with the rest
+             * of the interpreter.  Relink it so S_nuke_stacks() can reclaim
+             * its context stack, but do not switch the active PL_* pointers. */
             if (generator->stack_detached)
                 S_generator_attach_stackinfo(aTHX_ generator);
-            process_state_restore(&generator->process);
-            FREETMPS;
+            Safefree(generator->process.markstack);
+            Safefree(generator->process.savestack);
+            Safefree(generator->process.scopestack);
+            Safefree(generator->process.tmps_stack);
+            generator->process.markstack = NULL;
+            generator->process.savestack = NULL;
+            generator->process.scopestack = NULL;
+            generator->process.tmps_stack = NULL;
             CvDEPTH(generator->body) = 0;
             generator->eval_active = FALSE;
-            S_generator_pop_stackinfo(aTHX_ generator);
-            process_state_restore(&caller_state);
+            generator->stack_pushed = FALSE;
         }
         else {
             process_state_save(&caller_state);
