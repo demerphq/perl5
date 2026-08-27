@@ -348,11 +348,17 @@ S_generator_new_stacks(pTHX)
     PL_tmps_max = 32;
 }
 
+typedef struct generator_run {
+    PERL_GENERATOR *generator;
+    JMPENV *env;
+} GENERATOR_RUN;
+
 void
 Perl_generator_yield_value(pTHX_ SV *value)
 {
-    PERL_GENERATOR * const generator =
-        (PERL_GENERATOR *)PL_runops_boundary_data;
+    GENERATOR_RUN * const run =
+        (GENERATOR_RUN *)PL_runops_boundary_data;
+    PERL_GENERATOR * const generator = run ? run->generator : NULL;
 
     PERL_ARGS_ASSERT_GENERATOR_YIELD_VALUE;
     if (!generator || generator->magic != PERL_GENERATOR_MAGIC
@@ -367,7 +373,8 @@ Perl_generator_yield_value(pTHX_ SV *value)
 static int
 S_generator_boundary(pTHX_ OP *nextop, void *data)
 {
-    PERL_GENERATOR * const generator = (PERL_GENERATOR *)data;
+    GENERATOR_RUN * const run = (GENERATOR_RUN *)data;
+    PERL_GENERATOR * const generator = run->generator;
 
     if (nextop && !generator->yield_pending)
         return 0;
@@ -379,7 +386,8 @@ S_generator_boundary(pTHX_ OP *nextop, void *data)
                               : PERL_GENERATOR_EXHAUSTED;
     generator->yield_pending = FALSE;
     S_generator_detach_stackinfo(aTHX_ generator);
-    return PERL_RUNOPS_BOUNDARY_YIELD;
+    PerlProc_longjmp(run->env->je_buf, 3);
+    NOT_REACHED;
 }
 
 void
@@ -406,6 +414,7 @@ Perl_generator_resume(pTHX_ PERL_GENERATOR *generator)
     void * const old_data = PL_runops_boundary_data;
     JMPENV * const caller_restartjmpenv = PL_restartjmpenv;
     const bool new_generator = generator->state == PERL_GENERATOR_NEW;
+    GENERATOR_RUN run = { generator, NULL };
     int ret;
 
     PERL_ARGS_ASSERT_GENERATOR_RESUME;
@@ -426,31 +435,51 @@ Perl_generator_resume(pTHX_ PERL_GENERATOR *generator)
         process_state_restore(&generator->process);
     }
     PL_runops_boundary_hook = S_generator_boundary;
-    PL_runops_boundary_data = generator;
+    PL_runops_boundary_data = &run;
 
     dJMPENV;
     JMPENV_PUSH(ret);
     switch (ret) {
     case 0:
-        cur_env.je_mustcatch = cur_env.je_prev->je_mustcatch;
+        cur_env.je_mustcatch = TRUE;
+        run.env = &cur_env;
+        if (!new_generator) {
+            I32 i;
+            for (i = 0; i <= cxstack_ix; i++) {
+                if (CxTYPE(&cxstack[i]) == CXt_EVAL)
+                    cxstack[i].blk_eval.cur_top_env = &cur_env;
+            }
+        }
         if (new_generator
             && generator->state == PERL_GENERATOR_RUNNING
             && !generator->captured) {
             push_stackinfo(PERLSI_UNKNOWN, 0);
             generator->stack_pushed = TRUE;
             S_generator_new_stacks(aTHX);
+            PL_in_eval = 0;
+            PL_restartop = NULL;
             process_state_save(&generator->process);
             PUSHMARK(PL_stack_sp);
+            create_eval_scope(NULL, PL_stack_sp, G_FAKINGEVAL);
+            generator->eval_active = TRUE;
             rpp_xpush_1(MUTABLE_SV(generator->body));
             PL_op = (OP *)&generator->invoke;
             PL_runops(aTHX);
         }
         else {
+            I32 i;
+            for (i = 0; i <= cxstack_ix; i++) {
+                if (CxTYPE(&cxstack[i]) == CXt_EVAL)
+                    cxstack[i].blk_eval.cur_top_env = &cur_env;
+            }
             PL_runops(aTHX);
         }
         break;
     default:
+        if (generator->captured)
+            break;
         generator->state = PERL_GENERATOR_FAILED;
+        generator->eval_active = FALSE;
         SvREFCNT_dec(generator->error);
         generator->error = SvREFCNT_inc(ERRSV);
         if (generator->stack_pushed)
@@ -468,6 +497,12 @@ Perl_generator_resume(pTHX_ PERL_GENERATOR *generator)
     PL_runops_boundary_hook = old_hook;
     PL_runops_boundary_data = old_data;
     if (generator->state == PERL_GENERATOR_EXHAUSTED) {
+        if (generator->eval_active) {
+            process_state_restore(&generator->process);
+            delete_eval_scope();
+            process_state_save(&generator->process);
+            generator->eval_active = FALSE;
+        }
         process_state_restore(&caller_state);
         S_generator_attach_stackinfo(aTHX_ generator);
         process_state_restore(&generator->process);

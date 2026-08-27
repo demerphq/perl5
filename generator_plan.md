@@ -141,8 +141,13 @@ Compiler direction:
   a plain persistent sub invocation; outer eval catches uncaught generator
   failures. Suspended stackinfos are now detached from the caller's reusable
   `si_next` chain and reattached only while running or cleaning up; this fixes
-  the assertion-heavy exhaustion crash. Inner eval remains unfinished
-  exception-boundary work.
+  the assertion-heavy exhaustion crash.
+- Generator suspension now captures at the active resume boundary by jumping
+  out of nested runops/docatch C frames. A transient resume record supplies
+  that boundary without storing a `JMPENV` in the generator. A generator-owned
+  fake eval scope provides the normal `die_unwind()` route, and eval context
+  `cur_top_env` pointers are refreshed on each resume. Inner eval catches,
+  outer rethrows, and failed-generator rejection now pass focused smoke tests.
 
 Follow-up design investigation:
 
