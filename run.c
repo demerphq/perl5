@@ -542,7 +542,7 @@ Perl_generator_resume(pTHX_ PERL_GENERATOR *generator)
     if (generator->state == PERL_GENERATOR_EXHAUSTED) {
         if (generator->eval_active) {
             process_state_restore(&generator->process);
-            delete_eval_scope();
+            dounwind(-1);
             process_state_save(&generator->process);
             generator->eval_active = FALSE;
         }
