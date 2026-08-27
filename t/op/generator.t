@@ -126,6 +126,7 @@ like($@, qr/yield outside a generator/, 'yield is rejected in an ordinary sub');
 
 my $disabled_error = eval q{
     no feature 'generator';
-    my $not_a_generator = generator { yield 1 };
+    my $not_a_generator = generator { 1 };
 };
-ok($@, 'generator syntax remains feature gated');
+like($@, qr/Can't locate object method "generator"/,
+    'generator syntax remains feature gated');
