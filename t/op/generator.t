@@ -4,6 +4,12 @@ use strict;
 use warnings;
 use Test::More tests => 36;
 
+BEGIN {
+    chdir 't' if -d 't';
+    require './test.pl';
+    set_up_inc('../lib');
+}
+
 use feature 'generator';
 
 sub next_values {
@@ -112,21 +118,15 @@ is_deeply(next_values($nested_outer), [ 20 ],
     'nested generator preserves the inner continuation');
 is_deeply(next_values($nested_outer), [], 'nested generator exhausts');
 
-my $feature_error = eval q{
-    use feature 'generator';
-    yield 1;
-};
-like($@, qr/yield outside a generator/, 'yield is rejected outside a generator');
+like(runperl(switches => ['-Mfeature=generator'], stderr => 1,
+             prog => 'yield 1'),
+    qr/yield outside a generator/, 'yield is rejected outside a generator');
 
-my $ordinary_error = eval q{
-    use feature 'generator';
-    sub ordinary_generator_test { yield 1 }
-};
-like($@, qr/yield outside a generator/, 'yield is rejected in an ordinary sub');
+like(runperl(switches => ['-Mfeature=generator'], stderr => 1,
+             prog => 'sub ordinary_generator_test { yield 1 }'),
+    qr/yield outside a generator/, 'yield is rejected in an ordinary sub');
 
-my $disabled_error = eval q{
-    no feature 'generator';
-    my $not_a_generator = generator { 1 };
-};
-like($@, qr/Can't locate object method "generator"/,
+like(runperl(stderr => 1,
+             prog => 'my $not_a_generator = generator { 1 }'),
+    qr/Can't locate object method "generator"/,
     'generator syntax remains feature gated');
