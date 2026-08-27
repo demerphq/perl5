@@ -545,7 +545,7 @@ Perl_generator_resume(pTHX_ PERL_GENERATOR *generator)
         {
             SV * const error = generator->error;
             generator->error = NULL;
-            die_unwind(error);
+            die_unwind(sv_2mortal(error));
         }
         NOT_REACHED;
     }
