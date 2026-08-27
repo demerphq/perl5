@@ -71,7 +71,16 @@ Validation so far:
 
 ## Phase 3 — Prompt and generator runtime
 
-Status: pending.
+Status: runtime ownership layer in progress.
+
+Implementation notes:
+
+- Added generator lifecycle states, reserving zero as `INVALID` so zeroed
+  storage cannot look like a valid generator.
+- Added retained body/value ownership and explicit capture/free operations.
+- Added resume logic with a fresh `JMPENV`, boundary capture, exhaustion, and
+  failed-generator handling. The compiler-side body setup and explicit yield
+  operation are still pending.
 
 Follow-up design investigation:
 

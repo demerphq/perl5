@@ -1402,6 +1402,23 @@ typedef struct perl_process_scheduler {
     int                 failure;
 } PERL_PROCESS_SCHEDULER;
 
+typedef enum {
+    PERL_GENERATOR_INVALID = 0,
+    PERL_GENERATOR_NEW,
+    PERL_GENERATOR_RUNNING,
+    PERL_GENERATOR_YIELDED,
+    PERL_GENERATOR_EXHAUSTED,
+    PERL_GENERATOR_FAILED
+} PERL_GENERATOR_STATE;
+
+typedef struct perl_generator {
+    CV *                    body;
+    PERL_PROCESS_STATE       process;
+    SV *                    value;
+    PERL_GENERATOR_STATE    state;
+    bool                    captured;
+} PERL_GENERATOR;
+
 #define cxstack		(PL_curstackinfo->si_cxstack)
 #define cxstack_ix	(PL_curstackinfo->si_cxix)
 #define cxstack_max	(PL_curstackinfo->si_cxmax)

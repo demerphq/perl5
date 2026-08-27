@@ -1492,6 +1492,14 @@ Adfpt	|char * |form		|NN const char *pat			\
 : Only used in perl.c
 p	|void	|free_tied_hv_pool
 Cp	|void	|free_tmps
+Chp	|void	|generator_capture					\
+				|NN PERL_GENERATOR *generator		\
+				|NULLOK SV *value
+Chp	|void	|generator_free |NN PERL_GENERATOR *generator
+Chp	|PERL_GENERATOR *|generator_new 				\
+				|NN CV *body
+Chp	|int	|generator_resume					\
+				|NN PERL_GENERATOR *generator
 ERXp	|SV *	|get_and_check_backslash_N_name 			\
 				|SPTR const char *s			\
 				|EPTRge const char *e			\

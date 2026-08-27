@@ -171,6 +171,101 @@ Perl_process_scheduler_run(pTHX_ PERL_PROCESS_SCHEDULER *scheduler)
     return scheduler->failure ? -1 : 0;
 }
 
+PERL_GENERATOR *
+Perl_generator_new(pTHX_ CV *body)
+{
+    PERL_GENERATOR *generator;
+
+    PERL_ARGS_ASSERT_GENERATOR_NEW;
+    Newxz(generator, 1, PERL_GENERATOR);
+    generator->body = (CV *)SvREFCNT_inc_simple((SV *)body);
+    generator->state = PERL_GENERATOR_NEW;
+    return generator;
+}
+
+void
+Perl_generator_free(pTHX_ PERL_GENERATOR *generator)
+{
+    PERL_ARGS_ASSERT_GENERATOR_FREE;
+    SvREFCNT_dec(generator->value);
+    SvREFCNT_dec((SV *)generator->body);
+    Safefree(generator);
+}
+
+static int
+S_generator_boundary(pTHX_ OP *nextop, void *data)
+{
+    PERL_GENERATOR * const generator = (PERL_GENERATOR *)data;
+
+    process_state_save(&generator->process);
+    generator->captured = TRUE;
+    generator->state = nextop ? PERL_GENERATOR_YIELDED
+                              : PERL_GENERATOR_EXHAUSTED;
+    return PERL_RUNOPS_BOUNDARY_YIELD;
+}
+
+void
+Perl_generator_capture(pTHX_ PERL_GENERATOR *generator, SV *value)
+{
+    PERL_ARGS_ASSERT_GENERATOR_CAPTURE;
+    if (generator->captured
+        || (generator->state != PERL_GENERATOR_NEW
+            && generator->state != PERL_GENERATOR_RUNNING))
+        croak("generator continuation is not available");
+
+    SvREFCNT_dec(generator->value);
+    generator->value = SvREFCNT_inc(value);
+    process_state_save(&generator->process);
+    generator->captured = TRUE;
+    generator->state = PERL_GENERATOR_YIELDED;
+}
+
+int
+Perl_generator_resume(pTHX_ PERL_GENERATOR *generator)
+{
+    PERL_PROCESS_STATE caller_state;
+    runops_boundary_proc_t old_hook = PL_runops_boundary_hook;
+    void * const old_data = PL_runops_boundary_data;
+    int ret;
+
+    PERL_ARGS_ASSERT_GENERATOR_RESUME;
+    if (generator->state == PERL_GENERATOR_EXHAUSTED)
+        croak("cannot resume an exhausted generator");
+    if (generator->state == PERL_GENERATOR_FAILED)
+        croak("cannot resume a failed generator");
+    if (!generator->captured)
+        croak("generator has no suspended continuation");
+
+    process_state_save(&caller_state);
+    generator->captured = FALSE;
+    generator->state = PERL_GENERATOR_RUNNING;
+    process_state_restore(&generator->process);
+    PL_runops_boundary_hook = S_generator_boundary;
+    PL_runops_boundary_data = generator;
+
+    dJMPENV;
+    JMPENV_PUSH(ret);
+    switch (ret) {
+    case 0:
+        PL_runops(aTHX);
+        break;
+    default:
+        generator->state = PERL_GENERATOR_FAILED;
+        JMPENV_POP;
+        PL_runops_boundary_hook = old_hook;
+        PL_runops_boundary_data = old_data;
+        process_state_restore(&caller_state);
+        JMPENV_JUMP(ret);
+        NOT_REACHED;
+    }
+    JMPENV_POP;
+
+    PL_runops_boundary_hook = old_hook;
+    PL_runops_boundary_data = old_data;
+    process_state_restore(&caller_state);
+    return generator->state == PERL_GENERATOR_YIELDED ? 1 : 0;
+}
+
 int
 Perl_runops_standard(pTHX)
 {

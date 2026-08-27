@@ -1664,6 +1664,35 @@ Perl_free_tmps(pTHX)
 #define PERL_ARGS_ASSERT_FREE_TMPS              \
         Perl_assert_aTHX
 
+PERL_CALLCONV void
+Perl_generator_capture(pTHX_ PERL_GENERATOR *generator, SV *value)
+        Perl_attribute_nonnull_aTHX
+        Perl_attribute_nonnull(pTHX_1);
+#define PERL_ARGS_ASSERT_GENERATOR_CAPTURE      \
+        Perl_assert_aTHX; assert(generator)
+
+PERL_CALLCONV void
+Perl_generator_free(pTHX_ PERL_GENERATOR *generator)
+        Perl_attribute_nonnull_aTHX
+        Perl_attribute_nonnull(pTHX_1);
+#define PERL_ARGS_ASSERT_GENERATOR_FREE         \
+        Perl_assert_aTHX; assert(generator)
+
+PERL_CALLCONV PERL_GENERATOR *
+Perl_generator_new(pTHX_ CV *body)
+        Perl_attribute_nonnull_aTHX
+        Perl_attribute_nonnull(pTHX_1);
+#define PERL_ARGS_ASSERT_GENERATOR_NEW          \
+        Perl_assert_aTHX; assert(body); \
+        assert(SvTYPE(body) == SVt_PVCV || SvTYPE(body) == SVt_PVFM)
+
+PERL_CALLCONV int
+Perl_generator_resume(pTHX_ PERL_GENERATOR *generator)
+        Perl_attribute_nonnull_aTHX
+        Perl_attribute_nonnull(pTHX_1);
+#define PERL_ARGS_ASSERT_GENERATOR_RESUME       \
+        Perl_assert_aTHX; assert(generator)
+
 PERL_CALLCONV SV *
 Perl_get_and_check_backslash_N_name(pTHX_ const char *s, const char *e, const bool is_utf8, const char **error_msg)
         Perl_attribute_nonnull_aTHX
