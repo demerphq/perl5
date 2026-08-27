@@ -130,3 +130,7 @@ my $disabled_error = eval q{
 };
 like($@, qr/Can't locate object method "generator"/,
     'generator syntax remains feature gated');
+
+undef $finite, $undef, $closure, $loop, $inner_eval, $failed, $args,
+    $scalar, $list_context, $scalar_context, $localized, $nested_outer,
+    $nested_inner;
