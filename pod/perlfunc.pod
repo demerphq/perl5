@@ -3591,6 +3591,8 @@ Portability issues: L<perlport/getsockopt>.
 =item generator BLOCK
 X<generator> X<yield>
 
+=for Pod::Functions =!Non-functions
+
 =for Pod::Functions create a one-shot generator
 
 The experimental C<generator> feature creates a callable generator from a
