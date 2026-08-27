@@ -128,7 +128,10 @@ Compiler direction:
   an owned stackinfo. Basic finite generators, closures, `undef` yields,
   exhaustion, and uncaught failure propagation have been exercised. Nested
   `eval` during a suspended body still needs exception-context integration;
-  that remains an explicit blocker for completing this phase.
+  that remains an explicit blocker for completing this phase. The first
+  focused Test::More regression probe also exposed a caller-stack interaction
+  during exhaustion, so the public test file is deferred until that ownership
+  issue is fixed.
 
 Follow-up design investigation:
 

@@ -387,6 +387,7 @@ Perl_generator_resume(pTHX_ PERL_GENERATOR *generator)
     JMPENV_PUSH(ret);
     switch (ret) {
     case 0:
+        cur_env.je_mustcatch = cur_env.je_prev->je_mustcatch;
         if (new_generator
             && generator->state == PERL_GENERATOR_RUNNING
             && !generator->captured) {
