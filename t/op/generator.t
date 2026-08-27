@@ -8,7 +8,7 @@ BEGIN {
     set_up_inc('../lib');
 }
 
-plan(tests => 36);
+plan(tests => 40);
 
 use feature 'generator';
 
@@ -131,6 +131,19 @@ like(runperl(switches => ['-Mfeature=generator'], stderr => 1,
 like(runperl(switches => ['-Mfeature=generator'], stderr => 1,
              prog => 'sub ordinary_generator_test { yield 1 }'),
     qr/yield outside a generator/, 'yield is rejected in an ordinary sub');
+
+like(runperl(switches => ['-Mfeature=generator'], stderr => 1,
+             prog => 'sort { yield 1 } 1, 2'),
+    qr/yield outside a generator/, 'yield is rejected in sort callbacks');
+like(runperl(switches => ['-Mfeature=generator'], stderr => 1,
+             prog => 'map { yield 1 } 1, 2'),
+    qr/yield outside a generator/, 'yield is rejected in map callbacks');
+like(runperl(switches => ['-Mfeature=generator'], stderr => 1,
+             prog => 'grep { yield 1 } 1, 2'),
+    qr/yield outside a generator/, 'yield is rejected in grep callbacks');
+like(runperl(switches => ['-Mfeature=generator'], stderr => 1,
+             prog => 'q[a] =~ /(?{ yield 1 })/'),
+    qr/yield outside a generator/, 'yield is rejected in regex callbacks');
 
 like(runperl(stderr => 1,
              prog => 'my $not_a_generator = generator { 1 }'),
