@@ -136,6 +136,11 @@ Compiler direction:
   focused Test::More regression probe also exposed a caller-stack interaction
   during exhaustion, so the public test file is deferred until that ownership
   issue is fixed.
+- A temporary fake eval context was removed from the persistent-frame path:
+  it made nested evals and cleanup less stable. The current frame is therefore
+  a plain persistent sub invocation; outer eval catches uncaught generator
+  failures, while inner eval and assertion-heavy exhaustion remain unfinished
+  exception/ownership work.
 
 Follow-up design investigation:
 

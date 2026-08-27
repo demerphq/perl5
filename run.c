@@ -396,16 +396,11 @@ Perl_generator_resume(pTHX_ PERL_GENERATOR *generator)
             S_generator_new_stacks(aTHX);
             process_state_save(&generator->process);
             PUSHMARK(PL_stack_sp);
-            create_eval_scope(NULL, PL_stack_sp, G_FAKINGEVAL);
-            generator->eval_active = TRUE;
-            generator->eval_cxix = cxstack_ix;
             rpp_xpush_1(MUTABLE_SV(generator->body));
             PL_op = (OP *)&generator->invoke;
             PL_runops(aTHX);
         }
         else {
-            generator->process.curstackinfo->si_cxstack[generator->eval_cxix]
-                .blk_eval.cur_top_env = PL_top_env;
             PL_runops(aTHX);
         }
         break;
@@ -413,7 +408,6 @@ Perl_generator_resume(pTHX_ PERL_GENERATOR *generator)
         generator->state = PERL_GENERATOR_FAILED;
         SvREFCNT_dec(generator->error);
         generator->error = SvREFCNT_inc(ERRSV);
-        generator->eval_active = FALSE;
         if (generator->stack_pushed)
             S_generator_pop_stackinfo(aTHX_ generator);
         JMPENV_POP;
@@ -429,12 +423,6 @@ Perl_generator_resume(pTHX_ PERL_GENERATOR *generator)
     PL_runops_boundary_hook = old_hook;
     PL_runops_boundary_data = old_data;
     if (generator->state == PERL_GENERATOR_EXHAUSTED) {
-        if (generator->eval_active) {
-            process_state_restore(&generator->process);
-            delete_eval_scope();
-            process_state_save(&generator->process);
-            generator->eval_active = FALSE;
-        }
         S_generator_pop_stackinfo(aTHX_ generator);
         generator->captured = FALSE;
     }
