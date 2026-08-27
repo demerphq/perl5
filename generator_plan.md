@@ -84,12 +84,14 @@ Implementation notes:
 - Nullable yielded values are retained conditionally, so an empty yielded
   value cannot be mistaken for an owned SV reference.
 
-Compiler constraint:
+Compiler direction:
 
-- The existing anonymous-sub compiler path cannot be reused as a surface-only
-  implementation: generator bodies need dedicated CV setup and a yield op so
-  resumption returns at the explicit yield point rather than at an arbitrary
-  opcode boundary.
+- Generator bodies may reuse the existing anonymous-CV compiler machinery.
+  The specialized behavior belongs in the generator prompt/runtime, which
+  owns the suspended call frame and process state.
+- `yield` remains a real feature-gated keyword and dedicated opcode. It is the
+  user-visible suspension point; automatic opcode-boundary yielding is only a
+  trial/scheduler mechanism for validating continuation mechanics.
 
 Follow-up design investigation:
 
