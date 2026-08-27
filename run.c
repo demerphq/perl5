@@ -238,7 +238,7 @@ S_generator_xsub(pTHX_ CV *cv)
     if (!generator_resume(generator))
         XSRETURN_EMPTY;
     EXTEND(SP, 1);
-    ST(0) = sv_2mortal(newSVsv(generator->value));
+    ST(0) = newSVsv(generator->value);
     XSRETURN(1);
 }
 
@@ -264,13 +264,27 @@ static void S_generator_attach_stackinfo(pTHX_ PERL_GENERATOR *generator);
 static void
 S_generator_free_tmps(pTHX_ PERL_PROCESS_STATE *process)
 {
-    while (process->tmps_ix > process->tmps_floor) {
+    while (process->tmps_ix >= 0) {
         SV * const sv = process->tmps_stack[process->tmps_ix--];
         if (sv) {
             SvTEMP_off(sv);
             SvREFCNT_dec_NN(sv);
         }
     }
+}
+
+static void
+S_generator_free_process_stacks(pTHX_ PERL_PROCESS_STATE *process)
+{
+    S_generator_free_tmps(aTHX_ process);
+    Safefree(process->markstack);
+    Safefree(process->savestack);
+    Safefree(process->scopestack);
+    Safefree(process->tmps_stack);
+    process->markstack = NULL;
+    process->savestack = NULL;
+    process->scopestack = NULL;
+    process->tmps_stack = NULL;
 }
 
 void
@@ -288,15 +302,7 @@ Perl_generator_free(pTHX_ PERL_GENERATOR *generator)
              * its context stack, but do not switch the active PL_* pointers. */
             if (generator->stack_detached)
                 S_generator_attach_stackinfo(aTHX_ generator);
-            S_generator_free_tmps(aTHX_ &generator->process);
-            Safefree(generator->process.markstack);
-            Safefree(generator->process.savestack);
-            Safefree(generator->process.scopestack);
-            Safefree(generator->process.tmps_stack);
-            generator->process.markstack = NULL;
-            generator->process.savestack = NULL;
-            generator->process.scopestack = NULL;
-            generator->process.tmps_stack = NULL;
+            S_generator_free_process_stacks(aTHX_ &generator->process);
             CvDEPTH(generator->body) = 0;
             generator->eval_active = FALSE;
             generator->stack_pushed = FALSE;
@@ -310,8 +316,12 @@ Perl_generator_free(pTHX_ PERL_GENERATOR *generator)
                 dounwind(-1);
             generator->eval_active = FALSE;
             S_generator_pop_stackinfo(aTHX_ generator);
+            S_generator_free_process_stacks(aTHX_ &generator->process);
             process_state_restore(&caller_state);
         }
+    }
+    else if (generator->process.tmps_stack) {
+        S_generator_free_process_stacks(aTHX_ &generator->process);
     }
     SvREFCNT_dec(generator->value);
     SvREFCNT_dec(generator->error);
@@ -404,7 +414,7 @@ Perl_generator_yield_value(pTHX_ SV *value)
         croak("yield outside a running generator");
 
     SvREFCNT_dec(generator->value);
-    generator->value = SvREFCNT_inc(value);
+    generator->value = newSVsv(value);
     generator->yield_pending = TRUE;
 }
 
@@ -438,7 +448,7 @@ Perl_generator_capture(pTHX_ PERL_GENERATOR *generator, SV *value)
         croak("generator continuation is not available");
 
     SvREFCNT_dec(generator->value);
-    generator->value = value ? SvREFCNT_inc(value) : NULL;
+    generator->value = value ? newSVsv(value) : NULL;
     process_state_save(&generator->process);
     generator->captured = TRUE;
     generator->state = PERL_GENERATOR_YIELDED;
@@ -522,7 +532,7 @@ Perl_generator_resume(pTHX_ PERL_GENERATOR *generator)
         generator->state = PERL_GENERATOR_FAILED;
         generator->eval_active = FALSE;
         SvREFCNT_dec(generator->error);
-        generator->error = SvREFCNT_inc(ERRSV);
+        generator->error = newSVsv(ERRSV);
         if (generator->stack_pushed && cxstack_ix >= 0)
             dounwind(-1);
         if (generator->stack_pushed)
@@ -532,7 +542,7 @@ Perl_generator_resume(pTHX_ PERL_GENERATOR *generator)
         PL_runops_boundary_data = old_data;
         process_state_restore(&caller_state);
         PL_restartjmpenv = PL_top_env;
-        croak_sv(generator->error);
+        die_unwind(newSVsv(generator->error));
         NOT_REACHED;
     }
     JMPENV_POP;
