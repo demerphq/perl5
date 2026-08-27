@@ -8,7 +8,7 @@ BEGIN {
     set_up_inc('../lib');
 }
 
-plan(tests => 40);
+plan(tests => 41);
 
 use feature 'generator';
 
@@ -144,6 +144,15 @@ like(runperl(switches => ['-Mfeature=generator'], stderr => 1,
 like(runperl(switches => ['-Mfeature=generator'], stderr => 1,
              prog => 'q[a] =~ /(?{ yield 1 })/'),
     qr/yield outside a generator/, 'yield is rejected in regex callbacks');
+
+is(runperl(switches => ['-Mfeature=generator', '-MScalar::Util=weaken'],
+           prog => 'package Generator::Cleanup; sub DESTROY { }'
+                . ' package main; my $weak;'
+                . ' my $generator = generator { my $object = bless {},'
+                . ' q[Generator::Cleanup]; $weak = $object; weaken($weak);'
+                . ' yield 1 }; $generator->(); undef $generator;'
+                . ' print defined($weak) ? q[live] : q[destroyed]'),
+   'destroyed', 'dropping a suspended generator releases its pad');
 
 like(runperl(stderr => 1,
              prog => 'my $not_a_generator = generator { 1 }'),

@@ -443,8 +443,10 @@ PP(pp_anoncode)
 
     SV* sv;
 
-    if (CvGENERATOR(cv))
+    if (CvGENERATOR(cv)) {
         cv = generator_wrap(cv);
+        sv_2mortal(MUTABLE_SV(cv));
+    }
     sv = MUTABLE_SV(cv);
 
     if (LIKELY(PL_op->op_flags & OPf_REF)) {
