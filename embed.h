@@ -481,6 +481,7 @@
 # define generator_free(a)                      Perl_generator_free(aTHX_ a)
 # define generator_new(a)                       Perl_generator_new(aTHX_ a)
 # define generator_resume(a)                    Perl_generator_resume(aTHX_ a)
+# define generator_wrap(a)                      Perl_generator_wrap(aTHX_ a)
 # define generator_yield_value(a)               Perl_generator_yield_value(aTHX_ a)
 # define get_av(a,b)                            Perl_get_av(aTHX_ a,b)
 # define get_cv(a,b)                            Perl_get_cv(aTHX_ a,b)

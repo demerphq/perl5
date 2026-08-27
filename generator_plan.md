@@ -124,10 +124,11 @@ Compiler direction:
   debugger COP, regex-interpolation, multideref, taint, warning, and magic
   flags. These are still copied field-by-field; the contiguous-record/one-
   assignment optimization remains a follow-up investigation.
-- A dedicated stackinfo was also tested for generator startup, but the
-  callable-wrapper smoke test still segfaulted. That change is not being
-  treated as a working runtime proof; the wrapper remains reverted while the
-  call-context invariant is audited further.
+- The callable wrapper is now backed by a persistent `LOGOP` entry frame and
+  an owned stackinfo. Basic finite generators, closures, `undef` yields,
+  exhaustion, and uncaught failure propagation have been exercised. Nested
+  `eval` during a suspended body still needs exception-context integration;
+  that remains an explicit blocker for completing this phase.
 
 Follow-up design investigation:
 

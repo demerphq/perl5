@@ -1500,6 +1500,7 @@ Chp	|PERL_GENERATOR *|generator_new 				\
 				|NN CV *body
 Chp	|int	|generator_resume					\
 				|NN PERL_GENERATOR *generator
+Chp	|CV *	|generator_wrap |NN CV *body
 Chp	|void	|generator_yield_value					\
 				|NN SV *value
 ERXp	|SV *	|get_and_check_backslash_N_name 			\
