@@ -103,6 +103,10 @@ Compiler direction:
   code reference does not yet create or resume a generator continuation.
 - The compiler marks these body CVs with an internal generator flag so the
   eventual invocation path can distinguish them from ordinary anonymous CVs.
+- The generator CV flag is kept out of the public `B` constant scan by making
+  it a core-private `PERL_CVf_GENERATOR` definition. The grammar now marks
+  the CV before parsing its body; top-level `yield` still reaches the runtime
+  guard, so a dedicated parser-context diagnostic remains to be completed.
 - The trial runtime now has an explicit value handoff from `pp_yield` to the
   active generator boundary. A normal code-reference call still has no
   generator boundary installed and therefore reports the guarded diagnostic;

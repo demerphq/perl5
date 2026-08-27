@@ -28,7 +28,6 @@
 #   undef ALIGNED_TYPE_NAME
 #   undef CC_MAGICAL_
 #   undef CC_UNDERSCORE_
-#   undef CVf_GENERATOR
 #   undef CvGENERATOR
 #   undef CvGENERATOR_off
 #   undef CvGENERATOR_on

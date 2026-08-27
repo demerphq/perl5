@@ -1420,6 +1420,11 @@ typedef enum {
     PERL_GENERATOR_FAILED
 } PERL_GENERATOR_STATE;
 
+#define PERL_CVf_GENERATOR 0x800000 /* CV is the body of a generator */
+#define CvGENERATOR(cv)         (CvFLAGS(cv) & PERL_CVf_GENERATOR)
+#define CvGENERATOR_on(cv)      (CvFLAGS(cv) |= PERL_CVf_GENERATOR)
+#define CvGENERATOR_off(cv)     (CvFLAGS(cv) &= ~PERL_CVf_GENERATOR)
+
 typedef struct perl_generator {
     U32                     magic;
     CV *                    body;

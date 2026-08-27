@@ -123,7 +123,7 @@
 %type <opval> subscript_index
 %type <opval> subscript_keys
 
-%type <ival>  startsub startanonsub startanonmethod startformsub
+%type <ival>  startsub startanonsub startgenerator startanonmethod startformsub
 
 %type <ival> mintro
 
@@ -768,7 +768,11 @@ bare_statement_yadayada
 
 bare_statement_yield
 	: KW_YIELD term PERLY_SEMICOLON
-		{ $$ = newUNOP(OP_YIELD, 0, scalar($term)); }
+		{ if (!CvGENERATOR(PL_compcv)) {
+		      yyerror("yield outside a generator");
+		      YYERROR;
+		  }
+		  $$ = newUNOP(OP_YIELD, 0, scalar($term)); }
 	;
 
 subscript_index
@@ -1064,6 +1068,10 @@ startsub:	%empty	/* start a regular subroutine scope */
 startanonsub:	%empty	/* start an anonymous subroutine scope */
 			{ $$ = start_subparse(FALSE, CVf_ANON);
 			    SAVEFREESV(PL_compcv); }
+	;
+
+startgenerator:	KW_GENERATOR startanonsub
+			{ CvGENERATOR_on(PL_compcv); $$ = $startanonsub; }
 	;
 
 startanonmethod:	%empty	/* start an anonymous method scope */
@@ -1580,10 +1588,9 @@ anonymous
 			{ $$ = newANONLIST($optexpr); }
 	|	HASHBRACK optexpr PERLY_SEMICOLON PERLY_BRACE_CLOSE	%prec PERLY_PAREN_OPEN /* { foo => "Bar" } */
 			{ $$ = newANONHASH($optexpr); }
-	|	KW_GENERATOR    startanonsub block    %prec PERLY_PAREN_OPEN
-			{ CvGENERATOR_on(PL_compcv);
-			  SvREFCNT_inc_simple_void(PL_compcv);
-			  $$ = newANONATTRSUB($startanonsub, 0, NULL, $block); }
+	|	startgenerator block    %prec PERLY_PAREN_OPEN
+			{ SvREFCNT_inc_simple_void(PL_compcv);
+			  $$ = newANONATTRSUB($startgenerator, 0, NULL, $block); }
 	|	KW_SUB_anon     startanonsub proto subattrlist subbody    %prec PERLY_PAREN_OPEN
 			{ SvREFCNT_inc_simple_void(PL_compcv);
 			  $$ = newANONATTRSUB($startanonsub, $proto, $subattrlist, $subbody); }
