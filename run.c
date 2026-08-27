@@ -273,8 +273,15 @@ Perl_generator_free(pTHX_ PERL_GENERATOR *generator)
              * down.  Do not run scope cleanup against that stack here; the
              * generator's private stack is about to become unreachable with
              * the rest of the interpreter. */
+            process_state_save(&caller_state);
+            if (generator->stack_detached)
+                S_generator_attach_stackinfo(aTHX_ generator);
+            process_state_restore(&generator->process);
+            FREETMPS;
             CvDEPTH(generator->body) = 0;
             generator->eval_active = FALSE;
+            S_generator_pop_stackinfo(aTHX_ generator);
+            process_state_restore(&caller_state);
         }
         else {
             process_state_save(&caller_state);
