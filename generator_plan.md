@@ -107,6 +107,10 @@ Compiler direction:
   active generator boundary. A normal code-reference call still has no
   generator boundary installed and therefore reports the guarded diagnostic;
   persistent invocation bridging is the next runtime step.
+- `generator_resume()` can now start a new body through the normal `call_sv()`
+  call-frame setup, while subsequent resumes use the saved process state. The
+  public expression still returns an ordinary CV, so this internal seam is not
+  yet reachable through the trial Perl calling protocol.
 
 Follow-up design investigation:
 

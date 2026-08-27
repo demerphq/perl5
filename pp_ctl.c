@@ -6695,6 +6695,7 @@ PP(pp_yield)
 {
     dSP;
     generator_yield_value(TOPs);
+    rpp_popfree_1_NN();
     return PL_op->op_next;
 }
 

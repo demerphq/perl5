@@ -252,7 +252,7 @@ Perl_generator_resume(pTHX_ PERL_GENERATOR *generator)
         croak("cannot resume an exhausted generator");
     if (generator->state == PERL_GENERATOR_FAILED)
         croak("cannot resume a failed generator");
-    if (!generator->captured)
+    if (generator->state != PERL_GENERATOR_NEW && !generator->captured)
         croak("generator has no suspended continuation");
 
     process_state_save(&caller_state);
@@ -267,7 +267,11 @@ Perl_generator_resume(pTHX_ PERL_GENERATOR *generator)
     JMPENV_PUSH(ret);
     switch (ret) {
     case 0:
-        PL_runops(aTHX);
+        if (generator->state == PERL_GENERATOR_RUNNING
+            && !generator->captured)
+            (void)call_sv(MUTABLE_SV(generator->body), G_SCALAR);
+        else
+            PL_runops(aTHX);
         break;
     default:
         generator->state = PERL_GENERATOR_FAILED;
