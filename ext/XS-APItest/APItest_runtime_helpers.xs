@@ -402,6 +402,48 @@ CODE:
 OUTPUT:
     RETVAL
 
+bool
+process_scheduler_switch()
+CODE:
+{
+    PERL_PROCESS_STATE states[2];
+    U8 done[2] = { 0, 0 };
+    PERL_PROCESS_SCHEDULER scheduler;
+    OP *ops[2][2];
+    U8 i;
+    int ret;
+
+    for (i = 0; i < 2; i++) {
+        ops[i][0] = newOP(OP_NULL, 0);
+        ops[i][1] = newOP(OP_NULL, 0);
+        ops[i][0]->op_ppaddr = S_process_scheduler_test_pp;
+        ops[i][1]->op_ppaddr = S_process_scheduler_test_pp;
+        ops[i][0]->op_next = ops[i][1];
+        ops[i][1]->op_next = NULL;
+        process_state_save(&states[i]);
+        states[i].op = ops[i][0];
+    }
+
+    Zero(&scheduler, 1, PERL_PROCESS_SCHEDULER);
+    scheduler.states = states;
+    scheduler.done = done;
+    scheduler.count = 2;
+    scheduler.quantum = 1;
+    scheduler.max_boundaries = 8;
+    ret = process_scheduler_run(&scheduler);
+    RETVAL = ret == 0
+        && scheduler.total_boundaries == 2
+        && done[0] && done[1]
+        && !states[0].op && !states[1].op;
+
+    for (i = 0; i < 2; i++) {
+        op_free(ops[i][1]);
+        op_free(ops[i][0]);
+    }
+}
+OUTPUT:
+    RETVAL
+
 void
 setup_addissub()
 CODE:
