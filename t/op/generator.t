@@ -68,12 +68,18 @@ my $failed = generator {
     die "generator failure\n";
 };
 is_deeply(next_values($failed), [ 'before failure' ], 'failure follows a yield');
-my $failure = eval { $failed->(); 1 };
+my ($failure, $failure_error, $resumed_failed, $resumed_failed_error);
+{
+    local $@;
+    $failure = eval { $failed->(); 1 };
+    $failure_error = $@;
+    $resumed_failed = eval { $failed->(); 1 };
+    $resumed_failed_error = $@;
+}
 ok(!$failure, 'failure is reported by resume');
-like($@, qr/generator failure/, 'original failure is rethrown');
-my $resumed_failed = eval { $failed->(); 1 };
+like($failure_error, qr/generator failure/, 'original failure is rethrown');
 ok(!$resumed_failed, 'failed generator cannot be resumed');
-like($@, qr/cannot resume a failed generator/, 'failed-resume diagnostic');
+like($resumed_failed_error, qr/cannot resume a failed generator/, 'failed-resume diagnostic');
 
 my $args = generator { yield 1 };
 eval { $args->(1) };
@@ -107,9 +113,14 @@ is($/, $saved_input_separator, 'localization is restored at exhaustion');
 
 my $reentrant;
 $reentrant = generator { yield $reentrant->() };
-my $reentered = eval { $reentrant->(); 1 };
+my ($reentered, $reentered_error);
+{
+    local $@;
+    $reentered = eval { $reentrant->(); 1 };
+    $reentered_error = $@;
+}
 ok(!$reentered, 're-entrant resume is rejected');
-like($@, qr/generator has no suspended continuation/,
+like($reentered_error, qr/generator has no suspended continuation/,
     're-entrant resume diagnostic');
 $reentrant = undef;
 
