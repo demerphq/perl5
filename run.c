@@ -261,6 +261,18 @@ static void S_generator_pop_stackinfo(pTHX_ PERL_GENERATOR *generator);
 static void S_generator_detach_stackinfo(pTHX_ PERL_GENERATOR *generator);
 static void S_generator_attach_stackinfo(pTHX_ PERL_GENERATOR *generator);
 
+static void
+S_generator_free_tmps(pTHX_ PERL_PROCESS_STATE *process)
+{
+    while (process->tmps_ix > process->tmps_floor) {
+        SV * const sv = process->tmps_stack[process->tmps_ix--];
+        if (sv) {
+            SvTEMP_off(sv);
+            SvREFCNT_dec_NN(sv);
+        }
+    }
+}
+
 void
 Perl_generator_free(pTHX_ PERL_GENERATOR *generator)
 {
@@ -276,6 +288,7 @@ Perl_generator_free(pTHX_ PERL_GENERATOR *generator)
              * its context stack, but do not switch the active PL_* pointers. */
             if (generator->stack_detached)
                 S_generator_attach_stackinfo(aTHX_ generator);
+            S_generator_free_tmps(aTHX_ &generator->process);
             Safefree(generator->process.markstack);
             Safefree(generator->process.savestack);
             Safefree(generator->process.scopestack);
