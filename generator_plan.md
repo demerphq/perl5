@@ -111,6 +111,12 @@ Compiler direction:
   call-frame setup, while subsequent resumes use the saved process state. The
   public expression still returns an ordinary CV, so this internal seam is not
   yet reachable through the trial Perl calling protocol.
+- A first attempt to expose that seam through an anonymous XSUB wrapper was
+  reverted after the first call segfaulted. The failure confirms that a
+  continuation cannot retain temporary call machinery whose return path or
+  exception bookkeeping lives in `call_sv()`'s C stack. The next runtime
+  design must give the generator a persistent return operation/context before
+  exposing a callable wrapper.
 
 Follow-up design investigation:
 
