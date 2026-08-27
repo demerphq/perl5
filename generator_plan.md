@@ -13,7 +13,7 @@ was not supported by sufficient evidence.
 - [x] Feature/compiler diagnostics and documentation metadata
 - [x] DEBUGGING and sanitizer validation
 - [x] Destruction, GC, callback-context, and scheduler edge-case coverage
-- [ ] Final full relevant validation and cleanup
+- [x] Final full relevant validation and cleanup
 
 The DEBUGGING threaded build passes the focused generator, eval, loop, and
 thread tests.  An isolated ASAN/DEBUGGING threaded build also passes the
@@ -22,6 +22,12 @@ current ptrace-restricted test environment.  Cleanup coverage includes
 dropping a suspended generator with a lexical object, callback diagnostics,
 process-state round trips, and deterministic quantum-one scheduler
 alternation.
+
+The final scoped native harness passes all five relevant files (274 tests),
+and the XS scheduler test passes all three checks.  The DEBUGGING generator
+test still reports two non-fatal temporary-SV teardown diagnostics; minimal
+runtime reproductions do not reproduce them, so they remain documented as a
+test-harness teardown limitation rather than suppressed.
 
 The process-local `PL_*` fields remain field-by-field snapshots.  Keep the
 follow-up investigation for a contiguous execution record that could be
