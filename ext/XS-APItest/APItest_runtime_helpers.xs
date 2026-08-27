@@ -373,6 +373,35 @@ CODE:
 OUTPUT:
     RETVAL
 
+bool
+process_state_roundtrip()
+CODE:
+{
+    PERL_PROCESS_STATE state;
+    OP * const op = PL_op;
+    PERL_SI * const stackinfo = PL_curstackinfo;
+
+    process_state_save(&state);
+    PL_op = NULL;
+    PL_curstackinfo = NULL;
+    process_state_restore(&state);
+    RETVAL = PL_op == op && PL_curstackinfo == stackinfo;
+}
+OUTPUT:
+    RETVAL
+
+int
+process_scheduler_reject()
+CODE:
+{
+    PERL_PROCESS_SCHEDULER scheduler;
+
+    Zero(&scheduler, 1, PERL_PROCESS_SCHEDULER);
+    RETVAL = process_scheduler_run(&scheduler);
+}
+OUTPUT:
+    RETVAL
+
 void
 setup_addissub()
 CODE:
