@@ -1,0 +1,87 @@
+# Trial generators using one-shot continuations
+
+Working branch: `yves/fork_sub` (based on current `origin/blead`).
+
+## Phase 0 — Baseline and instrumentation
+
+Status: completed.
+
+- Confirm branch ancestry and clean working tree.
+- Record available baseline test results.
+- Identify the runops boundary and the smallest focused harness.
+
+Baseline:
+
+- `make test_prep`: passed.
+- `./perl -Ilib t/op/eval.t`: passed; only the suite's existing TODO tests
+  reported as TODO failures.
+- Working tree was clean before this plan file was created.
+
+## Phase 1 — Process execution state
+
+Status: completed.
+
+- Add the internal process-state representation and save/restore primitives.
+- Compile and run focused tests before proceeding to the runops hook.
+
+Implementation notes:
+
+- `PERL_PROCESS_STATE` records the opcode, cop/pad, stackinfo, value-stack
+  bounds, mark/save/scope/temp stacks, regex context pointers, and execution
+  flags needed at a boundary.
+- `process_state_save()` and `process_state_restore()` are core-internal
+  operations; they do not capture `JMPENV`, which must remain a fresh C-stack
+  exception boundary for each run.
+- The current implementation preserves ownership by retaining interpreter
+  stack allocations and switching only their active pointers. Scheduler use
+  and explicit detach/cleanup semantics are deferred to the next phase.
+
+Validation:
+
+- `make regen`: passed.
+- Rebuilt `perl` with `CCACHE_DIR=/home/demerphq/git_tree/perldev/.ccache`:
+  passed.
+- `nm ./perl`: confirmed both process-state symbols are linked.
+- `./perl -Ilib t/op/eval.t`: passed.
+
+## Phase 2 — Opcode-boundary scheduler hook
+
+Status: completed.
+
+Implementation notes:
+
+- Added an interpreter-local boundary callback and callback data pointer.
+- `runops_standard()` and `runops_debug()` invoke it only after `pp_*()` has
+  returned, passing the returned next op (or `NULL` at normal completion).
+- A non-zero callback result returns `PERL_RUNOPS_BOUNDARY_YIELD`; an unset
+  callback leaves existing execution unchanged.
+- Debug-loop cleanup and high-water-mark restoration remain on the common path
+  before a yield result is returned.
+- Added a bounded round-robin scheduler driver which saves each process at a
+  boundary, marks normal completion, alternates runnable states by quantum,
+  detects a global boundary limit, and restores the caller state afterward.
+
+Validation so far:
+
+- `make regen`: passed.
+- Rebuilt `perl` with the workspace-local `.ccache`: passed.
+- `make test_prep` with the workspace-local `.ccache`: passed.
+- `./perl -Ilib t/op/eval.t`: passed.
+- `./perl -Ilib t/op/while.t`: passed.
+
+## Phase 3 — Prompt and generator runtime
+
+Status: pending.
+
+Follow-up design investigation:
+
+- Assess reorganizing the process-local `PL_*` execution variables into a
+  contiguous record, allowing save/restore to use a structure copy and, if
+  safe, swapping the active record through one indirection. Check ABI,
+  threaded-interpreter layout, GC visibility, and embedded/perl extensions
+  before adopting such a layout.
+
+Later phases remain as specified in the task handoff: process state, opcode-boundary
+scheduling, runtime, exception/cleanup integration, compiler syntax, and protocol
+hardening. This file is updated at each phase boundary and removed only after all
+implementation and validation work is complete.

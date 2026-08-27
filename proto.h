@@ -5352,6 +5352,27 @@ Perl_prescan_version(pTHX_ const char *s, bool strict, const char **errstr, bool
 #define PERL_ARGS_ASSERT_PRESCAN_VERSION        \
         Perl_assert_aTHX; assert(s)
 
+PERL_CALLCONV int
+Perl_process_scheduler_run(pTHX_ PERL_PROCESS_SCHEDULER *scheduler)
+        Perl_attribute_nonnull_aTHX
+        Perl_attribute_nonnull(pTHX_1);
+#define PERL_ARGS_ASSERT_PROCESS_SCHEDULER_RUN  \
+        Perl_assert_aTHX; assert(scheduler)
+
+PERL_CALLCONV void
+Perl_process_state_restore(pTHX_ const PERL_PROCESS_STATE *state)
+        Perl_attribute_nonnull_aTHX
+        Perl_attribute_nonnull(pTHX_1);
+#define PERL_ARGS_ASSERT_PROCESS_STATE_RESTORE  \
+        Perl_assert_aTHX; assert(state)
+
+PERL_CALLCONV void
+Perl_process_state_save(pTHX_ PERL_PROCESS_STATE *state)
+        Perl_attribute_nonnull_aTHX
+        Perl_attribute_nonnull(pTHX_1);
+#define PERL_ARGS_ASSERT_PROCESS_STATE_SAVE     \
+        Perl_assert_aTHX; assert(state)
+
 PERL_CALLCONV void *
 Perl_ptr_table_fetch(pTHX_ PTR_TBL_t * const tbl, const void * const sv)
         Perl_attribute_nonnull_aTHX

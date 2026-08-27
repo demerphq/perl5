@@ -2886,6 +2886,12 @@ Adp	|const char *|prescan_version					\
 				|NULLOK int *ssaw_decimal		\
 				|NULLOK int *swidth			\
 				|NULLOK bool *salpha
+Chp	|int	|process_scheduler_run					\
+				|NN PERL_PROCESS_SCHEDULER *scheduler
+Chp	|void	|process_state_restore					\
+				|NN const PERL_PROCESS_STATE *state
+Chp	|void	|process_state_save					\
+				|NN PERL_PROCESS_STATE *state
 ARdp	|void * |ptr_table_fetch|NN PTR_TBL_t * const tbl		\
 				|NULLOK const void * const sv
 Adp	|void	|ptr_table_free |NULLOK PTR_TBL_t * const tbl

@@ -3415,6 +3415,7 @@ int
 Perl_runops_debug(pTHX)
 {
     PERL_ARGS_ASSERT_RUNOPS_DEBUG;
+    int boundary_result = 0;
 
 #ifdef PERL_USE_HWM
     SSize_t orig_stack_hwm = PL_curstackinfo->si_stack_hwm;
@@ -3471,7 +3472,13 @@ Perl_runops_debug(pTHX)
         }
 
         PERL_DTRACE_PROBE_OP(PL_op);
-    } while ((PL_op = PL_op->op_ppaddr(aTHX)));
+        PL_op = PL_op->op_ppaddr(aTHX);
+        if (PL_runops_boundary_hook
+            && PL_runops_boundary_hook(aTHX_ PL_op, PL_runops_boundary_data)) {
+            boundary_result = PERL_RUNOPS_BOUNDARY_YIELD;
+            break;
+        }
+    } while (PL_op);
     DEBUG_l(deb("leaving RUNOPS level\n"));
     PERL_ASYNC_CHECK();
 
@@ -3480,6 +3487,8 @@ Perl_runops_debug(pTHX)
         PL_curstackinfo->si_stack_hwm = orig_stack_hwm;
 #endif
     TAINT_NOT;
+    if (boundary_result)
+        return boundary_result;
     return 0;
 }
 

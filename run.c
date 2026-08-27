@@ -33,6 +33,144 @@
  *     [p.600 of _The Lord of the Rings_, III/xi: "The Palantír"]
  */
 
+void
+Perl_process_state_save(pTHX_ PERL_PROCESS_STATE *state)
+{
+    PERL_ARGS_ASSERT_PROCESS_STATE_SAVE;
+
+    state->op = PL_op;
+    state->curcop = PL_curcop;
+    state->comppad = PL_comppad;
+    state->curpad = PL_curpad;
+    state->curstack = PL_curstack;
+    state->curstackinfo = PL_curstackinfo;
+    state->stack_base = PL_stack_base;
+    state->stack_max = PL_stack_max;
+    state->stack_sp = PL_stack_sp;
+    state->curpm = PL_curpm;
+    state->curpm_under = PL_curpm_under;
+    state->markstack = PL_markstack;
+    state->markstack_ptr = PL_markstack_ptr;
+    state->markstack_max = PL_markstack_max;
+    state->savestack = PL_savestack;
+    state->savestack_ix = PL_savestack_ix;
+    state->savestack_max = PL_savestack_max;
+    state->scopestack = PL_scopestack;
+    state->scopestack_ix = PL_scopestack_ix;
+    state->scopestack_max = PL_scopestack_max;
+    state->tmps_stack = PL_tmps_stack;
+    state->tmps_ix = PL_tmps_ix;
+    state->tmps_floor = PL_tmps_floor;
+    state->tmps_max = PL_tmps_max;
+    state->in_eval = PL_in_eval;
+    state->localizing = PL_localizing;
+    state->restartop = PL_restartop;
+}
+
+void
+Perl_process_state_restore(pTHX_ const PERL_PROCESS_STATE *state)
+{
+    PERL_ARGS_ASSERT_PROCESS_STATE_RESTORE;
+
+    PL_op = state->op;
+    PL_curcop = state->curcop;
+    PL_comppad = state->comppad;
+    PL_curpad = state->curpad;
+    PL_curstack = state->curstack;
+    PL_curstackinfo = state->curstackinfo;
+    PL_stack_base = state->stack_base;
+    PL_stack_max = state->stack_max;
+    PL_stack_sp = state->stack_sp;
+    PL_curpm = state->curpm;
+    PL_curpm_under = state->curpm_under;
+    PL_markstack = state->markstack;
+    PL_markstack_ptr = state->markstack_ptr;
+    PL_markstack_max = state->markstack_max;
+    PL_savestack = state->savestack;
+    PL_savestack_ix = state->savestack_ix;
+    PL_savestack_max = state->savestack_max;
+    PL_scopestack = state->scopestack;
+    PL_scopestack_ix = state->scopestack_ix;
+    PL_scopestack_max = state->scopestack_max;
+    PL_tmps_stack = state->tmps_stack;
+    PL_tmps_ix = state->tmps_ix;
+    PL_tmps_floor = state->tmps_floor;
+    PL_tmps_max = state->tmps_max;
+    PL_in_eval = state->in_eval;
+    PL_localizing = state->localizing;
+    PL_restartop = state->restartop;
+}
+
+static int
+S_process_scheduler_boundary(pTHX_ OP *nextop, void *data)
+{
+    PERL_PROCESS_SCHEDULER * const scheduler = (PERL_PROCESS_SCHEDULER *)data;
+
+    process_state_save(&scheduler->states[scheduler->current]);
+
+    if (!nextop) {
+        scheduler->done[scheduler->current] = TRUE;
+        return PERL_RUNOPS_BOUNDARY_YIELD;
+    }
+
+    scheduler->boundaries++;
+    scheduler->total_boundaries++;
+    return scheduler->boundaries >= scheduler->quantum
+        ? PERL_RUNOPS_BOUNDARY_YIELD : 0;
+}
+
+int
+Perl_process_scheduler_run(pTHX_ PERL_PROCESS_SCHEDULER *scheduler)
+{
+    PERL_PROCESS_STATE caller_state;
+    runops_boundary_proc_t old_hook = PL_runops_boundary_hook;
+    void * const old_data = PL_runops_boundary_data;
+    U8 i;
+    bool all_done;
+
+    PERL_ARGS_ASSERT_PROCESS_SCHEDULER_RUN;
+    if (!scheduler->states || !scheduler->done || !scheduler->count
+        || !scheduler->max_boundaries || scheduler->quantum == 0)
+        return -1;
+
+    process_state_save(&caller_state);
+    scheduler->failure = 0;
+    scheduler->boundaries = 0;
+    scheduler->total_boundaries = 0;
+
+    do {
+        all_done = TRUE;
+        for (i = 0; i < scheduler->count; i++) {
+            if (scheduler->done[i])
+                continue;
+
+            all_done = FALSE;
+            scheduler->current = i;
+            scheduler->boundaries = 0;
+            process_state_restore(&scheduler->states[i]);
+            if (!PL_op) {
+                scheduler->done[i] = TRUE;
+                continue;
+            }
+            PL_runops_boundary_hook = S_process_scheduler_boundary;
+            PL_runops_boundary_data = scheduler;
+            PL_runops(aTHX);
+            process_state_save(&scheduler->states[i]);
+
+            if (scheduler->total_boundaries >= scheduler->max_boundaries
+                && !scheduler->done[i]) {
+                scheduler->failure = 1;
+                break;
+            }
+        }
+    } while (!all_done && !scheduler->failure);
+
+    PL_runops_boundary_hook = old_hook;
+    PL_runops_boundary_data = old_data;
+    process_state_restore(&caller_state);
+    return scheduler->failure ? -1 : 0;
+}
+
 int
 Perl_runops_standard(pTHX)
 {
@@ -42,7 +180,13 @@ Perl_runops_standard(pTHX)
     PERL_DTRACE_PROBE_OP(op);
     while ((PL_op = op = op->op_ppaddr(aTHX))) {
         PERL_DTRACE_PROBE_OP(op);
+        if (PL_runops_boundary_hook
+            && PL_runops_boundary_hook(aTHX_ op, PL_runops_boundary_data))
+            return PERL_RUNOPS_BOUNDARY_YIELD;
     }
+    if (PL_runops_boundary_hook
+        && PL_runops_boundary_hook(aTHX_ NULL, PL_runops_boundary_data))
+        return PERL_RUNOPS_BOUNDARY_YIELD;
     PERL_ASYNC_CHECK();
 
     TAINT_NOT;
