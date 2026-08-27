@@ -2,7 +2,7 @@
 
 use strict;
 use warnings;
-use Test::More tests => 30;
+use Test::More tests => 36;
 
 use feature 'generator';
 
@@ -99,3 +99,33 @@ my $reentered = eval { $reentrant->(); 1 };
 ok(!$reentered, 're-entrant resume is rejected');
 like($@, qr/generator has no suspended continuation/,
     're-entrant resume diagnostic');
+$reentrant = undef;
+
+my $nested_inner = generator { yield 10; yield 20 };
+my $nested_outer = generator {
+    yield $nested_inner->();
+    yield $nested_inner->();
+};
+is_deeply(next_values($nested_outer), [ 10 ],
+    'nested generator resumes its inner generator');
+is_deeply(next_values($nested_outer), [ 20 ],
+    'nested generator preserves the inner continuation');
+is_deeply(next_values($nested_outer), [], 'nested generator exhausts');
+
+my $feature_error = eval q{
+    use feature 'generator';
+    yield 1;
+};
+like($@, qr/yield outside a generator/, 'yield is rejected outside a generator');
+
+my $ordinary_error = eval q{
+    use feature 'generator';
+    sub ordinary_generator_test { yield 1 }
+};
+like($@, qr/yield outside a generator/, 'yield is rejected in an ordinary sub');
+
+my $disabled_error = eval q{
+    no feature 'generator';
+    my $not_a_generator = generator { yield 1 };
+};
+ok($@, 'generator syntax remains feature gated');

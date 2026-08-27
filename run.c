@@ -268,12 +268,25 @@ Perl_generator_free(pTHX_ PERL_GENERATOR *generator)
 
     PERL_ARGS_ASSERT_GENERATOR_FREE;
     if (generator->stack_pushed) {
-        process_state_save(&caller_state);
-        if (generator->stack_detached)
-            S_generator_attach_stackinfo(aTHX_ generator);
-        process_state_restore(&generator->process);
-        S_generator_pop_stackinfo(aTHX_ generator);
-        process_state_restore(&caller_state);
+        if (PL_phase == PERL_PHASE_DESTRUCT) {
+            /* The interpreter's normal context stack is already being torn
+             * down.  Do not run scope cleanup against that stack here; the
+             * generator's private stack is about to become unreachable with
+             * the rest of the interpreter. */
+            CvDEPTH(generator->body) = 0;
+            generator->eval_active = FALSE;
+        }
+        else {
+            process_state_save(&caller_state);
+            if (generator->stack_detached)
+                S_generator_attach_stackinfo(aTHX_ generator);
+            process_state_restore(&generator->process);
+            if (generator->eval_active)
+                dounwind(-1);
+            generator->eval_active = FALSE;
+            S_generator_pop_stackinfo(aTHX_ generator);
+            process_state_restore(&caller_state);
+        }
     }
     SvREFCNT_dec(generator->value);
     SvREFCNT_dec(generator->error);
@@ -485,6 +498,8 @@ Perl_generator_resume(pTHX_ PERL_GENERATOR *generator)
         generator->eval_active = FALSE;
         SvREFCNT_dec(generator->error);
         generator->error = SvREFCNT_inc(ERRSV);
+        if (generator->stack_pushed && cxstack_ix >= 0)
+            dounwind(-1);
         if (generator->stack_pushed)
             S_generator_pop_stackinfo(aTHX_ generator);
         JMPENV_POP;

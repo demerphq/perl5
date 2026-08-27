@@ -71,7 +71,7 @@ Validation so far:
 
 ## Phase 3 — Prompt and generator runtime
 
-Status: runtime ownership layer in progress.
+Status: runtime and initial compiler path completed; protocol hardening in progress.
 
 Implementation notes:
 
@@ -134,12 +134,11 @@ Compiler direction:
   `eval` during a suspended body is now covered by the focused regression
   suite. Suspended stackinfos are isolated from caller reuse, and the public
   test file exercises the callable protocol.
-- A temporary fake eval context was removed from the persistent-frame path:
-  it made nested evals and cleanup less stable. The current frame is therefore
-  a plain persistent sub invocation; outer eval catches uncaught generator
-  failures. Suspended stackinfos are now detached from the caller's reusable
-  `si_next` chain and reattached only while running or cleaning up; this fixes
-  the assertion-heavy exhaustion crash.
+- The persistent frame uses a generator-owned fake eval scope so uncaught
+  failures follow the normal `die_unwind()` path and are rethrown at resume.
+  Suspended stackinfos are detached from the caller's reusable `si_next` chain
+  and reattached only while running or cleaning up; this fixes the
+  assertion-heavy exhaustion crash.
 - Generator suspension now captures at the active resume boundary by jumping
   out of nested runops/docatch C frames. A transient resume record supplies
   that boundary without storing a `JMPENV` in the generator. A generator-owned
@@ -165,7 +164,17 @@ Follow-up design investigation:
   threaded-interpreter layout, GC visibility, and embedded/perl extensions
   before adopting such a layout.
 
-Later phases remain as specified in the task handoff: generator prompt/runtime
-integration, exception/cleanup integration, compiler body syntax, and protocol
-hardening. This file is updated at each phase boundary and removed only after
-all implementation and validation work is complete.
+Phase 4 cleanup note:
+
+- Normal generator destruction unwinds the owned contexts through `dounwind()`.
+  During `PERL_PHASE_DESTRUCT`, the interpreter's context stack is already
+  being dismantled, so shutdown releases the generator's active CV depth and
+  lets the private stack become unreachable with the interpreter. This avoids
+  invoking normal scope cleanup against partially dismantled global state.
+
+Phase 5/6 remaining work:
+
+- Add the remaining compile-time placement diagnostics and complete protocol,
+  recursion, destruction, GC, threaded, and sanitizer coverage.
+- Re-run the broader core validation and record its results here before
+  removing this plan.
