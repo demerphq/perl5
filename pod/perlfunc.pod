@@ -463,6 +463,7 @@ C<eq>,
 C<finally>,
 C<for>,
 C<foreach>,
+C<generator>,
 C<ge>,
 C<given>,
 C<gt>,
@@ -480,6 +481,7 @@ C<unless>,
 C<until>,
 C<when>,
 C<while>,
+C<yield>,
 C<x>,
 C<xor>
 
@@ -3590,8 +3592,6 @@ Portability issues: L<perlport/getsockopt>.
 
 =item generator BLOCK
 X<generator> X<yield>
-
-=for Pod::Functions =!Non-functions
 
 =for Pod::Functions create a one-shot generator
 
