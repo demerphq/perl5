@@ -59,6 +59,8 @@ my %feature_kw = (
     __CLASS__ => 'class',
     any       => 'keyword_any',
     all       => 'keyword_all',
+    yield     => 'generator',
+    generator => 'generator',
 );
 
 my %pos = map { ($_ => 1) } @{$by_strength{'+'}};
@@ -226,6 +228,7 @@ __END__
 -getsockname
 -getsockopt
 +given
++generator
 +glob
 -gmtime
 +goto
@@ -384,3 +387,4 @@ __END__
 -x
 -xor
 +y
++yield

@@ -6691,6 +6691,11 @@ PP(pp_pushdefer)
     return NORMAL;
 }
 
+PP(pp_yield)
+{
+    croak("yield outside a generator");
+}
+
 static MAGIC *
 S_doparseform(pTHX_ SV *sv)
 {

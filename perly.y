@@ -69,7 +69,7 @@
 %token <ival> KW_IF KW_ELSE KW_ELSIF KW_UNLESS
 %token <ival> KW_FOR KW_UNTIL KW_WHILE KW_CONTINUE
 %token <ival> KW_GIVEN KW_WHEN KW_DEFAULT
-%token <ival> KW_TRY KW_CATCH KW_FINALLY KW_DEFER
+%token <ival> KW_TRY KW_CATCH KW_FINALLY KW_DEFER KW_YIELD
 %token <ival> KW_REQUIRE KW_DO
 
 /* The 'use' and 'no' keywords both emit this */
@@ -119,6 +119,7 @@
 %type <opval> bare_statement_when
 %type <opval> bare_statement_while
 %type <opval> bare_statement_yadayada
+%type <opval> bare_statement_yield
 %type <opval> subscript_index
 %type <opval> subscript_keys
 
@@ -765,6 +766,11 @@ bare_statement_yadayada
 		}
 	;
 
+bare_statement_yield
+	: KW_YIELD term PERLY_SEMICOLON
+		{ $$ = newUNOP(OP_YIELD, 0, scalar($term)); }
+	;
+
 subscript_index
 	/* Array/list access subscript: [ selector expression ]
 	 * Value of nonterminal: selector expression
@@ -928,6 +934,7 @@ barestmt
 	|	bare_statement_when
 	|	bare_statement_while
 	|	bare_statement_yadayada
+	|	bare_statement_yield
 	;
 
 /* Format line */

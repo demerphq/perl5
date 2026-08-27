@@ -995,7 +995,7 @@ Perl_keyword (pTHX_ const char *name, I32 len, bool all_keywords)
           goto unknown;
       }
 
-    case 5: /* 43 tokens of length 5 */
+    case 5: /* 44 tokens of length 5 */
       switch (name[0])
       {
         case 'B':
@@ -1531,6 +1531,17 @@ Perl_keyword (pTHX_ const char *name, I32 len, bool all_keywords)
             default:
               goto unknown;
           }
+
+        case 'y':
+          if (name[1] == 'i' &&
+              name[2] == 'e' &&
+              name[3] == 'l' &&
+              name[4] == 'd')
+          {                                       /* yield            */
+            return (all_keywords || FEATURE_GENERATOR_IS_ENABLED ? KEY_yield : 0);
+          }
+
+          goto unknown;
 
         default:
           goto unknown;
@@ -2896,7 +2907,7 @@ Perl_keyword (pTHX_ const char *name, I32 len, bool all_keywords)
           goto unknown;
       }
 
-    case 9: /* 11 tokens of length 9 */
+    case 9: /* 12 tokens of length 9 */
       switch (name[0])
       {
         case 'U':
@@ -2965,16 +2976,39 @@ Perl_keyword (pTHX_ const char *name, I32 len, bool all_keywords)
           }
 
         case 'g':
-          if (name[1] == 'e' &&
-              name[2] == 't' &&
-              name[3] == 'n' &&
-              name[4] == 'e' &&
-              name[5] == 't' &&
-              name[6] == 'e' &&
-              name[7] == 'n' &&
-              name[8] == 't')
-          {                                       /* getnetent        */
-            return -KEY_getnetent;
+          if (name[1] == 'e')
+          {
+            switch (name[2])
+            {
+              case 'n':
+                if (name[3] == 'e' &&
+                    name[4] == 'r' &&
+                    name[5] == 'a' &&
+                    name[6] == 't' &&
+                    name[7] == 'o' &&
+                    name[8] == 'r')
+                {                                 /* generator        */
+                  return (all_keywords || FEATURE_GENERATOR_IS_ENABLED ? KEY_generator : 0);
+                }
+
+                goto unknown;
+
+              case 't':
+                if (name[3] == 'n' &&
+                    name[4] == 'e' &&
+                    name[5] == 't' &&
+                    name[6] == 'e' &&
+                    name[7] == 'n' &&
+                    name[8] == 't')
+                {                                 /* getnetent        */
+                  return -KEY_getnetent;
+                }
+
+                goto unknown;
+
+              default:
+                goto unknown;
+            }
           }
 
           goto unknown;
@@ -3590,5 +3624,5 @@ unknown:
 }
 
 /* Generated from:
- * bdfd5529dba8257e060f7e4ed712f683cd6a533285abf8ce7ee78c4d0677ff38 regen/keywords.pl
+ * 46efa1b05faa13e5ddd09fa3a8fe5416c403837d43cd98a79f3075f17cedb3ec regen/keywords.pl
  * ex: set ro ft=c: */

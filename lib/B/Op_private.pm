@@ -652,6 +652,7 @@ $bits{values}{0} = $bf[0];
 @{$bits{warn}}{3,2,1,0} = ($bf[5], $bf[5], $bf[5], $bf[5]);
 $bits{weaken}{0} = $bf[0];
 @{$bits{xor}}{1,0} = ($bf[1], $bf[1]);
+$bits{yield}{0} = $bf[0];
 
 
 our %defines = (

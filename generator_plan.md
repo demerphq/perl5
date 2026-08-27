@@ -92,9 +92,12 @@ Compiler direction:
 - `yield` remains a real feature-gated keyword and dedicated opcode. It is the
   user-visible suspension point; automatic opcode-boundary yielding is only a
   trial/scheduler mechanism for validating continuation mechanics.
-- Parser/keyword work is deferred until the checkout has the required
-  `bison` and `Devel::Tokenizer::C` regeneration tools; source grammar changes
-  must not be committed without matching generated parser artifacts.
+- The required `bison` and `Devel::Tokenizer::C` tools are now available. The
+  first compiler increment adds the feature-gated `yield` keyword, grammar
+  production, and dedicated opcode, with generated parser and keyword files
+  regenerated in the same change. The opcode currently diagnoses use outside
+  a generator; generator prompt context and suspension semantics remain
+  pending.
 
 Follow-up design investigation:
 
@@ -104,7 +107,7 @@ Follow-up design investigation:
   threaded-interpreter layout, GC visibility, and embedded/perl extensions
   before adopting such a layout.
 
-Later phases remain as specified in the task handoff: process state, opcode-boundary
-scheduling, runtime, exception/cleanup integration, compiler syntax, and protocol
-hardening. This file is updated at each phase boundary and removed only after all
-implementation and validation work is complete.
+Later phases remain as specified in the task handoff: generator prompt/runtime
+integration, exception/cleanup integration, compiler body syntax, and protocol
+hardening. This file is updated at each phase boundary and removed only after
+all implementation and validation work is complete.

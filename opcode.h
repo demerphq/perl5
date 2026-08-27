@@ -574,6 +574,7 @@ EXTCONST char* const PL_op_name[] INIT({
 	"multiparam",
 	"paramtest",
 	"paramstore",
+	"yield",
         "freed",
 });
 
@@ -1008,6 +1009,7 @@ EXTCONST char* const PL_op_desc[] INIT({
 	"signature processing",
 	"signature argument value test",
 	"signature parameter default expression",
+	"yield a value from a generator",
     "freed op",
 });
 
@@ -1447,6 +1449,7 @@ INIT({
 	Perl_pp_multiparam,
 	Perl_pp_paramtest,
 	Perl_pp_paramstore,
+	Perl_pp_yield,
 });
 
 EXT Perl_check_t PL_check[] /* or perlvars.h */
@@ -1881,6 +1884,7 @@ INIT({
 	Perl_ck_null,		/* multiparam */
 	Perl_ck_null,		/* paramtest */
 	Perl_ck_null,		/* paramstore */
+	Perl_ck_null,		/* yield */
 
 /* The final entries are function pointers not attached to an opcode.
  * These are to be used to compare with function pointers in the earlier
@@ -1897,9 +1901,9 @@ INIT({
 
 /* Indexes into PL_check for the comparison function pointers */
 #ifdef PERL_IN_PEEP_C
-  #define PERL_CK_NULL  430
-  #define PERL_CK_EXISTS  431
-  #define PERL_CK_DELETE  432
+  #define PERL_CK_NULL  431
+  #define PERL_CK_EXISTS  432
+  #define PERL_CK_DELETE  433
 #endif
 
 EXTCONST U32 PL_opargs[] INIT({
@@ -2333,6 +2337,7 @@ EXTCONST U32 PL_opargs[] INIT({
 	0x00000f00,	/* multiparam */
 	0x00000300,	/* paramtest */
 	0x00000100,	/* paramstore */
+	0x00001100,	/* yield */
 });
 
 END_EXTERN_C
@@ -3103,6 +3108,7 @@ EXTCONST I16  PL_op_private_bitdef_ix[]  INIT( {
        0, /* multiparam */
      202, /* paramtest */
        0, /* paramstore */
+       0, /* yield */
 
 });
 
@@ -3121,7 +3127,7 @@ EXTCONST I16  PL_op_private_bitdef_ix[]  INIT( {
  */
 
 EXTCONST U16  PL_op_private_bitdefs[] INIT( {
-    0x0003, /* scalar, prototype, refgen, srefgen, readline, regcmaybe, regcreset, regcomp, substcont, chop, schop, defined, study, preinc, i_preinc, predec, i_predec, postinc, i_postinc, postdec, i_postdec, not, ucfirst, lcfirst, uc, lc, quotemeta, aeach, avalues, each, pop, shift, grepstart, anywhile, mapstart, mapwhile, range, dor, andassign, orassign, dorassign, argcheck, entergiven, leavegiven, enterwhen, leavewhen, untie, tied, dbmclose, getsockname, getpeername, lstat, stat, readlink, readdir, telldir, rewinddir, closedir, localtime, alarm, require, dofile, entertry, ghbyname, gnbyname, gpbyname, shostent, snetent, sprotoent, sservent, gpwnam, gpwuid, ggrnam, ggrgid, lock, once, fc, anonconst, cmpchain_and, cmpchain_dup, entertrycatch, catch, is_bool, is_weak, weaken, unweaken, is_tainted, multiparam, paramstore */
+    0x0003, /* scalar, prototype, refgen, srefgen, readline, regcmaybe, regcreset, regcomp, substcont, chop, schop, defined, study, preinc, i_preinc, predec, i_predec, postinc, i_postinc, postdec, i_postdec, not, ucfirst, lcfirst, uc, lc, quotemeta, aeach, avalues, each, pop, shift, grepstart, anywhile, mapstart, mapwhile, range, dor, andassign, orassign, dorassign, argcheck, entergiven, leavegiven, enterwhen, leavewhen, untie, tied, dbmclose, getsockname, getpeername, lstat, stat, readlink, readdir, telldir, rewinddir, closedir, localtime, alarm, require, dofile, entertry, ghbyname, gnbyname, gpbyname, shostent, snetent, sprotoent, sservent, gpwnam, gpwuid, ggrnam, ggrgid, lock, once, fc, anonconst, cmpchain_and, cmpchain_dup, entertrycatch, catch, is_bool, is_weak, weaken, unweaken, is_tainted, multiparam, paramstore, yield */
     0x449c, 0x6359, /* pushmark */
     0x00bd, /* wantarray, runcv */
     0x0b9e, 0x0694, 0x1d50, 0x64ac, 0x5e68, 0x4a25, /* const */
@@ -3645,6 +3651,7 @@ EXTCONST U8 PL_op_private_valid[] INIT( {
     /* MULTIPARAM */ (OPpARG1_MASK),
     /* PARAMTEST  */ (OPpARG1_MASK|OPpPARAM_IF_FALSE|OPpPARAM_IF_UNDEF),
     /* PARAMSTORE */ (OPpARG1_MASK),
+    /* YIELD      */ (OPpARG1_MASK),
 
 });
 
