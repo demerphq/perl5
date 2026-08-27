@@ -117,6 +117,9 @@ Compiler direction:
   exception bookkeeping lives in `call_sv()`'s C stack. The next runtime
   design must give the generator a persistent return operation/context before
   exposing a callable wrapper.
+- The generator state now owns a persistent `LOGOP` entry operation for its
+  body. New-body startup no longer depends on a temporary `call_sv()` op;
+  wrapper exposure remains deferred until this entry path is exercised safely.
 
 Follow-up design investigation:
 

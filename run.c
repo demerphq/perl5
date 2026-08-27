@@ -180,6 +180,9 @@ Perl_generator_new(pTHX_ CV *body)
     Newxz(generator, 1, PERL_GENERATOR);
     generator->magic = PERL_GENERATOR_MAGIC;
     generator->body = (CV *)SvREFCNT_inc_simple((SV *)body);
+    generator->invoke.op_ppaddr = PL_ppaddr[OP_ENTERSUB];
+    generator->invoke.op_type = OP_ENTERSUB;
+    generator->invoke.op_flags = OPf_STACKED | OPf_WANT_SCALAR;
     generator->state = PERL_GENERATOR_NEW;
     return generator;
 }
@@ -268,8 +271,12 @@ Perl_generator_resume(pTHX_ PERL_GENERATOR *generator)
     switch (ret) {
     case 0:
         if (generator->state == PERL_GENERATOR_RUNNING
-            && !generator->captured)
-            (void)call_sv(MUTABLE_SV(generator->body), G_SCALAR);
+            && !generator->captured) {
+            PUSHMARK(PL_stack_sp);
+            rpp_xpush_1(MUTABLE_SV(generator->body));
+            PL_op = (OP *)&generator->invoke;
+            PL_runops(aTHX);
+        }
         else
             PL_runops(aTHX);
         break;
