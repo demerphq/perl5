@@ -131,11 +131,9 @@ Compiler direction:
 - The callable wrapper is now backed by a persistent `LOGOP` entry frame and
   an owned stackinfo. Basic finite generators, closures, `undef` yields,
   exhaustion, and uncaught failure propagation have been exercised. Nested
-  `eval` during a suspended body still needs exception-context integration;
-  that remains an explicit blocker for completing this phase. The first
-  focused Test::More regression probe also exposed a caller-stack interaction
-  during exhaustion, so the public test file is deferred until that ownership
-  issue is fixed.
+  `eval` during a suspended body is now covered by the focused regression
+  suite. Suspended stackinfos are isolated from caller reuse, and the public
+  test file exercises the callable protocol.
 - A temporary fake eval context was removed from the persistent-frame path:
   it made nested evals and cleanup less stable. The current frame is therefore
   a plain persistent sub invocation; outer eval catches uncaught generator
@@ -156,6 +154,8 @@ Compiler direction:
   suite; `t/op/generator.t` now covers finite/loop generators, closures,
   `undef`, nested and outer eval behavior, invalid resumes, arguments, and
   scalar context, and passes under Valgrind with zero reported errors.
+- The persistent entry op now follows the list/scalar context of each resume;
+  tests also cover `local()` restoration and re-entrant resume rejection.
 
 Follow-up design investigation:
 

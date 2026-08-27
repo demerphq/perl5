@@ -2,7 +2,7 @@
 
 use strict;
 use warnings;
-use Test::More tests => 22;
+use Test::More tests => 30;
 
 use feature 'generator';
 
@@ -69,3 +69,33 @@ like($@, qr/generator does not accept arguments/, 'arguments are rejected');
 
 my $scalar = generator { yield 42 };
 is(scalar($scalar->()), 42, 'scalar context returns the yielded value');
+
+my $list_context = generator {
+    yield wantarray ? 'list' : 'scalar';
+};
+is_deeply(next_values($list_context), [ 'list' ],
+    'generator body sees list context');
+my $scalar_context = generator {
+    yield wantarray ? 'list' : 'scalar';
+};
+is($scalar_context->(), 'scalar', 'generator body sees scalar context');
+
+my $saved_input_separator = $/;
+my $localized = generator {
+    local $/ = 'generator separator';
+    yield $/;
+    yield $/;
+};
+is_deeply(next_values($localized), [ 'generator separator' ],
+    'localization survives the first suspension');
+is_deeply(next_values($localized), [ 'generator separator' ],
+    'localization survives the second suspension');
+is_deeply(next_values($localized), [], 'localized generator exhausts');
+is($/, $saved_input_separator, 'localization is restored at exhaustion');
+
+my $reentrant;
+$reentrant = generator { yield $reentrant->() };
+my $reentered = eval { $reentrant->(); 1 };
+ok(!$reentered, 're-entrant resume is rejected');
+like($@, qr/generator has no suspended continuation/,
+    're-entrant resume diagnostic');

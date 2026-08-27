@@ -426,6 +426,9 @@ Perl_generator_resume(pTHX_ PERL_GENERATOR *generator)
         croak("generator has no suspended continuation");
 
     process_state_save(&caller_state);
+    generator->invoke.op_flags = OPf_STACKED
+        | (GIMME_V == G_LIST ? OPf_WANT_LIST
+           : GIMME_V == G_VOID ? OPf_WANT_VOID : OPf_WANT_SCALAR);
     generator->captured = FALSE;
     generator->yield_pending = FALSE;
     generator->state = PERL_GENERATOR_RUNNING;
