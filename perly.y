@@ -69,7 +69,7 @@
 %token <ival> KW_IF KW_ELSE KW_ELSIF KW_UNLESS
 %token <ival> KW_FOR KW_UNTIL KW_WHILE KW_CONTINUE
 %token <ival> KW_GIVEN KW_WHEN KW_DEFAULT
-%token <ival> KW_TRY KW_CATCH KW_FINALLY KW_DEFER KW_YIELD
+%token <ival> KW_TRY KW_CATCH KW_FINALLY KW_DEFER KW_GENERATOR KW_YIELD
 %token <ival> KW_REQUIRE KW_DO
 
 /* The 'use' and 'no' keywords both emit this */
@@ -1580,6 +1580,9 @@ anonymous
 			{ $$ = newANONLIST($optexpr); }
 	|	HASHBRACK optexpr PERLY_SEMICOLON PERLY_BRACE_CLOSE	%prec PERLY_PAREN_OPEN /* { foo => "Bar" } */
 			{ $$ = newANONHASH($optexpr); }
+	|	KW_GENERATOR    startanonsub block    %prec PERLY_PAREN_OPEN
+			{ SvREFCNT_inc_simple_void(PL_compcv);
+			  $$ = newANONATTRSUB($startanonsub, 0, NULL, $block); }
 	|	KW_SUB_anon     startanonsub proto subattrlist subbody    %prec PERLY_PAREN_OPEN
 			{ SvREFCNT_inc_simple_void(PL_compcv);
 			  $$ = newANONATTRSUB($startanonsub, $proto, $subattrlist, $subbody); }

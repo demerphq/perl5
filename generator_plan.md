@@ -98,6 +98,9 @@ Compiler direction:
   regenerated in the same change. The opcode currently diagnoses use outside
   a generator; generator prompt context and suspension semantics remain
   pending.
+- `generator { ... }` now parses through the existing anonymous-CV path and
+  produces a code reference. It is still only a compiler shape: calling that
+  code reference does not yet create or resume a generator continuation.
 
 Follow-up design investigation:
 

@@ -8650,6 +8650,9 @@ yyl_word_or_keyword(pTHX_ char *s, STRLEN len, I32 key, I32 orig_keyword, struct
         ck_warner_d(packWARN(WARN_EXPERIMENTAL__DEFER), "defer is experimental");
         PREBLOCK(KW_DEFER);
 
+    case KEY_generator:
+        PREBLOCK(KW_GENERATOR);
+
     case KEY_yield:
         PL_expect = XTERM;
         PL_bufptr = s;
