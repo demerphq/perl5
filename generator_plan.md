@@ -11,9 +11,17 @@ was not supported by sufficient evidence.
 - [x] Generator syntax, one-shot resume protocol, and explicit `yield`
 - [x] Nested eval, failure propagation, exhaustion, and re-entrancy
 - [x] Feature/compiler diagnostics and documentation metadata
-- [ ] DEBUGGING and sanitizer validation
-- [ ] Destruction, GC, callback-context, and scheduler edge-case coverage
+- [x] DEBUGGING and sanitizer validation
+- [x] Destruction, GC, callback-context, and scheduler edge-case coverage
 - [ ] Final full relevant validation and cleanup
+
+The DEBUGGING threaded build passes the focused generator, eval, loop, and
+thread tests.  An isolated ASAN/DEBUGGING threaded build also passes the
+generator and threaded smoke paths; LeakSanitizer itself cannot run in the
+current ptrace-restricted test environment.  Cleanup coverage includes
+dropping a suspended generator with a lexical object, callback diagnostics,
+process-state round trips, and deterministic quantum-one scheduler
+alternation.
 
 The process-local `PL_*` fields remain field-by-field snapshots.  Keep the
 follow-up investigation for a contiguous execution record that could be
