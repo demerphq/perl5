@@ -178,6 +178,7 @@ Perl_generator_new(pTHX_ CV *body)
 
     PERL_ARGS_ASSERT_GENERATOR_NEW;
     Newxz(generator, 1, PERL_GENERATOR);
+    generator->magic = PERL_GENERATOR_MAGIC;
     generator->body = (CV *)SvREFCNT_inc_simple((SV *)body);
     generator->state = PERL_GENERATOR_NEW;
     return generator;
@@ -192,6 +193,22 @@ Perl_generator_free(pTHX_ PERL_GENERATOR *generator)
     Safefree(generator);
 }
 
+void
+Perl_generator_yield_value(pTHX_ SV *value)
+{
+    PERL_GENERATOR * const generator =
+        (PERL_GENERATOR *)PL_runops_boundary_data;
+
+    PERL_ARGS_ASSERT_GENERATOR_YIELD_VALUE;
+    if (!generator || generator->magic != PERL_GENERATOR_MAGIC
+        || generator->state != PERL_GENERATOR_RUNNING)
+        croak("yield outside a running generator");
+
+    SvREFCNT_dec(generator->value);
+    generator->value = SvREFCNT_inc(value);
+    generator->yield_pending = TRUE;
+}
+
 static int
 S_generator_boundary(pTHX_ OP *nextop, void *data)
 {
@@ -199,8 +216,10 @@ S_generator_boundary(pTHX_ OP *nextop, void *data)
 
     process_state_save(&generator->process);
     generator->captured = TRUE;
-    generator->state = nextop ? PERL_GENERATOR_YIELDED
+    generator->state = nextop && generator->yield_pending
+                              ? PERL_GENERATOR_YIELDED
                               : PERL_GENERATOR_EXHAUSTED;
+    generator->yield_pending = FALSE;
     return PERL_RUNOPS_BOUNDARY_YIELD;
 }
 
@@ -238,6 +257,7 @@ Perl_generator_resume(pTHX_ PERL_GENERATOR *generator)
 
     process_state_save(&caller_state);
     generator->captured = FALSE;
+    generator->yield_pending = FALSE;
     generator->state = PERL_GENERATOR_RUNNING;
     process_state_restore(&generator->process);
     PL_runops_boundary_hook = S_generator_boundary;

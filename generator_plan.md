@@ -103,6 +103,10 @@ Compiler direction:
   code reference does not yet create or resume a generator continuation.
 - The compiler marks these body CVs with an internal generator flag so the
   eventual invocation path can distinguish them from ordinary anonymous CVs.
+- The trial runtime now has an explicit value handoff from `pp_yield` to the
+  active generator boundary. A normal code-reference call still has no
+  generator boundary installed and therefore reports the guarded diagnostic;
+  persistent invocation bridging is the next runtime step.
 
 Follow-up design investigation:
 

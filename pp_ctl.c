@@ -6693,7 +6693,9 @@ PP(pp_pushdefer)
 
 PP(pp_yield)
 {
-    croak("yield outside a generator");
+    dSP;
+    generator_yield_value(TOPs);
+    return PL_op->op_next;
 }
 
 static MAGIC *

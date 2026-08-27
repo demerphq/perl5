@@ -28,6 +28,10 @@
 #   undef ALIGNED_TYPE_NAME
 #   undef CC_MAGICAL_
 #   undef CC_UNDERSCORE_
+#   undef CVf_GENERATOR
+#   undef CvGENERATOR
+#   undef CvGENERATOR_off
+#   undef CvGENERATOR_on
 #   undef do_aexec
 #   undef GET_aTHX_if_NULL
 #   undef HASATTRIBUTE_UNINITIALIZED
@@ -106,6 +110,7 @@
 #   undef KEY_format
 #   undef KEY_formline
 #   undef KEY_ge
+#   undef KEY_generator
 #   undef KEY_getc
 #   undef KEY_getgrent
 #   undef KEY_getgrgid
@@ -292,6 +297,7 @@
 #   undef KEY_x
 #   undef KEY_xor
 #   undef KEY_y
+#   undef KEY_yield
 #   undef MGv2f_WITH_KEYHEK
 #   undef NETDB_R_OBSOLETE
 #   undef new_XPV
@@ -475,6 +481,7 @@
 # define generator_free(a)                      Perl_generator_free(aTHX_ a)
 # define generator_new(a)                       Perl_generator_new(aTHX_ a)
 # define generator_resume(a)                    Perl_generator_resume(aTHX_ a)
+# define generator_yield_value(a)               Perl_generator_yield_value(aTHX_ a)
 # define get_av(a,b)                            Perl_get_av(aTHX_ a,b)
 # define get_cv(a,b)                            Perl_get_cv(aTHX_ a,b)
 # define get_cvn_flags(a,b,c)                   Perl_get_cvn_flags(aTHX_ a,b,c)

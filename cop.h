@@ -1412,12 +1412,16 @@ typedef enum {
 } PERL_GENERATOR_STATE;
 
 typedef struct perl_generator {
+    U32                     magic;
     CV *                    body;
     PERL_PROCESS_STATE       process;
     SV *                    value;
     PERL_GENERATOR_STATE    state;
     bool                    captured;
+    bool                    yield_pending;
 } PERL_GENERATOR;
+
+#define PERL_GENERATOR_MAGIC 0x47594C44U
 
 #define cxstack		(PL_curstackinfo->si_cxstack)
 #define cxstack_ix	(PL_curstackinfo->si_cxix)
