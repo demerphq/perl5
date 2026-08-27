@@ -334,13 +334,13 @@ static void
 S_generator_new_stacks(pTHX)
 {
     Newx(PL_markstack, 32, Stack_off_t);
-    PL_markstack_ptr = PL_markstack - 1;
+    PL_markstack_ptr = PL_markstack;
     PL_markstack_max = PL_markstack + 32;
     Newx(PL_savestack, 32, ANY);
-    PL_savestack_ix = -1;
-    PL_savestack_max = 32;
+    PL_savestack_ix = 0;
+    PL_savestack_max = 32 - SS_MAXPUSH;
     Newx(PL_scopestack, 32, I32);
-    PL_scopestack_ix = -1;
+    PL_scopestack_ix = 0;
     PL_scopestack_max = 32;
     Newx(PL_tmps_stack, 32, SV *);
     PL_tmps_ix = -1;

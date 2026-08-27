@@ -148,11 +148,14 @@ Compiler direction:
   fake eval scope provides the normal `die_unwind()` route, and eval context
   `cur_top_env` pointers are refreshed on each resume. Inner eval catches,
   outer rethrows, and failed-generator rejection now pass focused smoke tests.
-- The focused multi-generator probe now passes through loop and inner-eval
-  execution when assertions are kept outside the resumption path. A remaining
-  allocator failure appears when several assertion helpers and generator
-  cleanup paths are combined, so the full core regression file is still being
-  hardened rather than committed as a false-green test.
+- The focused multi-generator probe passes through loop and inner-eval
+  execution, including assertion-heavy callers.
+- The generator-owned mark, save, scope, and temporary stacks now use the
+  interpreter's actual initial indices and save-stack headroom convention.
+  This removed the allocator corruption found by the focused regression
+  suite; `t/op/generator.t` now covers finite/loop generators, closures,
+  `undef`, nested and outer eval behavior, invalid resumes, arguments, and
+  scalar context, and passes under Valgrind with zero reported errors.
 
 Follow-up design investigation:
 
