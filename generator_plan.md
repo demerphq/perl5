@@ -120,6 +120,10 @@ Compiler direction:
 - The generator state now owns a persistent `LOGOP` entry operation for its
   body. New-body startup no longer depends on a temporary `call_sv()` op;
   wrapper exposure remains deferred until this entry path is exercised safely.
+- The process snapshot now also carries the execution-local stash/default-GV,
+  debugger COP, regex-interpolation, multideref, taint, warning, and magic
+  flags. These are still copied field-by-field; the contiguous-record/one-
+  assignment optimization remains a follow-up investigation.
 
 Follow-up design investigation:
 

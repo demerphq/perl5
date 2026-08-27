@@ -1363,6 +1363,15 @@ typedef struct perl_process_state {
 
     PMOP *           curpm;
     PMOP *           curpm_under;
+    PMOP *           reg_curpm;
+    UNOP_AUX_item *  multideref_pc;
+    GV *             defgv;
+    HV *             curstash;
+    COP *            curcopdb;
+    bool             tainting;
+    bool             tainted;
+    U16              delaymagic;
+    U8               dowarn;
 
     Stack_off_t *   markstack;
     Stack_off_t *   markstack_ptr;
