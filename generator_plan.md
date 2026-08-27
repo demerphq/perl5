@@ -139,8 +139,10 @@ Compiler direction:
 - A temporary fake eval context was removed from the persistent-frame path:
   it made nested evals and cleanup less stable. The current frame is therefore
   a plain persistent sub invocation; outer eval catches uncaught generator
-  failures, while inner eval and assertion-heavy exhaustion remain unfinished
-  exception/ownership work.
+  failures. Suspended stackinfos are now detached from the caller's reusable
+  `si_next` chain and reattached only while running or cleaning up; this fixes
+  the assertion-heavy exhaustion crash. Inner eval remains unfinished
+  exception-boundary work.
 
 Follow-up design investigation:
 

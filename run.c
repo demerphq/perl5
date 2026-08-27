@@ -258,6 +258,8 @@ Perl_generator_wrap(pTHX_ CV *body)
 }
 
 static void S_generator_pop_stackinfo(pTHX_ PERL_GENERATOR *generator);
+static void S_generator_detach_stackinfo(pTHX_ PERL_GENERATOR *generator);
+static void S_generator_attach_stackinfo(pTHX_ PERL_GENERATOR *generator);
 
 void
 Perl_generator_free(pTHX_ PERL_GENERATOR *generator)
@@ -267,6 +269,9 @@ Perl_generator_free(pTHX_ PERL_GENERATOR *generator)
     PERL_ARGS_ASSERT_GENERATOR_FREE;
     if (generator->stack_pushed) {
         process_state_save(&caller_state);
+        if (generator->stack_detached)
+            S_generator_attach_stackinfo(aTHX_ generator);
+        process_state_restore(&generator->process);
         S_generator_pop_stackinfo(aTHX_ generator);
         process_state_restore(&caller_state);
     }
@@ -287,6 +292,42 @@ S_generator_pop_stackinfo(pTHX_ PERL_GENERATOR *generator)
     switch_argstack(saved_si->si_stack);
     pop_stackinfo();
     generator->stack_pushed = FALSE;
+}
+
+static void
+S_generator_detach_stackinfo(pTHX_ PERL_GENERATOR *generator)
+{
+    PERL_SI * const si = generator->process.curstackinfo;
+    PERL_SI * const prev = si ? si->si_prev : NULL;
+    PERL_SI * const next = si ? si->si_next : NULL;
+
+    if (!si || generator->stack_detached)
+        return;
+    if (prev)
+        prev->si_next = next;
+    if (next)
+        next->si_prev = prev;
+    si->si_prev = NULL;
+    si->si_next = NULL;
+    generator->stack_detached = TRUE;
+}
+
+static void
+S_generator_attach_stackinfo(pTHX_ PERL_GENERATOR *generator)
+{
+    PERL_SI * const si = generator->process.curstackinfo;
+    PERL_SI * const prev = PL_curstackinfo;
+    PERL_SI * const next = prev ? prev->si_next : NULL;
+
+    if (!si || !generator->stack_detached)
+        return;
+    si->si_prev = prev;
+    si->si_next = next;
+    if (next)
+        next->si_prev = si;
+    if (prev)
+        prev->si_next = si;
+    generator->stack_detached = FALSE;
 }
 
 static void
@@ -337,6 +378,7 @@ S_generator_boundary(pTHX_ OP *nextop, void *data)
                               ? PERL_GENERATOR_YIELDED
                               : PERL_GENERATOR_EXHAUSTED;
     generator->yield_pending = FALSE;
+    S_generator_detach_stackinfo(aTHX_ generator);
     return PERL_RUNOPS_BOUNDARY_YIELD;
 }
 
@@ -378,8 +420,11 @@ Perl_generator_resume(pTHX_ PERL_GENERATOR *generator)
     generator->captured = FALSE;
     generator->yield_pending = FALSE;
     generator->state = PERL_GENERATOR_RUNNING;
-    if (generator->stack_pushed)
+    if (generator->stack_pushed) {
+        if (generator->stack_detached)
+            S_generator_attach_stackinfo(aTHX_ generator);
         process_state_restore(&generator->process);
+    }
     PL_runops_boundary_hook = S_generator_boundary;
     PL_runops_boundary_data = generator;
 
@@ -423,6 +468,9 @@ Perl_generator_resume(pTHX_ PERL_GENERATOR *generator)
     PL_runops_boundary_hook = old_hook;
     PL_runops_boundary_data = old_data;
     if (generator->state == PERL_GENERATOR_EXHAUSTED) {
+        process_state_restore(&caller_state);
+        S_generator_attach_stackinfo(aTHX_ generator);
+        process_state_restore(&generator->process);
         S_generator_pop_stackinfo(aTHX_ generator);
         generator->captured = FALSE;
     }
