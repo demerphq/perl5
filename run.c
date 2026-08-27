@@ -214,7 +214,7 @@ Perl_generator_capture(pTHX_ PERL_GENERATOR *generator, SV *value)
         croak("generator continuation is not available");
 
     SvREFCNT_dec(generator->value);
-    generator->value = SvREFCNT_inc(value);
+    generator->value = value ? SvREFCNT_inc(value) : NULL;
     process_state_save(&generator->process);
     generator->captured = TRUE;
     generator->state = PERL_GENERATOR_YIELDED;
