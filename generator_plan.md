@@ -92,6 +92,9 @@ Compiler direction:
 - `yield` remains a real feature-gated keyword and dedicated opcode. It is the
   user-visible suspension point; automatic opcode-boundary yielding is only a
   trial/scheduler mechanism for validating continuation mechanics.
+- Parser/keyword work is deferred until the checkout has the required
+  `bison` and `Devel::Tokenizer::C` regeneration tools; source grammar changes
+  must not be committed without matching generated parser artifacts.
 
 Follow-up design investigation:
 
