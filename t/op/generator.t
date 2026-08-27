@@ -8,7 +8,6 @@ BEGIN {
     set_up_inc('../lib');
 }
 
-use Test::More;
 plan(tests => 36);
 
 use feature 'generator';
@@ -17,6 +16,12 @@ sub next_values {
     my ($generator) = @_;
     my @values = $generator->();
     return \@values;
+}
+
+sub is_deeply {
+    my ($got, $expected, $name) = @_;
+    is(join("\x1f", map { defined $_ ? $_ : "\x00" } @$got),
+       join("\x1f", map { defined $_ ? $_ : "\x00" } @$expected), $name);
 }
 
 my $finite = generator {
@@ -132,6 +137,16 @@ like(runperl(stderr => 1,
     qr/Can't locate object method "generator"/,
     'generator syntax remains feature gated');
 
-undef $finite, $undef, $closure, $loop, $inner_eval, $failed, $args,
-    $scalar, $list_context, $scalar_context, $localized, $nested_outer,
-    $nested_inner;
+undef $finite;
+undef $undef;
+undef $closure;
+undef $loop;
+undef $inner_eval;
+undef $failed;
+undef $args;
+undef $scalar;
+undef $list_context;
+undef $scalar_context;
+undef $localized;
+undef $nested_outer;
+undef $nested_inner;
