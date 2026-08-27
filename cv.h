@@ -184,6 +184,7 @@ A synonym for c<L</CvHasNAME>>
 #define CVf_XS_RCSTACK  0x200000 /* the XS function understands a
                                     reference-counted stack */
 #define CVf_EVAL_COMPILED 0x400000 /* an eval CV is fully compiled */
+#define CVf_GENERATOR    0x800000 /* CV is the body of a generator */
 
 /* This symbol for optimised communication between toke.c and op.c: */
 #define CVf_BUILTIN_ATTRS	(CVf_NOWARN_AMBIGUOUS|CVf_LVALUE|CVf_ANONCONST)
@@ -362,6 +363,9 @@ Helper macro to turn off the C<CvREFCOUNTED_ANYSV> flag.
 #define CvEVAL_COMPILED(cv)     (CvFLAGS(cv) & CVf_EVAL_COMPILED)
 #define CvEVAL_COMPILED_on(cv)  (CvFLAGS(cv) |= CVf_EVAL_COMPILED)
 #define CvEVAL_COMPILED_off(cv) (CvFLAGS(cv) &= ~CVf_EVAL_COMPILED)
+#define CvGENERATOR(cv)         (CvFLAGS(cv) & CVf_GENERATOR)
+#define CvGENERATOR_on(cv)      (CvFLAGS(cv) |= CVf_GENERATOR)
+#define CvGENERATOR_off(cv)     (CvFLAGS(cv) &= ~CVf_GENERATOR)
 
 /* Back-compat */
 #ifndef PERL_CORE

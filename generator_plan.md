@@ -101,6 +101,8 @@ Compiler direction:
 - `generator { ... }` now parses through the existing anonymous-CV path and
   produces a code reference. It is still only a compiler shape: calling that
   code reference does not yet create or resume a generator continuation.
+- The compiler marks these body CVs with an internal generator flag so the
+  eventual invocation path can distinguish them from ordinary anonymous CVs.
 
 Follow-up design investigation:
 

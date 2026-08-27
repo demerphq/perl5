@@ -1581,7 +1581,8 @@ anonymous
 	|	HASHBRACK optexpr PERLY_SEMICOLON PERLY_BRACE_CLOSE	%prec PERLY_PAREN_OPEN /* { foo => "Bar" } */
 			{ $$ = newANONHASH($optexpr); }
 	|	KW_GENERATOR    startanonsub block    %prec PERLY_PAREN_OPEN
-			{ SvREFCNT_inc_simple_void(PL_compcv);
+			{ CvGENERATOR_on(PL_compcv);
+			  SvREFCNT_inc_simple_void(PL_compcv);
 			  $$ = newANONATTRSUB($startanonsub, 0, NULL, $block); }
 	|	KW_SUB_anon     startanonsub proto subattrlist subbody    %prec PERLY_PAREN_OPEN
 			{ SvREFCNT_inc_simple_void(PL_compcv);
