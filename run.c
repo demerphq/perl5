@@ -542,7 +542,11 @@ Perl_generator_resume(pTHX_ PERL_GENERATOR *generator)
         PL_runops_boundary_data = old_data;
         process_state_restore(&caller_state);
         PL_restartjmpenv = PL_top_env;
-        die_unwind(newSVsv(generator->error));
+        {
+            SV * const error = generator->error;
+            generator->error = NULL;
+            die_unwind(error);
+        }
         NOT_REACHED;
     }
     JMPENV_POP;
