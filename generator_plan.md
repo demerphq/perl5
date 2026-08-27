@@ -71,7 +71,7 @@ Validation so far:
 
 ## Phase 3 — Prompt and generator runtime
 
-Status: runtime and initial compiler path completed; protocol hardening in progress.
+Status: completed.
 
 Implementation notes:
 
@@ -172,9 +172,24 @@ Phase 4 cleanup note:
   lets the private stack become unreachable with the interpreter. This avoids
   invoking normal scope cleanup against partially dismantled global state.
 
-Phase 5/6 remaining work:
+Phase 5/6 validation:
 
-- Add the remaining compile-time placement diagnostics and complete protocol,
-  recursion, destruction, GC, threaded, and sanitizer coverage.
-- Re-run the broader core validation and record its results here before
-  removing this plan.
+- `generator` and `yield` are feature gated; `yield` outside a generator body
+  is rejected during compilation.  Callback blocks such as `sort`, `map`,
+  `grep`, regex blocks, and XS callbacks compile as ordinary callbacks, so
+  the same placement check rejects `yield` there as well.
+- The protocol tests cover finite and nested generators, loop and lexical
+  state, `local()`, `wantarray`, `undef`, exhaustion, failure, re-entrancy,
+  feature gating, and invalid arguments.
+- `make -j1 test TEST_FILES='op/generator.t op/eval.t op/while.t op/threads.t
+  class/threads.t'`: passed, 269 assertions.
+- `make -j1 regen`: passed.  The existing embed regeneration visibility
+  warnings remain informational.
+- Valgrind Memcheck on `t/op/generator.t`: passed with zero reported errors.
+- The configured build is threaded; the selected threaded tests passed.
+  No separate ASAN build was present in the workspace, so sanitizer results
+  are not claimed.
+
+The follow-up investigation remains recorded above: a future optimization can
+reorganize the process-local `PL_*` values into a contiguous record and swap
+that record through one indirection, subject to ABI, threading, and GC review.
