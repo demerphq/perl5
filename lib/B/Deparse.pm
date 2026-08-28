@@ -7,7 +7,7 @@
 # This is based on the module of the same name by Malcolm Beattie,
 # but essentially none of his code remains.
 
-package B::Deparse 1.91;
+package B::Deparse 1.92;
 use strict;
 use builtin qw( true false );
 use Carp;
@@ -2568,6 +2568,9 @@ my %feature_keywords = (
    signatures => 'signatures',
    any      => 'any',
    all      => 'all',
+   generator_create => 'generator',
+   generator_yield    => 'generator',
+   generator_exhausted => 'generator',
 );
 
 # keywords that are strong and also have a prototype
