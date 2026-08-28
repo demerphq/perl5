@@ -460,17 +460,18 @@ C<elsif>,
 C<END>,
 C<__END__>,
 C<eq>,
-C<exhausted>,
 C<finally>,
 C<for>,
 C<foreach>,
 C<ge>,
-C<generator>,
 C<given>,
 C<gt>,
 C<if>,
 C<INIT>,
 C<isa>,
+C<iterator_create>,
+C<iterator_exhausted>,
+C<iterator_yield>,
 C<le>,
 C<lt>,
 C<ne>,
@@ -483,8 +484,7 @@ C<until>,
 C<when>,
 C<while>,
 C<x>,
-C<xor>,
-C<yield>
+C<xor>
 
 =back
 
@@ -3591,33 +3591,22 @@ Here's an example to test whether Nagle's algorithm is enabled on a socket:
 
 Portability issues: L<perlport/getsockopt>.
 
-=item exhausted EXPR
-X<exhausted>
+=item iterator_create BLOCK
+X<iterator_create> X<iterator_yield>
 
-=for Pod::Functions test whether a generator is exhausted
+=for Pod::Functions create a one-shot iterator
 
-Returns true if EXPR is a generator that has completed and returned an empty
-list on its final resume.  It returns false for a new or suspended generator,
-and does not resume or advance the generator.  A failed generator is not
-exhausted.  This keyword is experimental and requires C<use feature
-'generator'>.
+The experimental C<iterator> feature creates a callable iterator from a
+block.  Each call resumes the block until its next C<iterator_yield>, returning
+exactly one value in list context or that value in scalar context.  The
+iterator body runs in the context of the call that resumes it, and its lexical
+and localized state is retained across yields.
 
-=item generator BLOCK
-X<generator> X<yield>
+    use feature 'iterator';
 
-=for Pod::Functions create a one-shot generator
-
-The experimental C<generator> feature creates a callable generator from a
-block.  Each call resumes the block until its next C<yield>, returning exactly
-one value in list context or that value in scalar context.  The generator body
-runs in the context of the call that resumes it, and its lexical and localized
-state is retained across yields.
-
-    use feature 'generator';
-
-    my $numbers = generator {
-        yield 1;
-        yield 2;
+    my $numbers = iterator_create {
+        iterator_yield 1;
+        iterator_yield 2;
     };
 
     my @first  = $numbers->(); # (1)
@@ -3626,21 +3615,32 @@ state is retained across yields.
 
 C<undef> is a valid yielded value, and is still one value rather than an empty
 list.  When the body finishes without yielding again, that call returns an
-empty list and the generator becomes exhausted.  A later call then raises an
+empty list and the iterator becomes exhausted.  A later call then raises an
 exception; exhaustion is permanent.
 
-A generator does not accept arguments.  It is a one-shot continuation: it
+An iterator does not accept arguments.  It is a one-shot continuation: it
 cannot be resumed while it is already running, after exhaustion, or after an
-uncaught exception.  An exception caught by an C<eval> inside the generator
+uncaught exception.  An exception caught by an C<eval> inside the iterator
 does not exhaust it; an uncaught exception is propagated by the call that
-resumes the generator and permanently puts it into the failed state.
+resumes the iterator and permanently puts it into the failed state.
 
-C<yield> is only valid lexically inside a C<generator> block.  It cannot be
-used in an ordinary subroutine or in callback code such as C<sort>, C<map>,
-C<grep>, or a regular-expression code block.
+C<iterator_yield> is only valid lexically inside an C<iterator_create> block.
+It cannot be used in an ordinary subroutine or in callback code such as
+C<sort>, C<map>, C<grep>, or a regular-expression code block.
 
 This feature is experimental and may change or be removed in a future Perl
 release.
+
+=item iterator_exhausted EXPR
+X<iterator_exhausted>
+
+=for Pod::Functions test whether an iterator is exhausted
+
+Returns true if EXPR is an iterator that has completed and returned an empty
+list on its final resume.  It returns false for a new or suspended iterator,
+and does not resume or advance the iterator.  A failed iterator is not
+exhausted.  This keyword is experimental and requires C<use feature
+'iterator'>.
 
 =item glob EXPR
 X<glob> X<wildcard> X<filename, expansion> X<expand>

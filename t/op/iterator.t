@@ -10,11 +10,11 @@ BEGIN {
 
 plan(tests => 46);
 
-use feature 'generator';
+use feature 'iterator';
 
 sub next_values {
-    my ($generator) = @_;
-    my @values = $generator->();
+    my ($iterator) = @_;
+    my @values = $iterator->();
     return \@values;
 }
 
@@ -24,53 +24,53 @@ sub is_deeply {
        join("\x1f", map { defined $_ ? $_ : "\x00" } @$expected), $name);
 }
 
-my $finite = generator {
-    yield 1;
-    yield 2;
+my $finite = iterator_create {
+    iterator_yield 1;
+    iterator_yield 2;
 };
 
-ok(!exhausted $finite, 'new generator is not exhausted');
-is_deeply(next_values($finite), [ 1 ], 'first yield');
-ok(!exhausted($finite), 'suspended generator is not exhausted');
-is_deeply(next_values($finite), [ 2 ], 'second yield');
+ok(!iterator_exhausted $finite, 'new iterator is not exhausted');
+is_deeply(next_values($finite), [ 1 ], 'first iterator_yield');
+ok(!iterator_exhausted($finite), 'suspended iterator is not exhausted');
+is_deeply(next_values($finite), [ 2 ], 'second iterator_yield');
 is_deeply(next_values($finite), [], 'exhaustion returns an empty list');
-ok(exhausted $finite, 'completed generator is exhausted');
+ok(iterator_exhausted $finite, 'completed iterator is exhausted');
 my $exhausted = eval { $finite->(); 1 };
 ok(!$exhausted, 'exhaustion is permanent');
-like($@, qr/cannot resume an exhausted generator/, 'exhaustion diagnostic');
+like($@, qr/cannot resume an exhausted iterator/, 'exhaustion diagnostic');
 
-my $undef = generator { yield undef };
+my $undef = iterator_create { iterator_yield undef };
 my $undef_values = next_values($undef);
 is(scalar(@$undef_values), 1, 'undef is still one yielded value');
 ok(!defined($undef_values->[0]), 'yielded undef is preserved');
 
 my $n = 10;
-my $closure = generator { yield $n++; yield $n++ };
-is_deeply(next_values($closure), [ 10 ], 'generator closes over lexical state');
+my $closure = iterator_create { iterator_yield $n++; iterator_yield $n++ };
+is_deeply(next_values($closure), [ 10 ], 'iterator closes over lexical state');
 is_deeply(next_values($closure), [ 11 ], 'lexical state survives suspension');
 
-my $loop = generator {
+my $loop = iterator_create {
     for my $value (1 .. 3) {
-        yield $value;
+        iterator_yield $value;
     }
 };
-is_deeply(next_values($loop), [ 1 ], 'loop yield one');
-is_deeply(next_values($loop), [ 2 ], 'loop yield two');
-is_deeply(next_values($loop), [ 3 ], 'loop yield three');
-is_deeply(next_values($loop), [], 'loop generator exhausts');
+is_deeply(next_values($loop), [ 1 ], 'loop iterator_yield one');
+is_deeply(next_values($loop), [ 2 ], 'loop iterator_yield two');
+is_deeply(next_values($loop), [ 3 ], 'loop iterator_yield three');
+is_deeply(next_values($loop), [], 'loop iterator exhausts');
 
-my $inner_eval = generator {
+my $inner_eval = iterator_create {
     my $ignored = eval { die "inner failure\n" };
-    yield $@;
+    iterator_yield $@;
 };
 like($inner_eval->(), qr/inner failure/, 'inner eval catches its failure');
-is_deeply(next_values($inner_eval), [], 'inner-eval generator exhausts');
+is_deeply(next_values($inner_eval), [], 'inner-eval iterator exhausts');
 
-my $failed = generator {
-    yield 'before failure';
-    die "generator failure\n";
+my $failed = iterator_create {
+    iterator_yield 'before failure';
+    die "iterator failure\n";
 };
-ok(!exhausted $failed, 'failed generator is not initially exhausted');
+ok(!iterator_exhausted $failed, 'failed iterator is not initially exhausted');
 is_deeply(next_values($failed), [ 'before failure' ], 'failure follows a yield');
 my ($failure, $failure_error, $resumed_failed, $resumed_failed_error);
 {
@@ -81,43 +81,43 @@ my ($failure, $failure_error, $resumed_failed, $resumed_failed_error);
     $resumed_failed_error = $@;
 }
 ok(!$failure, 'failure is reported by resume');
-like($failure_error, qr/generator failure/, 'original failure is rethrown');
-ok(!exhausted($failed), 'failed generator is not exhausted');
-ok(!$resumed_failed, 'failed generator cannot be resumed');
-like($resumed_failed_error, qr/cannot resume a failed generator/, 'failed-resume diagnostic');
+like($failure_error, qr/iterator failure/, 'original failure is rethrown');
+ok(!iterator_exhausted($failed), 'failed iterator is not exhausted');
+ok(!$resumed_failed, 'failed iterator cannot be resumed');
+like($resumed_failed_error, qr/cannot resume a failed iterator/, 'failed-resume diagnostic');
 
-my $args = generator { yield 1 };
+my $args = iterator_create { iterator_yield 1 };
 eval { $args->(1) };
-like($@, qr/generator does not accept arguments/, 'arguments are rejected');
+like($@, qr/iterator does not accept arguments/, 'arguments are rejected');
 
-my $scalar = generator { yield 42 };
+my $scalar = iterator_create { iterator_yield 42 };
 is(scalar($scalar->()), 42, 'scalar context returns the yielded value');
 
-my $list_context = generator {
-    yield wantarray ? 'list' : 'scalar';
+my $list_context = iterator_create {
+    iterator_yield wantarray ? 'list' : 'scalar';
 };
 is_deeply(next_values($list_context), [ 'list' ],
-    'generator body sees list context');
-my $scalar_context = generator {
-    yield wantarray ? 'list' : 'scalar';
+    'iterator body sees list context');
+my $scalar_context = iterator_create {
+    iterator_yield wantarray ? 'list' : 'scalar';
 };
-is($scalar_context->(), 'scalar', 'generator body sees scalar context');
+is($scalar_context->(), 'scalar', 'iterator body sees scalar context');
 
 my $saved_input_separator = $/;
-my $localized = generator {
-    local $/ = 'generator separator';
-    yield $/;
-    yield $/;
+my $localized = iterator_create {
+    local $/ = 'iterator separator';
+    iterator_yield $/;
+    iterator_yield $/;
 };
-is_deeply(next_values($localized), [ 'generator separator' ],
+    is_deeply(next_values($localized), [ 'iterator separator' ],
     'localization survives the first suspension');
-is_deeply(next_values($localized), [ 'generator separator' ],
+is_deeply(next_values($localized), [ 'iterator separator' ],
     'localization survives the second suspension');
-is_deeply(next_values($localized), [], 'localized generator exhausts');
+is_deeply(next_values($localized), [], 'localized iterator exhausts');
 is($/, $saved_input_separator, 'localization is restored at exhaustion');
 
 my $reentrant;
-$reentrant = generator { yield $reentrant->() };
+$reentrant = iterator_create { iterator_yield $reentrant->() };
 my ($reentered, $reentered_error);
 {
     local $@;
@@ -125,55 +125,55 @@ my ($reentered, $reentered_error);
     $reentered_error = $@;
 }
 ok(!$reentered, 're-entrant resume is rejected');
-like($reentered_error, qr/generator has no suspended continuation/,
+like($reentered_error, qr/iterator has no suspended continuation/,
     're-entrant resume diagnostic');
 $reentrant = undef;
 
-my $nested_inner = generator { yield 10; yield 20 };
-my $nested_outer = generator {
-    yield $nested_inner->();
-    yield $nested_inner->();
+my $nested_inner = iterator_create { iterator_yield 10; iterator_yield 20 };
+my $nested_outer = iterator_create {
+    iterator_yield $nested_inner->();
+    iterator_yield $nested_inner->();
 };
 is_deeply(next_values($nested_outer), [ 10 ],
-    'nested generator resumes its inner generator');
+    'nested iterator resumes its inner iterator');
 is_deeply(next_values($nested_outer), [ 20 ],
-    'nested generator preserves the inner continuation');
-is_deeply(next_values($nested_outer), [], 'nested generator exhausts');
+    'nested iterator preserves the inner continuation');
+is_deeply(next_values($nested_outer), [], 'nested iterator exhausts');
 
-like(runperl(switches => ['-Mfeature=generator'], stderr => 1,
-             prog => 'yield 1'),
-    qr/yield outside a generator/, 'yield is rejected outside a generator');
+like(runperl(switches => ['-Mfeature=iterator'], stderr => 1,
+             prog => 'iterator_yield 1'),
+    qr/iterator_yield outside an iterator_create/, 'iterator_yield is rejected outside an iterator');
 
-like(runperl(switches => ['-Mfeature=generator'], stderr => 1,
-             prog => 'sub ordinary_generator_test { yield 1 }'),
-    qr/yield outside a generator/, 'yield is rejected in an ordinary sub');
+like(runperl(switches => ['-Mfeature=iterator'], stderr => 1,
+             prog => 'sub ordinary_iterator_test { iterator_yield 1 }'),
+    qr/iterator_yield outside an iterator_create/, 'iterator_yield is rejected in an ordinary sub');
 
-like(runperl(switches => ['-Mfeature=generator'], stderr => 1,
-             prog => 'sort { yield 1 } 1, 2'),
-    qr/yield outside a generator/, 'yield is rejected in sort callbacks');
-like(runperl(switches => ['-Mfeature=generator'], stderr => 1,
-             prog => 'map { yield 1 } 1, 2'),
-    qr/yield outside a generator/, 'yield is rejected in map callbacks');
-like(runperl(switches => ['-Mfeature=generator'], stderr => 1,
-             prog => 'grep { yield 1 } 1, 2'),
-    qr/yield outside a generator/, 'yield is rejected in grep callbacks');
-like(runperl(switches => ['-Mfeature=generator'], stderr => 1,
-             prog => 'q[a] =~ /(?{ yield 1 })/'),
-    qr/yield outside a generator/, 'yield is rejected in regex callbacks');
+like(runperl(switches => ['-Mfeature=iterator'], stderr => 1,
+             prog => 'sort { iterator_yield 1 } 1, 2'),
+    qr/iterator_yield outside an iterator_create/, 'iterator_yield is rejected in sort callbacks');
+like(runperl(switches => ['-Mfeature=iterator'], stderr => 1,
+             prog => 'map { iterator_yield 1 } 1, 2'),
+    qr/iterator_yield outside an iterator_create/, 'iterator_yield is rejected in map callbacks');
+like(runperl(switches => ['-Mfeature=iterator'], stderr => 1,
+             prog => 'grep { iterator_yield 1 } 1, 2'),
+    qr/iterator_yield outside an iterator_create/, 'iterator_yield is rejected in grep callbacks');
+like(runperl(switches => ['-Mfeature=iterator'], stderr => 1,
+             prog => 'q[a] =~ /(?{ iterator_yield 1 })/'),
+    qr/iterator_yield outside an iterator_create/, 'iterator_yield is rejected in regex callbacks');
 
-is(runperl(switches => ['-Mfeature=generator', '-MScalar::Util=weaken'],
+is(runperl(switches => ['-Mfeature=iterator', '-MScalar::Util=weaken'],
            prog => 'package Generator::Cleanup; sub DESTROY { }'
                 . ' package main; my $weak;'
-                . ' my $generator = generator { my $object = bless {},'
+                . ' my $iterator = iterator_create { my $object = bless {},'
                 . ' q[Generator::Cleanup]; $weak = $object; weaken($weak);'
-                . ' yield 1 }; $generator->(); undef $generator;'
+                . ' iterator_yield 1 }; $iterator->(); undef $iterator;'
                 . ' print defined($weak) ? q[live] : q[destroyed]'),
-   'destroyed', 'dropping a suspended generator releases its pad');
+   'destroyed', 'dropping a suspended iterator releases its pad');
 
 like(runperl(stderr => 1,
-             prog => 'my $not_a_generator = generator { 1 }'),
-    qr/Can't locate object method "generator"/,
-    'generator syntax remains feature gated');
+             prog => 'my $not_an_iterator = iterator_create { 1 }'),
+    qr/Can't locate object method "iterator_create"/,
+    'iterator syntax remains feature gated');
 
 undef $finite;
 undef $undef;

@@ -1,4 +1,4 @@
-# Trial generators using one-shot continuations
+# Trial iterators using one-shot continuations
 
 Working branch: `yves/fork_sub`.
 
@@ -8,28 +8,28 @@ was not supported by sufficient evidence.
 ## Audit status
 
 - [x] Process snapshots, opcode-boundary hooks, and private stack ownership
-- [x] Generator syntax, one-shot resume protocol, and explicit `yield`
+- [x] Iterator syntax, one-shot resume protocol, and explicit `iterator_yield`
 - [x] Nested eval, failure propagation, exhaustion, and re-entrancy
 - [x] Feature/compiler diagnostics and documentation metadata
 - [x] DEBUGGING and sanitizer validation
 - [x] Destruction, GC, callback-context, and scheduler edge-case coverage
 - [x] Final full relevant validation and cleanup
 
-The DEBUGGING threaded build passes the focused generator, eval, loop, and
+The DEBUGGING threaded build passes the focused iterator, eval, loop, and
 thread tests.  An isolated ASAN/DEBUGGING threaded build also passes the
-generator and threaded smoke paths.  The agent sandbox cannot run
-LeakSanitizer because it is ptrace-restricted, so the full generator test was
+iterator and threaded smoke paths.  The agent sandbox cannot run
+LeakSanitizer because it is ptrace-restricted, so the full iterator test was
 also run from the host terminal with `PERL_DESTRUCT_LEVEL=2`: all 46 tests
-passed, and the direct generator smoke produced no leak report.  That full
+passed, and the direct iterator smoke produced no leak report.  That full
 test process still reports the two documented DEBUGGING temporary-SV teardown
 diagnostics and a 176-byte indirect allocation retained by the test-process
-teardown; neither reproduces in the direct generator smoke.  Cleanup coverage
-includes dropping a suspended generator with a lexical object, callback
+teardown; neither reproduces in the direct iterator smoke.  Cleanup coverage
+includes dropping a suspended iterator with a lexical object, callback
 diagnostics, process-state round trips, and deterministic quantum-one
 scheduler alternation.
 
 The final scoped native harness passes all five relevant files (274 tests),
-and the XS scheduler test passes all three checks.  The DEBUGGING generator
+and the XS scheduler test passes all three checks.  The DEBUGGING iterator
 test still reports two non-fatal temporary-SV teardown diagnostics; minimal
 runtime reproductions do not reproduce them, so they remain documented as a
 test-harness teardown limitation rather than suppressed.
@@ -39,8 +39,9 @@ follow-up investigation for a contiguous execution record that could be
 copied or swapped through one assignment, subject to ABI, threading, and GC
 constraints.
 
-The experimental generator trio is now `generator`, `yield`, and
-`exhausted`.  `exhausted` is a non-advancing predicate: it is true only after
-the generator completes, and false for new, suspended, and failed generators.
+The experimental iterator trio is now `iterator_create`, `iterator_yield`,
+and `iterator_exhausted`.  `iterator_exhausted` is a non-advancing predicate:
+it is true only after the iterator completes, and false for new, suspended,
+and failed iterators.
 The full DEBUGGING `make_test` run completed 2,947 files and 1,398,044 tests;
 the only reported failures were the seven existing Windows diagnostic TODOs.

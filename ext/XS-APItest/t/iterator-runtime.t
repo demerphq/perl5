@@ -1,9 +1,13 @@
 #!perl
 
+BEGIN {
+    chdir 't' if -d 't';
+    require '../../../t/test.pl';
+    set_up_inc('../../../lib');
+}
+
 use strict;
 use warnings;
-
-require "../../t/test.pl";
 use XS::APItest;
 
 plan(tests => 3);
