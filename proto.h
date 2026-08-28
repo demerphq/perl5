@@ -463,6 +463,14 @@ Perl_build_infix_plugin(pTHX_ OP *lhs, OP *rhs, void *tokendata)
 #define PERL_ARGS_ASSERT_BUILD_INFIX_PLUGIN     \
         Perl_assert_aTHX; assert(lhs); assert(rhs); assert(tokendata)
 
+PERL_CALLCONV bool
+Perl_builtin_package_implements(pTHX_ SV *package_or_object, SV *role)
+        Perl_attribute_nonnull_aTHX
+        Perl_attribute_nonnull(pTHX_1)
+        Perl_attribute_nonnull(pTHX_2);
+#define PERL_ARGS_ASSERT_BUILTIN_PACKAGE_IMPLEMENTS \
+        Perl_assert_aTHX; assert(package_or_object); assert(role)
+
 PERL_CALLCONV const char *
 Perl_byte_dump_string_(pTHX_ const U8 * const start, const STRLEN len, const bool format)
         Perl_attribute_nonnull_aTHX;
