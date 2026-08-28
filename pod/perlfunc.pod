@@ -463,8 +463,8 @@ C<eq>,
 C<finally>,
 C<for>,
 C<foreach>,
-C<generator>,
 C<ge>,
+C<generator>,
 C<given>,
 C<gt>,
 C<if>,
@@ -481,9 +481,9 @@ C<unless>,
 C<until>,
 C<when>,
 C<while>,
-C<yield>,
 C<x>,
-C<xor>
+C<xor>,
+C<yield>
 
 =back
 
