@@ -43,5 +43,14 @@ The experimental iterator trio is now `iterator_create`, `iterator_yield`,
 and `iterator_exhausted`.  `iterator_exhausted` is a non-advancing predicate:
 it is true only after the iterator completes, and false for new, suspended,
 and failed iterators.
-The full DEBUGGING `make_test` run completed 2,947 files and 1,398,044 tests;
-the only reported failures were the seven existing Windows diagnostic TODOs.
+The final DEBUGGING `make_test` run completed 2,947 files and 1,398,115 tests.
+All iterator tests passed.  Its diagnostic failures were the four iterator
+messages added after that run began; a subsequent standalone diagnostic check
+confirmed those messages are documented.  The only remaining version-check
+notice is the generated `B::Op_private` file, whose version is tied to the
+unchanged core Perl version.
+
+Follow-up: consider blessing the callable iterator CODE reference into an
+`iterator::Instance` class implemented in Perl, providing convenience methods
+such as `next()` and `exhausted()` to callers that do not enable the iterator
+feature.  This should preserve the primitive callable protocol.

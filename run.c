@@ -463,7 +463,7 @@ Perl_generator_capture(pTHX_ PERL_GENERATOR *generator, SV *value)
     if (generator->captured
         || (generator->state != PERL_GENERATOR_NEW
             && generator->state != PERL_GENERATOR_RUNNING))
-        croak("generator continuation is not available");
+        croak("iterator continuation is not available");
 
     SvREFCNT_dec(generator->value);
     generator->value = value ? newSVsv(value) : NULL;

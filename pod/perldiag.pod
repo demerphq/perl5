@@ -3710,6 +3710,25 @@ it is hanging when it is really just trying to read from STDIN.  You
 should either pass a filename to edit, or remove C<-i> from the command
 line.  See L<perlrun|perlrun/-i[extension]> for more details.
 
+=item invalid iterator
+
+(F) You attempted to call a value that is not a valid iterator.
+
+=item iterator continuation is not available
+
+(F) You attempted to capture or resume an iterator when its continuation was
+not available.
+
+=item iterator does not accept arguments
+
+(F) You attempted to call an iterator with arguments.  Iterators do not
+accept arguments.
+
+=item iterator_yield outside a running iterator_create
+
+(F) The iterator_yield operation was invoked without a currently running
+iterator_create body.
+
 =item Junk on end of regexp in regex m/%s/
 
 (P) The regular expression parser is confused.
