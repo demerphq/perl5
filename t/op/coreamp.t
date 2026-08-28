@@ -1194,7 +1194,7 @@ like $@, qr'^Undefined format "STDOUT" called',
     for foreach format ge given goto grep gt if isa last le local lt m map
     method my ne next no or our package print printf q qq qr qw qx redo require
     return s say sort state sub tr try unless until use when while x xor y
-    iterator_create iterator_exhausted iterator_yield
+    generator_create generator_exhausted generator_yield
   );
   open my $kh, $keywords_file
     or die "$0 cannot open $keywords_file: $!";

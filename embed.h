@@ -109,6 +109,9 @@
 #   undef KEY_format
 #   undef KEY_formline
 #   undef KEY_ge
+#   undef KEY_generator_create
+#   undef KEY_generator_exhausted
+#   undef KEY_generator_yield
 #   undef KEY_getc
 #   undef KEY_getgrent
 #   undef KEY_getgrgid
@@ -149,9 +152,6 @@
 #   undef KEY_int
 #   undef KEY_ioctl
 #   undef KEY_isa
-#   undef KEY_iterator_create
-#   undef KEY_iterator_exhausted
-#   undef KEY_iterator_yield
 #   undef KEY_join
 #   undef KEY_keys
 #   undef KEY_kill

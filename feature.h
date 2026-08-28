@@ -24,9 +24,9 @@
 #define FEATURE_EVALBYTES_BIT                       0x00000100
 #define FEATURE_MORE_DELIMS_BIT                     0x00000200
 #define FEATURE_FC_BIT                              0x00000400
-#define FEATURE_INDIRECT_BIT                        0x00000800
-#define FEATURE_ISA_BIT                             0x00001000
-#define FEATURE_ITERATOR_BIT                        0x00002000
+#define FEATURE_GENERATOR_BIT                       0x00000800
+#define FEATURE_INDIRECT_BIT                        0x00001000
+#define FEATURE_ISA_BIT                             0x00002000
 #define FEATURE_KEYWORD_ALL_BIT                     0x00004000
 #define FEATURE_KEYWORD_ANY_BIT                     0x00008000
 #define FEATURE_MODULE_TRUE_BIT                     0x00010000
@@ -53,9 +53,9 @@
 #define FEATURE_EVALBYTES_INDEX                       0
 #define FEATURE_MORE_DELIMS_INDEX                     0
 #define FEATURE_FC_INDEX                              0
+#define FEATURE_GENERATOR_INDEX                       0
 #define FEATURE_INDIRECT_INDEX                        0
 #define FEATURE_ISA_INDEX                             0
-#define FEATURE_ITERATOR_INDEX                        0
 #define FEATURE_KEYWORD_ALL_INDEX                     0
 #define FEATURE_KEYWORD_ANY_INDEX                     0
 #define FEATURE_MODULE_TRUE_INDEX                     0
@@ -182,18 +182,18 @@
 	 FEATURE_IS_ENABLED_MASK(FEATURE_INDIRECT_INDEX, FEATURE_INDIRECT_BIT)) \
     )
 
-#define FEATURE_ITERATOR_IS_ENABLED \
-    ( \
-	CURRENT_FEATURE_BUNDLE == FEATURE_BUNDLE_CUSTOM && \
-	 FEATURE_IS_ENABLED_MASK(FEATURE_ITERATOR_INDEX, FEATURE_ITERATOR_BIT) \
-    )
-
 #define FEATURE_EVALBYTES_IS_ENABLED \
     ( \
 	(CURRENT_FEATURE_BUNDLE >= FEATURE_BUNDLE_515 && \
 	 CURRENT_FEATURE_BUNDLE <= FEATURE_BUNDLE_541) \
      || (CURRENT_FEATURE_BUNDLE == FEATURE_BUNDLE_CUSTOM && \
 	 FEATURE_IS_ENABLED_MASK(FEATURE_EVALBYTES_INDEX, FEATURE_EVALBYTES_BIT)) \
+    )
+
+#define FEATURE_GENERATOR_IS_ENABLED \
+    ( \
+	CURRENT_FEATURE_BUNDLE == FEATURE_BUNDLE_CUSTOM && \
+	 FEATURE_IS_ENABLED_MASK(FEATURE_GENERATOR_INDEX, FEATURE_GENERATOR_BIT) \
     )
 
 #define FEATURE_SIGNATURES_IS_ENABLED \
@@ -454,6 +454,15 @@ S_magic_sethint_feature(pTHX_ SV *keysv, const char *keypv, STRLEN keylen,
             }
             return;
 
+        case 'g':
+            if (keylen == sizeof("feature_generator")-1
+                 && memcmp(subf+1, "enerator", keylen - sizeof("feature_")) == 0) {
+                mask = FEATURE_GENERATOR_BIT;
+                index = FEATURE_GENERATOR_INDEX;
+                break;
+            }
+            return;
+
         case 'i':
             if (keylen == sizeof("feature_indirect")-1
                  && memcmp(subf+1, "ndirect", keylen - sizeof("feature_")) == 0) {
@@ -465,12 +474,6 @@ S_magic_sethint_feature(pTHX_ SV *keysv, const char *keypv, STRLEN keylen,
                  && memcmp(subf+1, "sa", keylen - sizeof("feature_")) == 0) {
                 mask = FEATURE_ISA_BIT;
                 index = FEATURE_ISA_INDEX;
-                break;
-            }
-            else if (keylen == sizeof("feature_iterator")-1
-                 && memcmp(subf+1, "terator", keylen - sizeof("feature_")) == 0) {
-                mask = FEATURE_ITERATOR_BIT;
-                index = FEATURE_ITERATOR_INDEX;
                 break;
             }
             return;
@@ -693,6 +696,13 @@ PL_feature_bits[] = {
         FEATURE_FC_INDEX
     },
     {
+        /* feature generator */
+        "feature_generator",
+        STRLENs("feature_generator"),
+        FEATURE_GENERATOR_BIT,
+        FEATURE_GENERATOR_INDEX
+    },
+    {
         /* feature indirect */
         "feature_indirect",
         STRLENs("feature_indirect"),
@@ -705,13 +715,6 @@ PL_feature_bits[] = {
         STRLENs("feature_isa"),
         FEATURE_ISA_BIT,
         FEATURE_ISA_INDEX
-    },
-    {
-        /* feature iterator */
-        "feature_iterator",
-        STRLENs("feature_iterator"),
-        FEATURE_ITERATOR_BIT,
-        FEATURE_ITERATOR_INDEX
     },
     {
         /* feature keyword_all */

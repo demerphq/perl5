@@ -617,5 +617,5 @@ classname	class name		ck_classname		0t
 multiparam	signature processing	ck_null		+
 paramtest	signature argument value test	ck_null	|
 paramstore	signature parameter default expression	ck_null	1
-iterator_yield	yield a value from an iterator	ck_null	1	S
-iterator_exhausted	test whether an iterator is exhausted	ck_null	1	S
+generator_yield	yield a value from a generator	ck_null	1	S
+generator_exhausted	test whether a generator is exhausted	ck_null	1	S

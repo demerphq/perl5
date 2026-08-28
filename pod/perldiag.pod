@@ -857,15 +857,15 @@ which makes no sense.  Maybe you meant '%s', or just stringifying it?
 (F) You tried to begin a C<class> definition for a class that already exists.
 A class may only have one definition block.
 
-=item cannot resume a failed iterator
+=item cannot resume a failed generator
 
-(F) You attempted to resume an iterator after an uncaught exception had
-already caused it to fail.  A failed iterator cannot be resumed.
+(F) You attempted to resume a generator after an uncaught exception had
+already caused it to fail.  A failed generator cannot be resumed.
 
-=item cannot resume an exhausted iterator
+=item cannot resume an exhausted generator
 
-(F) You attempted to resume an iterator after it had completed.  An exhausted
-iterator cannot be resumed.
+(F) You attempted to resume a generator after it had completed.  An exhausted
+generator cannot be resumed.
 
 =item Cannot set tied @DB::args
 
@@ -886,7 +886,7 @@ executing the current method, and therefore it can only be placed inside an
 actual method (or method-like expression, such as a field initializer
 expression).
 
-=item Cannot use declared reference iterator variables in foreach loop past the 24th variable
+=item Cannot use declared reference generator variables in foreach loop past the 24th variable
 
 (F) You attempted to create a multi-variable C<foreach> loop where at least
 one variable is a declared reference (C<\$VAR>, C<\@VAR> or C<\%VAR>) and
@@ -894,11 +894,11 @@ one of the variables past the 24th variable is a declared reference. For
 internal implementation reasons, perl cannot keep track of declared references
 past the first 24 of them.
 
-=item Cannot use more than 256 iterator variables on a foreach loop if any are declared refs
+=item Cannot use more than 256 generator variables on a foreach loop if any are declared refs
 
 (F) You attempted to create a multi-variable C<foreach> loop where at least
 one variable is a declared reference (C<\$VAR>, C<\@VAR> or C<\%VAR>) and
-there are in total more than 256 iterator variables. For internal
+there are in total more than 256 generator variables. For internal
 implementation reasons, this is too many for perl to keep track of.
 
 =item Cannot yet reorder sv_vcatpvfn() arguments from va_list
@@ -3559,10 +3559,10 @@ optional third component, which is ignored.  Each component must be a number
 of 1 to 3 digits. No other characters are permitted.  The value that was
 specified does not conform to these rules.
 
-=item iterator has no suspended continuation
+=item generator has no suspended continuation
 
-(F) You attempted to resume an iterator that has no suspended continuation.
-This can happen when iterator execution is resumed outside its normal calling
+(F) You attempted to resume a generator that has no suspended continuation.
+This can happen when generator execution is resumed outside its normal calling
 context.
 
 =item Invalid version format (%s)
@@ -3710,24 +3710,24 @@ it is hanging when it is really just trying to read from STDIN.  You
 should either pass a filename to edit, or remove C<-i> from the command
 line.  See L<perlrun|perlrun/-i[extension]> for more details.
 
-=item invalid iterator
+=item invalid generator
 
-(F) You attempted to call a value that is not a valid iterator.
+(F) You attempted to call a value that is not a valid generator.
 
-=item iterator continuation is not available
+=item generator continuation is not available
 
-(F) You attempted to capture or resume an iterator when its continuation was
+(F) You attempted to capture or resume a generator when its continuation was
 not available.
 
-=item iterator does not accept arguments
+=item generator does not accept arguments
 
-(F) You attempted to call an iterator with arguments.  Iterators do not
+(F) You attempted to call a generator with arguments.  Generators do not
 accept arguments.
 
-=item iterator_yield outside a running iterator_create
+=item generator_yield outside a running generator_create
 
-(F) The iterator_yield operation was invoked without a currently running
-iterator_create body.
+(F) The generator_yield operation was invoked without a currently running
+generator_create body.
 
 =item Junk on end of regexp in regex m/%s/
 
@@ -5356,7 +5356,7 @@ and freeing temporaries and lexicals from.
 
 =item panic: pp_iter, type=%u
 
-(P) The foreach iterator got called in a non-loop context frame.
+(P) The foreach generator got called in a non-loop context frame.
 
 =item panic: pp_match%s
 
@@ -5934,7 +5934,7 @@ quantifier inside the assertion instead.  For example, the way to match
 "abc" provided that it is followed by three repetitions of "xyz" is
 C</abc(?=(?:xyz){3})/>, not C</abc(?=xyz){3}/>.
 
-=item Range iterator outside integer range
+=item Range generator outside integer range
 
 (F) One (or both) of the numeric arguments to the range operator ".."
 are outside the range which can be represented by integers internally.
@@ -8028,7 +8028,7 @@ than 32-bit ones.
 The use of out of range code points was deprecated in Perl 5.24, and
 became a fatal error in Perl 5.28.
 
-=item Use of each() on hash after insertion without resetting hash iterator results in undefined behavior
+=item Use of each() on hash after insertion without resetting hash generator results in undefined behavior
 
 (S internal) The behavior of C<each()> after insertion is undefined;
 it may skip items, or visit items more than once.  Consider using

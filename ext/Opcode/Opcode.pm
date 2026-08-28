@@ -598,7 +598,7 @@ about calling environment and args.
 This tag is simply a bucket for opcodes that are unlikely to be used via
 a tag name but need to be tagged for completeness and documentation.
 
-    syscall dump chroot iterator_exhausted iterator_yield
+    syscall dump chroot generator_exhausted generator_yield
 
 =back
 

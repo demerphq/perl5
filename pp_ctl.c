@@ -6691,7 +6691,7 @@ PP(pp_pushdefer)
     return NORMAL;
 }
 
-PP(pp_iterator_yield)
+PP(pp_generator_yield)
 {
     dSP;
     generator_yield_value(TOPs);
@@ -6699,7 +6699,7 @@ PP(pp_iterator_yield)
     return PL_op->op_next;
 }
 
-PP(pp_iterator_exhausted)
+PP(pp_generator_exhausted)
 {
     dSP;
     SV * const generator_sv = TOPs;

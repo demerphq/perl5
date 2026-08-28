@@ -373,7 +373,7 @@ my %not_tested = map { $_ => 1} qw(
     else
     elsif
     field
-    iterator_create
+    generator_create
     finally
     for
     foreach
@@ -396,9 +396,9 @@ my %not_tested = map { $_ => 1} qw(
     unless
     until
     use
-    iterator_exhausted
-    iterator_create
-    iterator_yield
+    generator_exhausted
+    generator_create
+    generator_yield
     when
     while
     y

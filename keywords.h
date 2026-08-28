@@ -133,9 +133,9 @@
 #define KEY_int			117
 #define KEY_ioctl		118
 #define KEY_isa			119
-#define KEY_iterator_create	120
-#define KEY_iterator_exhausted	121
-#define KEY_iterator_yield	122
+#define KEY_generator_create	120
+#define KEY_generator_exhausted	121
+#define KEY_generator_yield	122
 #define KEY_join		123
 #define KEY_keys		124
 #define KEY_kill		125
@@ -285,5 +285,5 @@
 #define KEY_y			269
 
 /* Generated from:
- * 7df814aff906ef90a6d7a02bafe0ff6f40417674370f8bb8e3cb64da92bfcac7 regen/keywords.pl
+ * 84aca96fe109c8873fa97d3e599fd394d5a9d96237f24e68a18df963fad97e1b regen/keywords.pl
  * ex: set ro ft=c: */
