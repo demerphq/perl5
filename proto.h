@@ -7055,15 +7055,6 @@ Perl_sv_does_pvn(pTHX_ SV *sv, const char * const name, const STRLEN len, U32 fl
         Perl_assert_aTHX; assert(sv); assert(name)
 
 PERL_CALLCONV bool
-Perl_sv_does_role_sv(pTHX_ SV *sv, SV *namesv)
-        Perl_attribute_nonnull_aTHX
-        Perl_attribute_nonnull(pTHX_1)
-        Perl_attribute_nonnull(pTHX_2)
-        __attribute__warn_unused_result__;
-#define PERL_ARGS_ASSERT_SV_DOES_ROLE_SV        \
-        Perl_assert_aTHX; assert(sv); assert(namesv)
-
-PERL_CALLCONV bool
 Perl_sv_does_sv(pTHX_ SV *sv, SV *namesv, U32 flags)
         Perl_attribute_nonnull_aTHX
         Perl_attribute_nonnull(pTHX_1)
@@ -7157,6 +7148,15 @@ Perl_sv_grow_fresh(pTHX_ SV * const sv, STRLEN newlen)
         Perl_attribute_nonnull(pTHX_1);
 #define PERL_ARGS_ASSERT_SV_GROW_FRESH          \
         Perl_assert_aTHX; assert(sv)
+
+PERL_CALLCONV bool
+Perl_sv_implements_role_sv(pTHX_ SV *sv, SV *namesv)
+        Perl_attribute_nonnull_aTHX
+        Perl_attribute_nonnull(pTHX_1)
+        Perl_attribute_nonnull(pTHX_2)
+        __attribute__warn_unused_result__;
+#define PERL_ARGS_ASSERT_SV_IMPLEMENTS_ROLE_SV  \
+        Perl_assert_aTHX; assert(sv); assert(namesv)
 
 PERL_CALLCONV void
 Perl_sv_inc(pTHX_ SV * const sv)
@@ -9586,15 +9586,6 @@ Perl_ck_delete(pTHX_ OP *o)
         Perl_assert_aTHX; assert(o)
 
 PERL_CALLCONV OP *
-Perl_ck_does(pTHX_ OP *o)
-        Perl_attribute_nonnull_aTHX
-        Perl_attribute_nonnull(pTHX_1)
-        __attribute__warn_unused_result__
-        __attribute__visibility__("hidden");
-# define PERL_ARGS_ASSERT_CK_DOES               \
-        Perl_assert_aTHX; assert(o)
-
-PERL_CALLCONV OP *
 Perl_ck_each(pTHX_ OP *o)
         Perl_attribute_nonnull_aTHX
         Perl_attribute_nonnull(pTHX_1)
@@ -9682,6 +9673,15 @@ Perl_ck_helemexistsor(pTHX_ OP *o)
         __attribute__warn_unused_result__
         __attribute__visibility__("hidden");
 # define PERL_ARGS_ASSERT_CK_HELEMEXISTSOR      \
+        Perl_assert_aTHX; assert(o)
+
+PERL_CALLCONV OP *
+Perl_ck_implements(pTHX_ OP *o)
+        Perl_attribute_nonnull_aTHX
+        Perl_attribute_nonnull(pTHX_1)
+        __attribute__warn_unused_result__
+        __attribute__visibility__("hidden");
+# define PERL_ARGS_ASSERT_CK_IMPLEMENTS         \
         Perl_assert_aTHX; assert(o)
 
 PERL_CALLCONV OP *

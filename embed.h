@@ -29,6 +29,7 @@
 #   undef AMGf_no_GETMAGIC
 #   undef CC_MAGICAL_
 #   undef CC_UNDERSCORE_
+#   undef compose_origins
 #   undef CvGENERATOR
 #   undef CvGENERATOR_off
 #   undef CvGENERATOR_on
@@ -42,15 +43,8 @@
 #   undef F_sqrt_amg
 #   undef GET_aTHX_if_NULL
 #   undef HASATTRIBUTE_UNINITIALIZED
-#   undef HEK_HASH
-#   undef HEK_KEY
-#   undef HEK_LEN
-#   undef HEK_UTF8
-#   undef HEK_WASUTF8
-#   undef HeKEY_hek
 #   undef HvAUXf_IS_CLASS_SEALED
 #   undef HvAUXf_IS_ROLE
-#   undef HvNAME_HEK
 #   undef HvSTASH_IS_CLASS_OR_ROLE
 #   undef HvSTASH_IS_CLASS_SEALED
 #   undef HvSTASH_IS_ROLE
@@ -168,6 +162,7 @@
 #   undef KEY_gt
 #   undef KEY_hex
 #   undef KEY_if
+#   undef KEY_implements
 #   undef KEY_index
 #   undef KEY_INIT
 #   undef KEY_int
@@ -240,6 +235,7 @@
 #   undef KEY_rewinddir
 #   undef KEY_rindex
 #   undef KEY_rmdir
+#   undef KEY_role
 #   undef KEY_s
 #   undef KEY_say
 #   undef KEY_scalar
@@ -324,8 +320,17 @@
 #   undef NETDB_R_OBSOLETE
 #   undef new_XPV
 #   undef new_XPVIV
-#   undef Nullhe
-#   undef Nullhek
+#   undef origin_is_conflicted
+#   undef origin_is_defined
+#   undef origin_is_required
+#   undef origin_map_init
+#   undef origin_popcount
+#   undef ORIGIN_SET_EMPTY
+#   undef ORIGIN_SET_MAX_BITS
+#   undef proto_role_add_field
+#   undef proto_role_add_method
+#   undef proto_role_free
+#   undef proto_role_new
 #   undef SHY_NATIVE
 #   undef sv_2num
 #   undef SvRVx
@@ -977,7 +982,6 @@
 # define sv_does(a,b)                           Perl_sv_does(aTHX_ a,b)
 # define sv_does_pv(a,b,c)                      Perl_sv_does_pv(aTHX_ a,b,c)
 # define sv_does_pvn(a,b,c,d)                   Perl_sv_does_pvn(aTHX_ a,b,c,d)
-# define sv_does_role_sv(a,b)                   Perl_sv_does_role_sv(aTHX_ a,b)
 # define sv_does_sv(a,b,c)                      Perl_sv_does_sv(aTHX_ a,b,c)
 # define sv_dump(a)                             Perl_sv_dump(aTHX_ a)
 # define sv_dump_depth(a,b)                     Perl_sv_dump_depth(aTHX_ a,b)
@@ -988,6 +992,7 @@
 # define sv_gets(a,b,c)                         Perl_sv_gets(aTHX_ a,b,c)
 # define sv_grow(a,b)                           Perl_sv_grow(aTHX_ a,b)
 # define sv_grow_fresh(a,b)                     Perl_sv_grow_fresh(aTHX_ a,b)
+# define sv_implements_role_sv(a,b)             Perl_sv_implements_role_sv(aTHX_ a,b)
 # define sv_inc(a)                              Perl_sv_inc(aTHX_ a)
 # define sv_inc_nomg(a)                         Perl_sv_inc_nomg(aTHX_ a)
 # define sv_insert_flags(a,b,c,d,e,f)           Perl_sv_insert_flags(aTHX_ a,b,c,d,e,f)
@@ -1565,7 +1570,6 @@
 #     define ck_concat(a)                       Perl_ck_concat(aTHX_ a)
 #     define ck_defined(a)                      Perl_ck_defined(aTHX_ a)
 #     define ck_delete(a)                       Perl_ck_delete(aTHX_ a)
-#     define ck_does(a)                         Perl_ck_does(aTHX_ a)
 #     define ck_each(a)                         Perl_ck_each(aTHX_ a)
 #     define ck_eof(a)                          Perl_ck_eof(aTHX_ a)
 #     define ck_eval(a)                         Perl_ck_eval(aTHX_ a)
@@ -1576,6 +1580,7 @@
 #     define ck_glob(a)                         Perl_ck_glob(aTHX_ a)
 #     define ck_grep(a)                         Perl_ck_grep(aTHX_ a)
 #     define ck_helemexistsor(a)                Perl_ck_helemexistsor(aTHX_ a)
+#     define ck_implements(a)                   Perl_ck_implements(aTHX_ a)
 #     define ck_index(a)                        Perl_ck_index(aTHX_ a)
 #     define ck_isa(a)                          Perl_ck_isa(aTHX_ a)
 #     define ck_join(a)                         Perl_ck_join(aTHX_ a)
