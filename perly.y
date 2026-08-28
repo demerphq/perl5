@@ -120,6 +120,7 @@
 %type <opval> bare_statement_while
 %type <opval> bare_statement_yadayada
 %type <opval> bare_statement_generator_yield
+%type <opval> termgenerator_yield
 %type <opval> subscript_index
 %type <opval> subscript_keys
 
@@ -772,7 +773,9 @@ bare_statement_generator_yield
 		      yyerror("generator_yield outside a generator_create");
 		      YYERROR;
 		  }
-		  $$ = newUNOP(OP_GENERATOR_YIELD, 0, scalar($term)); }
+		  $$ = newLISTOP(OP_GENERATOR_YIELD, 0,
+                                  newOP(OP_PUSHMARK, 0),
+                                  list(op_force_list($term))); }
 	;
 
 subscript_index
@@ -1591,6 +1594,10 @@ anonymous
 	|	startgenerator_create block    %prec PERLY_PAREN_OPEN
 			{ SvREFCNT_inc_simple_void(PL_compcv);
 			  $$ = newANONATTRSUB($startgenerator_create, 0, NULL, $block); }
+	|	startgenerator_create subattrlist sigsubbody %prec PERLY_PAREN_OPEN
+			{ SvREFCNT_inc_simple_void(PL_compcv);
+			  $$ = newANONATTRSUB($startgenerator_create, NULL,
+			                      $subattrlist, $sigsubbody); }
 	|	KW_SUB_anon     startanonsub proto subattrlist subbody    %prec PERLY_PAREN_OPEN
 			{ SvREFCNT_inc_simple_void(PL_compcv);
 			  $$ = newANONATTRSUB($startanonsub, $proto, $subattrlist, $subbody); }
@@ -1622,11 +1629,23 @@ termgenerator_exhausted
 			{ $$ = newUNOP(OP_GENERATOR_EXHAUSTED, 0, $term); }
 	;
 
+termgenerator_yield
+	:       KW_GENERATOR_YIELD term	%prec UNIOP
+			{ if (!CvGENERATOR(PL_compcv)) {
+			      yyerror("generator_yield outside a generator_create");
+			      YYERROR;
+			  }
+			  $$ = newLISTOP(OP_GENERATOR_YIELD, 0,
+                                      newOP(OP_PUSHMARK, 0),
+                                      list(op_force_list($term))); }
+	;
+
 term[product]	:	termbinop
 	|	termunop
 	|	anonymous
 	|	termdo
 	|	termgenerator_exhausted
+	|	termgenerator_yield
 	|	term[condition] PERLY_QUESTION_MARK term[then] PERLY_COLON term[else]
 			{ $$ = newCONDOP(0, $condition, $then, $else); }
 	|	REFGEN term[operand]                          /* \$x, \@y, \%z */
