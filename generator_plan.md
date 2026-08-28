@@ -17,11 +17,16 @@ was not supported by sufficient evidence.
 
 The DEBUGGING threaded build passes the focused generator, eval, loop, and
 thread tests.  An isolated ASAN/DEBUGGING threaded build also passes the
-generator and threaded smoke paths; LeakSanitizer itself cannot run in the
-current ptrace-restricted test environment.  Cleanup coverage includes
-dropping a suspended generator with a lexical object, callback diagnostics,
-process-state round trips, and deterministic quantum-one scheduler
-alternation.
+generator and threaded smoke paths.  The agent sandbox cannot run
+LeakSanitizer because it is ptrace-restricted, so the full generator test was
+also run from the host terminal with `PERL_DESTRUCT_LEVEL=2`: all 41 tests
+passed, and the direct generator smoke produced no leak report.  That full
+test process still reports the two documented DEBUGGING temporary-SV teardown
+diagnostics and a 176-byte indirect allocation retained by the test-process
+teardown; neither reproduces in the direct generator smoke.  Cleanup coverage
+includes dropping a suspended generator with a lexical object, callback
+diagnostics, process-state round trips, and deterministic quantum-one
+scheduler alternation.
 
 The final scoped native harness passes all five relevant files (274 tests),
 and the XS scheduler test passes all three checks.  The DEBUGGING generator
