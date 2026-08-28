@@ -19,7 +19,7 @@ The DEBUGGING threaded build passes the focused generator, eval, loop, and
 thread tests.  An isolated ASAN/DEBUGGING threaded build also passes the
 generator and threaded smoke paths.  The agent sandbox cannot run
 LeakSanitizer because it is ptrace-restricted, so the full generator test was
-also run from the host terminal with `PERL_DESTRUCT_LEVEL=2`: all 41 tests
+also run from the host terminal with `PERL_DESTRUCT_LEVEL=2`: all 46 tests
 passed, and the direct generator smoke produced no leak report.  That full
 test process still reports the two documented DEBUGGING temporary-SV teardown
 diagnostics and a 176-byte indirect allocation retained by the test-process
@@ -38,3 +38,9 @@ The process-local `PL_*` fields remain field-by-field snapshots.  Keep the
 follow-up investigation for a contiguous execution record that could be
 copied or swapped through one assignment, subject to ABI, threading, and GC
 constraints.
+
+The experimental generator trio is now `generator`, `yield`, and
+`exhausted`.  `exhausted` is a non-advancing predicate: it is true only after
+the generator completes, and false for new, suspended, and failed generators.
+The full DEBUGGING `make_test` run completed 2,947 files and 1,398,044 tests;
+the only reported failures were the seven existing Windows diagnostic TODOs.
