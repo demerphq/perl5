@@ -3596,9 +3596,10 @@ X<generator> X<yield>
 =for Pod::Functions create a one-shot generator
 
 The experimental C<generator> feature creates a callable generator from a
-block.  Each call resumes the block until its next C<yield>, returning one
-value in list or scalar context.  Once the block finishes, calls return an
-empty list and the generator cannot be resumed.
+block.  Each call resumes the block until its next C<yield>, returning exactly
+one value in list context or that value in scalar context.  The generator body
+runs in the context of the call that resumes it, and its lexical and localized
+state is retained across yields.
 
     use feature 'generator';
 
@@ -3611,9 +3612,20 @@ empty list and the generator cannot be resumed.
     my @second = $numbers->(); # (2)
     my @done   = $numbers->(); # ()
 
-C<undef> is a valid yielded value.  A generator is a one-shot continuation:
-it cannot be resumed while already running, after exhaustion, or after an
-uncaught exception.
+C<undef> is a valid yielded value, and is still one value rather than an empty
+list.  When the body finishes without yielding again, that call returns an
+empty list and the generator becomes exhausted.  A later call then raises an
+exception; exhaustion is permanent.
+
+A generator does not accept arguments.  It is a one-shot continuation: it
+cannot be resumed while it is already running, after exhaustion, or after an
+uncaught exception.  An exception caught by an C<eval> inside the generator
+does not exhaust it; an uncaught exception is propagated by the call that
+resumes the generator and permanently puts it into the failed state.
+
+C<yield> is only valid lexically inside a C<generator> block.  It cannot be
+used in an ordinary subroutine or in callback code such as C<sort>, C<map>,
+C<grep>, or a regular-expression code block.
 
 This feature is experimental and may change or be removed in a future Perl
 release.
