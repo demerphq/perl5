@@ -374,6 +374,7 @@ my %not_tested = map { $_ => 1} qw(
     elsif
     field
     generator_create
+    implements
     finally
     for
     foreach
@@ -399,6 +400,7 @@ my %not_tested = map { $_ => 1} qw(
     generator_exhausted
     generator_create
     generator_yield
+    role
     when
     while
     y
