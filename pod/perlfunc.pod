@@ -464,14 +464,14 @@ C<finally>,
 C<for>,
 C<foreach>,
 C<ge>,
+C<generator_create>,
+C<generator_exhausted>,
+C<generator_yield>,
 C<given>,
 C<gt>,
 C<if>,
 C<INIT>,
 C<isa>,
-C<generator_create>,
-C<generator_exhausted>,
-C<generator_yield>,
 C<le>,
 C<lt>,
 C<ne>,
@@ -3618,7 +3618,7 @@ list.  When the body finishes without yielding again, that call returns an
 empty list and the generator becomes exhausted.  A later call then raises an
 exception; exhaustion is permanent.
 
-An generator does not accept arguments.  It is a one-shot continuation: it
+A generator does not accept arguments.  It is a one-shot continuation: it
 cannot be resumed while it is already running, after exhaustion, or after an
 uncaught exception.  An exception caught by an C<eval> inside the generator
 does not exhaust it; an uncaught exception is propagated by the call that
@@ -3634,9 +3634,9 @@ release.
 =item generator_exhausted EXPR
 X<generator_exhausted>
 
-=for Pod::Functions test whether an generator is exhausted
+=for Pod::Functions test whether a generator is exhausted
 
-Returns true if EXPR is an generator that has completed and returned an empty
+Returns true if EXPR is a generator that has completed and returned an empty
 list on its final resume.  It returns false for a new or suspended generator,
 and does not resume or advance the generator.  A failed generator is not
 exhausted.  This keyword is experimental and requires C<use feature
