@@ -857,6 +857,16 @@ which makes no sense.  Maybe you meant '%s', or just stringifying it?
 (F) You tried to begin a C<class> definition for a class that already exists.
 A class may only have one definition block.
 
+=item cannot resume a failed iterator
+
+(F) You attempted to resume an iterator after an uncaught exception had
+already caused it to fail.  A failed iterator cannot be resumed.
+
+=item cannot resume an exhausted iterator
+
+(F) You attempted to resume an iterator after it had completed.  An exhausted
+iterator cannot be resumed.
+
 =item Cannot set tied @DB::args
 
 (F) C<caller> tried to set C<@DB::args>, but found it tied.  Tying C<@DB::args>
@@ -3548,6 +3558,12 @@ C<use builtin ...> statement must be formatted as C<:MAJOR.MINOR> with an
 optional third component, which is ignored.  Each component must be a number
 of 1 to 3 digits. No other characters are permitted.  The value that was
 specified does not conform to these rules.
+
+=item iterator has no suspended continuation
+
+(F) You attempted to resume an iterator that has no suspended continuation.
+This can happen when iterator execution is resumed outside its normal calling
+context.
 
 =item Invalid version format (%s)
 

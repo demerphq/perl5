@@ -4,7 +4,7 @@
 # Any changes made here will be lost!
 
 package feature;
-our $VERSION = '2.04';
+our $VERSION = '2.05';
 
 our %feature = (
     fc                              => 'feature_fc',
