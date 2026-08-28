@@ -59,9 +59,9 @@ my %feature_kw = (
     __CLASS__ => 'class',
     any       => 'keyword_any',
     all       => 'keyword_all',
-    exhausted => 'generator',
-    yield     => 'generator',
-    generator => 'generator',
+    iterator_exhausted => 'iterator',
+    iterator_yield     => 'iterator',
+    iterator_create    => 'iterator',
 );
 
 my %pos = map { ($_ => 1) } @{$by_strength{'+'}};
@@ -187,7 +187,6 @@ __END__
 +eval
 -evalbytes
 -exec
-+exhausted
 +exists
 -exit
 -exp
@@ -230,7 +229,6 @@ __END__
 -getsockname
 -getsockopt
 +given
-+generator
 +glob
 -gmtime
 +goto
@@ -242,6 +240,9 @@ __END__
 -int
 -ioctl
 -isa
++iterator_create
++iterator_exhausted
++iterator_yield
 -join
 -keys
 -kill
@@ -389,4 +390,3 @@ __END__
 -x
 -xor
 +y
-+yield

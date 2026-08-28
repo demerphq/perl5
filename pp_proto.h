@@ -79,7 +79,6 @@ PERL_CALLCONV PP(pp_enterwrite) __attribute__visibility__("hidden");
 PERL_CALLCONV PP(pp_eof) __attribute__visibility__("hidden");
 PERL_CALLCONV PP(pp_eq) __attribute__visibility__("hidden");
 PERL_CALLCONV PP(pp_exec) __attribute__visibility__("hidden");
-PERL_CALLCONV PP(pp_exhausted) __attribute__visibility__("hidden");
 PERL_CALLCONV PP(pp_exists) __attribute__visibility__("hidden");
 PERL_CALLCONV PP(pp_exit) __attribute__visibility__("hidden");
 PERL_CALLCONV PP(pp_fc) __attribute__visibility__("hidden");
@@ -149,6 +148,8 @@ PERL_CALLCONV PP(pp_is_tainted) __attribute__visibility__("hidden");
 PERL_CALLCONV PP(pp_is_weak) __attribute__visibility__("hidden");
 PERL_CALLCONV PP(pp_isa) __attribute__visibility__("hidden");
 PERL_CALLCONV PP(pp_iter) __attribute__visibility__("hidden");
+PERL_CALLCONV PP(pp_iterator_exhausted) __attribute__visibility__("hidden");
+PERL_CALLCONV PP(pp_iterator_yield) __attribute__visibility__("hidden");
 PERL_CALLCONV PP(pp_join) __attribute__visibility__("hidden");
 PERL_CALLCONV PP(pp_kvaslice) __attribute__visibility__("hidden");
 PERL_CALLCONV PP(pp_kvhslice) __attribute__visibility__("hidden");
@@ -331,7 +332,6 @@ PERL_CALLCONV PP(pp_wantarray) __attribute__visibility__("hidden");
 PERL_CALLCONV PP(pp_warn) __attribute__visibility__("hidden");
 PERL_CALLCONV PP(pp_weaken) __attribute__visibility__("hidden");
 PERL_CALLCONV PP(pp_xor) __attribute__visibility__("hidden");
-PERL_CALLCONV PP(pp_yield) __attribute__visibility__("hidden");
 PERL_CALLCONV PP(unimplemented_op) __attribute__visibility__("hidden");
 
 /* ex: set ro ft=c: */

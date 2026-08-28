@@ -94,7 +94,6 @@
 #   undef KEY_eval
 #   undef KEY_evalbytes
 #   undef KEY_exec
-#   undef KEY_exhausted
 #   undef KEY_exists
 #   undef KEY_exit
 #   undef KEY_exp
@@ -110,7 +109,6 @@
 #   undef KEY_format
 #   undef KEY_formline
 #   undef KEY_ge
-#   undef KEY_generator
 #   undef KEY_getc
 #   undef KEY_getgrent
 #   undef KEY_getgrgid
@@ -151,6 +149,9 @@
 #   undef KEY_int
 #   undef KEY_ioctl
 #   undef KEY_isa
+#   undef KEY_iterator_create
+#   undef KEY_iterator_exhausted
+#   undef KEY_iterator_yield
 #   undef KEY_join
 #   undef KEY_keys
 #   undef KEY_kill
@@ -297,7 +298,6 @@
 #   undef KEY_x
 #   undef KEY_xor
 #   undef KEY_y
-#   undef KEY_yield
 #   undef MGv2f_WITH_KEYHEK
 #   undef NETDB_R_OBSOLETE
 #   undef new_XPV

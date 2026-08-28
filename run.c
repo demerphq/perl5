@@ -232,9 +232,9 @@ S_generator_xsub(pTHX_ CV *cv)
 
     PERL_UNUSED_ARG(cv);
     if (items)
-        croak("generator does not accept arguments");
+        croak("iterator does not accept arguments");
     if (!generator || generator->magic != PERL_GENERATOR_MAGIC)
-        croak("invalid generator");
+        croak("invalid iterator");
     if (!generator_resume(generator))
         XSRETURN_EMPTY;
     EXTEND(SP, 1);
@@ -411,7 +411,7 @@ Perl_generator_yield_value(pTHX_ SV *value)
     PERL_ARGS_ASSERT_GENERATOR_YIELD_VALUE;
     if (!generator || generator->magic != PERL_GENERATOR_MAGIC
         || generator->state != PERL_GENERATOR_RUNNING)
-        croak("yield outside a running generator");
+        croak("iterator_yield outside a running iterator_create");
 
     SvREFCNT_dec(generator->value);
     generator->value = newSVsv(value);
@@ -485,11 +485,11 @@ Perl_generator_resume(pTHX_ PERL_GENERATOR *generator)
 
     PERL_ARGS_ASSERT_GENERATOR_RESUME;
     if (generator->state == PERL_GENERATOR_EXHAUSTED)
-        croak("cannot resume an exhausted generator");
+        croak("cannot resume an exhausted iterator");
     if (generator->state == PERL_GENERATOR_FAILED)
-        croak("cannot resume a failed generator");
+        croak("cannot resume a failed iterator");
     if (generator->state != PERL_GENERATOR_NEW && !generator->captured)
-        croak("generator has no suspended continuation");
+        croak("iterator has no suspended continuation");
 
     process_state_save(&caller_state);
     generator->invoke.op_flags = OPf_STACKED

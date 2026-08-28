@@ -444,8 +444,8 @@ typedef enum opcode {
 	OP_MULTIPARAM	 = 427,
 	OP_PARAMTEST	 = 428,
 	OP_PARAMSTORE	 = 429,
-	OP_YIELD	 = 430,
-	OP_EXHAUSTED	 = 431,
+	OP_ITERATOR_YIELD = 430,
+	OP_ITERATOR_EXHAUSTED = 431,
 	OP_max		
 } opcode;
 

@@ -370,7 +370,6 @@ $bits{enterwhen}{0} = $bf[0];
 @{$bits{eof}}{3,2,1,0} = ($bf[5], $bf[5], $bf[5], $bf[5]);
 @{$bits{eq}}{1,0} = ($bf[1], $bf[1]);
 @{$bits{exec}}{3,2,1,0} = ($bf[5], $bf[5], $bf[5], $bf[5]);
-$bits{exhausted}{0} = $bf[0];
 @{$bits{exists}}{6,0} = ('OPpEXISTS_SUB', $bf[0]);
 @{$bits{exit}}{3,2,1,0} = ($bf[5], $bf[5], $bf[5], $bf[5]);
 $bits{exp}{0} = $bf[0];
@@ -465,6 +464,8 @@ $bits{is_tainted}{0} = $bf[0];
 $bits{is_weak}{0} = $bf[0];
 @{$bits{isa}}{1,0} = ($bf[1], $bf[1]);
 @{$bits{iter}}{3,2} = ('OPpITER_REFALIAS', 'OPpITER_INDEXED');
+$bits{iterator_exhausted}{0} = $bf[0];
+$bits{iterator_yield}{0} = $bf[0];
 @{$bits{join}}{3,2,1,0} = ($bf[5], $bf[5], $bf[5], $bf[5]);
 $bits{keys}{0} = $bf[0];
 @{$bits{kill}}{3,2,1,0} = ($bf[5], $bf[5], $bf[5], $bf[5]);
@@ -653,7 +654,6 @@ $bits{values}{0} = $bf[0];
 @{$bits{warn}}{3,2,1,0} = ($bf[5], $bf[5], $bf[5], $bf[5]);
 $bits{weaken}{0} = $bf[0];
 @{$bits{xor}}{1,0} = ($bf[1], $bf[1]);
-$bits{yield}{0} = $bf[0];
 
 
 our %defines = (

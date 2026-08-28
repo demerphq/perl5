@@ -49,7 +49,7 @@ my %feature = (
         bareword_filehandles
         try
         defer
-        generator
+        iterator
         module_true
         class
         keyword_any
