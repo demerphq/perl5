@@ -418,6 +418,24 @@ Perl_generator_yield_value(pTHX_ SV *value)
     generator->yield_pending = TRUE;
 }
 
+bool
+Perl_generator_is_exhausted(pTHX_ SV *generator_sv)
+{
+    PERL_GENERATOR *generator;
+
+    PERL_ARGS_ASSERT_GENERATOR_IS_EXHAUSTED;
+    if (generator_sv && SvROK(generator_sv))
+        generator_sv = SvRV(generator_sv);
+    if (!generator_sv || SvTYPE(generator_sv) != SVt_PVCV)
+        return FALSE;
+
+    generator = (PERL_GENERATOR *)CvXSUBANY((CV *)generator_sv).any_ptr;
+
+    return generator
+        && generator->magic == PERL_GENERATOR_MAGIC
+        && generator->state == PERL_GENERATOR_EXHAUSTED;
+}
+
 static int
 S_generator_boundary(pTHX_ OP *nextop, void *data)
 {

@@ -6699,6 +6699,14 @@ PP(pp_yield)
     return PL_op->op_next;
 }
 
+PP(pp_exhausted)
+{
+    dSP;
+    SV * const generator_sv = TOPs;
+    rpp_replace_1_IMM_NN(boolSV(generator_is_exhausted(generator_sv)));
+    return NORMAL;
+}
+
 static MAGIC *
 S_doparseform(pTHX_ SV *sv)
 {

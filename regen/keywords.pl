@@ -59,6 +59,7 @@ my %feature_kw = (
     __CLASS__ => 'class',
     any       => 'keyword_any',
     all       => 'keyword_all',
+    exhausted => 'generator',
     yield     => 'generator',
     generator => 'generator',
 );
@@ -186,6 +187,7 @@ __END__
 +eval
 -evalbytes
 -exec
++exhausted
 +exists
 -exit
 -exp

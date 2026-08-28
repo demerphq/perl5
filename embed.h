@@ -94,6 +94,7 @@
 #   undef KEY_eval
 #   undef KEY_evalbytes
 #   undef KEY_exec
+#   undef KEY_exhausted
 #   undef KEY_exists
 #   undef KEY_exit
 #   undef KEY_exp
@@ -478,6 +479,7 @@
 # define free_tmps()                            Perl_free_tmps(aTHX)
 # define generator_capture(a,b)                 Perl_generator_capture(aTHX_ a,b)
 # define generator_free(a)                      Perl_generator_free(aTHX_ a)
+# define generator_is_exhausted(a)              Perl_generator_is_exhausted(aTHX_ a)
 # define generator_new(a)                       Perl_generator_new(aTHX_ a)
 # define generator_resume(a)                    Perl_generator_resume(aTHX_ a)
 # define generator_wrap(a)                      Perl_generator_wrap(aTHX_ a)

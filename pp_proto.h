@@ -79,6 +79,7 @@ PERL_CALLCONV PP(pp_enterwrite) __attribute__visibility__("hidden");
 PERL_CALLCONV PP(pp_eof) __attribute__visibility__("hidden");
 PERL_CALLCONV PP(pp_eq) __attribute__visibility__("hidden");
 PERL_CALLCONV PP(pp_exec) __attribute__visibility__("hidden");
+PERL_CALLCONV PP(pp_exhausted) __attribute__visibility__("hidden");
 PERL_CALLCONV PP(pp_exists) __attribute__visibility__("hidden");
 PERL_CALLCONV PP(pp_exit) __attribute__visibility__("hidden");
 PERL_CALLCONV PP(pp_fc) __attribute__visibility__("hidden");

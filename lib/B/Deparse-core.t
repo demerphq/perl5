@@ -396,6 +396,8 @@ my %not_tested = map { $_ => 1} qw(
     unless
     until
     use
+    exhausted
+    generator
     yield
     when
     while

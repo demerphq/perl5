@@ -8,7 +8,7 @@ BEGIN {
     set_up_inc('../lib');
 }
 
-plan(tests => 41);
+plan(tests => 46);
 
 use feature 'generator';
 
@@ -29,9 +29,12 @@ my $finite = generator {
     yield 2;
 };
 
+ok(!exhausted $finite, 'new generator is not exhausted');
 is_deeply(next_values($finite), [ 1 ], 'first yield');
+ok(!exhausted($finite), 'suspended generator is not exhausted');
 is_deeply(next_values($finite), [ 2 ], 'second yield');
 is_deeply(next_values($finite), [], 'exhaustion returns an empty list');
+ok(exhausted $finite, 'completed generator is exhausted');
 my $exhausted = eval { $finite->(); 1 };
 ok(!$exhausted, 'exhaustion is permanent');
 like($@, qr/cannot resume an exhausted generator/, 'exhaustion diagnostic');
@@ -67,6 +70,7 @@ my $failed = generator {
     yield 'before failure';
     die "generator failure\n";
 };
+ok(!exhausted $failed, 'failed generator is not initially exhausted');
 is_deeply(next_values($failed), [ 'before failure' ], 'failure follows a yield');
 my ($failure, $failure_error, $resumed_failed, $resumed_failed_error);
 {
@@ -78,6 +82,7 @@ my ($failure, $failure_error, $resumed_failed, $resumed_failed_error);
 }
 ok(!$failure, 'failure is reported by resume');
 like($failure_error, qr/generator failure/, 'original failure is rethrown');
+ok(!exhausted($failed), 'failed generator is not exhausted');
 ok(!$resumed_failed, 'failed generator cannot be resumed');
 like($resumed_failed_error, qr/cannot resume a failed generator/, 'failed-resume diagnostic');
 

@@ -370,6 +370,7 @@ $bits{enterwhen}{0} = $bf[0];
 @{$bits{eof}}{3,2,1,0} = ($bf[5], $bf[5], $bf[5], $bf[5]);
 @{$bits{eq}}{1,0} = ($bf[1], $bf[1]);
 @{$bits{exec}}{3,2,1,0} = ($bf[5], $bf[5], $bf[5], $bf[5]);
+$bits{exhausted}{0} = $bf[0];
 @{$bits{exists}}{6,0} = ('OPpEXISTS_SUB', $bf[0]);
 @{$bits{exit}}{3,2,1,0} = ($bf[5], $bf[5], $bf[5], $bf[5]);
 $bits{exp}{0} = $bf[0];

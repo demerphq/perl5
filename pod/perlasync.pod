@@ -55,6 +55,15 @@ which resumes the generator, and later calls raise an invalid-resume
 exception.  An exception caught by an C<eval> inside the body does not by
 itself terminate the generator.
 
+The C<exhausted> keyword tests completion without resuming the generator:
+
+    exhausted $counter
+
+It returns true only after a resume has run the body to completion and
+returned an empty list.  It returns false while the generator is new or
+suspended, and also for a failed generator.  Testing exhaustion does not
+advance the sequence.
+
 A generator cannot be resumed while it is already running.  This includes a
 generator attempting to call itself before it has yielded.  A suspended
 generator is a one-shot continuation; it is not copied when it is assigned or

@@ -1496,6 +1496,8 @@ Chp	|void	|generator_capture					\
 				|NN PERL_GENERATOR *generator		\
 				|NULLOK SV *value
 Chp	|void	|generator_free |NN PERL_GENERATOR *generator
+Chp	|bool	|generator_is_exhausted 				\
+				|NN SV *generator_sv
 Chp	|PERL_GENERATOR *|generator_new 				\
 				|NN CV *body
 Chp	|int	|generator_resume					\
