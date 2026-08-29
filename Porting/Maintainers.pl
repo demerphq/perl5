@@ -217,6 +217,14 @@ our %Modules = (
         'FILES'        => q[dist/Carp],
     },
 
+    'Cpanel::JSON::XS' => {
+        'DISTRIBUTION' => 'RURBAN/Cpanel-JSON-XS-4.42.tar.gz',
+        'FILES'        => q[cpan/Cpanel-JSON-XS],
+        'EXCLUDED'     => [
+            qr{^xt/},
+        ],
+    },
+
     'Compress::Raw::Bzip2' => {
         'DISTRIBUTION' => 'PMQS/Compress-Raw-Bzip2-2.218.tar.gz',
         'SYNCINFO'     => 'jkeenan on Wed Mar 11 22:43:18 2026',
