@@ -51,6 +51,7 @@
 #   undef is_WORD_BUT_NONCONT_safe
 #   undef isFOO_or_UNDERSCORE_
 #   undef isIDCONT_lazy_if_safe
+#   undef KEY___NAMESPACE__
 #   undef KEY_abs
 #   undef KEY_accept
 #   undef KEY_ADJUST
@@ -58,6 +59,7 @@
 #   undef KEY_all
 #   undef KEY_and
 #   undef KEY_any
+#   undef KEY_as
 #   undef KEY_atan2
 #   undef KEY_AUTOLOAD
 #   undef KEY_BEGIN
@@ -192,6 +194,7 @@
 #   undef KEY_msgget
 #   undef KEY_msgrcv
 #   undef KEY_msgsnd
+#   undef KEY_namespace
 #   undef KEY_ne
 #   undef KEY_neu
 #   undef KEY_next
@@ -1415,6 +1418,10 @@
 #   define my_stat_flags(a)                     Perl_my_stat_flags(aTHX_ a)
 #   define my_strerror(a,b)                     Perl_my_strerror(aTHX_ a,b)
 #   define my_unexec()                          Perl_my_unexec(aTHX)
+#   define namespace_alias(a,b)                 Perl_namespace_alias(aTHX_ a,b)
+#   define namespace_current()                  Perl_namespace_current(aTHX)
+#   define namespace_resolve(a)                 Perl_namespace_resolve(aTHX_ a)
+#   define namespace_set(a)                     Perl_namespace_set(aTHX_ a)
 #   define newATTRSUB_x(a,b,c,d,e,f)            Perl_newATTRSUB_x(aTHX_ a,b,c,d,e,f)
 #   define newSTUB(a,b)                         Perl_newSTUB(aTHX_ a,b)
 #   define newSVavdefelem(a,b,c)                Perl_newSVavdefelem(aTHX_ a,b,c)
