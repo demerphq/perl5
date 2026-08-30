@@ -126,11 +126,7 @@
 #   undef KEY_format
 #   undef KEY_formline
 #   undef KEY_ge
-#   undef KEY_generator_completed
 #   undef KEY_generator_create
-#   undef KEY_generator_exhausted
-#   undef KEY_generator_failed
-#   undef KEY_generator_running
 #   undef KEY_generator_yield
 #   undef KEY_getc
 #   undef KEY_getgrent
