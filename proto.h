@@ -1702,10 +1702,38 @@ Perl_generator_free(pTHX_ PERL_GENERATOR *generator)
         Perl_assert_aTHX; assert(generator)
 
 PERL_CALLCONV bool
+Perl_generator_is_completed(pTHX_ SV *generator_sv)
+        Perl_attribute_nonnull_aTHX
+        Perl_attribute_nonnull(pTHX_1);
+#define PERL_ARGS_ASSERT_GENERATOR_IS_COMPLETED \
+        Perl_assert_aTHX; assert(generator_sv)
+
+PERL_CALLCONV bool
 Perl_generator_is_exhausted(pTHX_ SV *generator_sv)
         Perl_attribute_nonnull_aTHX
         Perl_attribute_nonnull(pTHX_1);
 #define PERL_ARGS_ASSERT_GENERATOR_IS_EXHAUSTED \
+        Perl_assert_aTHX; assert(generator_sv)
+
+PERL_CALLCONV bool
+Perl_generator_is_failed(pTHX_ SV *generator_sv)
+        Perl_attribute_nonnull_aTHX
+        Perl_attribute_nonnull(pTHX_1);
+#define PERL_ARGS_ASSERT_GENERATOR_IS_FAILED    \
+        Perl_assert_aTHX; assert(generator_sv)
+
+PERL_CALLCONV bool
+Perl_generator_is_running(pTHX_ SV *generator_sv)
+        Perl_attribute_nonnull_aTHX
+        Perl_attribute_nonnull(pTHX_1);
+#define PERL_ARGS_ASSERT_GENERATOR_IS_RUNNING   \
+        Perl_assert_aTHX; assert(generator_sv)
+
+PERL_CALLCONV bool
+Perl_generator_is_valid(pTHX_ SV *generator_sv)
+        Perl_attribute_nonnull_aTHX
+        Perl_attribute_nonnull(pTHX_1);
+#define PERL_ARGS_ASSERT_GENERATOR_IS_VALID     \
         Perl_assert_aTHX; assert(generator_sv)
 
 PERL_CALLCONV void

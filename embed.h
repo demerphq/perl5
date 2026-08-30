@@ -126,8 +126,11 @@
 #   undef KEY_format
 #   undef KEY_formline
 #   undef KEY_ge
+#   undef KEY_generator_completed
 #   undef KEY_generator_create
 #   undef KEY_generator_exhausted
+#   undef KEY_generator_failed
+#   undef KEY_generator_running
 #   undef KEY_generator_yield
 #   undef KEY_getc
 #   undef KEY_getgrent
@@ -517,7 +520,11 @@
 # define free_tmps()                            Perl_free_tmps(aTHX)
 # define generator_capture(a,b)                 Perl_generator_capture(aTHX_ a,b)
 # define generator_free(a)                      Perl_generator_free(aTHX_ a)
+# define generator_is_completed(a)              Perl_generator_is_completed(aTHX_ a)
 # define generator_is_exhausted(a)              Perl_generator_is_exhausted(aTHX_ a)
+# define generator_is_failed(a)                 Perl_generator_is_failed(aTHX_ a)
+# define generator_is_running(a)                Perl_generator_is_running(aTHX_ a)
+# define generator_is_valid(a)                  Perl_generator_is_valid(aTHX_ a)
 # define generator_mark_return()                Perl_generator_mark_return(aTHX)
 # define generator_new(a)                       Perl_generator_new(aTHX_ a)
 # define generator_resume(a,b)                  Perl_generator_resume(aTHX_ a,b)
