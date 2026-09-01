@@ -83,6 +83,27 @@ constants must retain deterministic first-arm behavior; duplicate detection
 and diagnostics will be specified separately from guarded or dynamic arms,
 whose source-order evaluation and side effects must remain unchanged.
 
+#### Constant-dispatch benchmarking
+
+Before selecting thresholds, add a standalone benchmark which exercises the
+actual compiled case machinery rather than benchmarking abstract Perl hashes
+or searches.  It should generate cases with 1, 2, 4, 8, 16, 32, 64, and larger
+constant arms, and probe hits near the beginning, middle, and end as well as
+misses.  Run the matrix separately for IV, NV, and PV domains, varying PV
+lengths as well.  The measurements must compare:
+
+* a direct linear probe over the sorted value/arm arrays;
+* binary search over those same arrays; and
+* canonical typed-key construction followed by an HV lookup.
+
+The benchmark should include the cost of subject classification and the
+domain-bound check, since those are part of the real dispatch path.  It must
+also verify that all strategies select the same first arm and preserve the
+existing distinction between typed numeric and string constants.  Thresholds
+are implementation tuning parameters: record the machine, compiler, build
+mode, and representative results, but do not make correctness depend on a
+particular measured crossover point.
+
 Boolean patterns use Perl truth-value semantics: `match(true)` compares the
 subject with `SvTRUE`, and `match(false)` compares it with the negation of
 `SvTRUE`.  They therefore match defined true and false values as well as the
