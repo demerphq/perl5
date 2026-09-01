@@ -6370,6 +6370,22 @@ S_case_dispatch_store(pTHX_ HV **tablep, SV *value, U8 kind, U32 arm)
     SvREFCNT_dec_NN(key);
 }
 
+static bool
+S_case_dispatch_default_is_noop(const OP *target, const OP *leavewhen)
+{
+    const OP *op = target ? target->op_next : NULL;
+    U32 steps = 0;
+
+    while (op && op != leavewhen && steps++ < 8) {
+        if (op->op_type != OP_NEXTSTATE && op->op_type != OP_STUB
+            && op->op_type != OP_NULL && op->op_type != OP_UNSTACK
+            && op->op_type != OP_SCOPE)
+            return FALSE;
+        op = op->op_next;
+    }
+    return op == leavewhen;
+}
+
 UNOP_AUX_item *
 Perl_case_dispatch_compile(pTHX_ OP *body)
 {
@@ -6443,9 +6459,8 @@ Perl_case_dispatch_compile(pTHX_ OP *body)
         if (S_case_pattern_is_wildcard(aTHX_ pattern_aux)) {
             if (dispatch->default_arm == CASE_DISPATCH_NO_ARM) {
                 dispatch->default_arm = pattern_aux->dispatch_arm;
-                dispatch->default_noop = target->op_next
-                    && target->op_next->op_type == OP_STUB
-                    && target->op_next->op_next == kid;
+                dispatch->default_noop =
+                    S_case_dispatch_default_is_noop(target, kid);
             }
             break;
         }
@@ -6926,7 +6941,9 @@ PP(pp_casedispatch)
     cx->blk_givwhen.case_dispatch_active = TRUE;
     if (best == dispatch->default_arm && dispatch->default_noop
         && dispatch->miss_target)
+    {
         return dispatch->miss_target;
+    }
     if (best != CASE_DISPATCH_NO_ARM) {
         OP *target = dispatch->arm_targets[best];
         if (!(target->op_flags & OPf_SPECIAL)) {

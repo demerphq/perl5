@@ -315,7 +315,8 @@ bare_statement_case
 						$case_subject_pins, NULL), body);
 			OP *scoped_body = op_scope(body);
 			OP *caseop = newGIVENOP(subject, scoped_body, 0);
-			if (dispatch && scoped_body->op_type == OP_LINESEQ) {
+			if (dispatch && (scoped_body->op_type == OP_LINESEQ
+			                 || scoped_body->op_type == OP_SCOPE)) {
 				OP *scope_kid;
 				for (scope_kid = cLISTOPx(scoped_body)->op_first;
 				     scope_kid; scope_kid = OpSIBLING(scope_kid))
@@ -323,6 +324,18 @@ bare_statement_case
 						((struct case_dispatch_aux *)dispatch)->miss_target = scope_kid;
 						break;
 					}
+			}
+			if (dispatch && !((struct case_dispatch_aux *)dispatch)->miss_target) {
+				OP *scope_op = scoped_body;
+				U32 scope_steps = 0;
+				while (scope_op && scope_steps++ < 4096) {
+					if (scope_op->op_type == OP_LEAVE
+					    && scope_op->op_next == caseop) {
+						((struct case_dispatch_aux *)dispatch)->miss_target = scope_op;
+						break;
+					}
+					scope_op = scope_op->op_next;
+				}
 			}
 			/* Mark the existing topicalizer skeleton as a case so that its
 			 * subject is snapshotted rather than aliased into $_. */

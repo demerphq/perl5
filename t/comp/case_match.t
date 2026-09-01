@@ -5,7 +5,7 @@ BEGIN {
     unshift @INC, '../lib';
 }
 
-print "1..41\n";
+print "1..42\n";
 
 my $ran = 0;
 $_ = 'outside';
@@ -522,3 +522,25 @@ print !$@ && $constant_dispatch_default
     && $dispatch_default == 2 && $dispatch_early_default == 3
     ? "ok 41 - constant dispatch preserves wildcard defaults\n"
     : "not ok 41 - constant dispatch preserves wildcard defaults\n";
+
+my ($empty_default_scalar, @empty_default_list);
+my $empty_default_result = eval q{
+    use feature 'case_match';
+    $empty_default_scalar = sub {
+        case (99) {
+            match (1) { 1 }
+            match (_) { () }
+        }
+    }->();
+    @empty_default_list = sub {
+        case (99) {
+            match (1) { 1 }
+            match (_) { () }
+        }
+    }->();
+    1;
+};
+print !$@ && $empty_default_result && !defined($empty_default_scalar)
+    && !@empty_default_list
+    ? "ok 42 - empty wildcard default preserves context\n"
+    : "not ok 42 - empty wildcard default preserves context\n";
