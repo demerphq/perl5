@@ -6235,6 +6235,8 @@ Perl_case_pattern_compile(pTHX_ const OP *pattern)
 {
     struct case_pattern_aux *aux;
 
+    PERL_ARGS_ASSERT_CASE_PATTERN_COMPILE;
+
     S_case_pattern_validate(aTHX_ pattern);
     aux = (struct case_pattern_aux *)PerlMemShared_calloc(
         1, sizeof(struct case_pattern_aux));
@@ -6247,6 +6249,7 @@ void
 Perl_case_pattern_free(pTHX_ UNOP_AUX_item *items)
 {
     struct case_pattern_aux *aux = (struct case_pattern_aux *)items;
+    PERL_ARGS_ASSERT_CASE_PATTERN_FREE;
     PERL_UNUSED_CONTEXT;
 
     if (aux && aux->magic == CASE_PATTERN_AUX_MAGIC) {

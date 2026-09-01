@@ -81,7 +81,7 @@ an active namespace, Perl therefore adds the current namespace to it:
 
 Here, C<Tools> and C<Parser> are being used without an explicit namespace
 identifier.  Their names are relative, just as a filename such as
-C<images/logo.png> can be relative to the directory you are currently in.
+F<images/logo.png> can be relative to the directory you are currently in.
 
 To say that a name is relative to the top level instead, put C<:::> between
 the part before and after the boundary:
@@ -182,7 +182,7 @@ A package name without an explicit boundary is relative to that prefix.
 
 =item *
 
-C<:::> says “start at the top level here” and prevents prefixing.
+C<:::> says C<start at the top level here> and prevents prefixing.
 
 =item *
 
