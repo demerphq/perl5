@@ -47,6 +47,14 @@ lookup table for cases made entirely from constants remains deliberately
 deferred until its interaction with diagnostics, duplicate patterns, and
 future arm forms is specified.
 
+Boolean patterns use Perl truth-value semantics: `match(true)` compares the
+subject with `SvTRUE`, and `match(false)` compares it with the negation of
+`SvTRUE`.  They therefore match defined true and false values as well as the
+internal boolean scalar values.  `match(undef)` remains the separate pattern
+for testing undefinedness.  A future `match(defined)` predicate should be
+introduced as a dedicated pattern form; the current bare `defined` expression
+is an ordinary Perl expression and is not yet that predicate.
+
 The implemented first version intentionally stops at scalar, array-reference,
 and hash-reference patterns, lexical captures and pins, guards, the wildcard,
 regex predicates, and explicit scalar subject coercions. Object/class

@@ -77,6 +77,13 @@ An undefined value can be matched directly:
         match (_)     { say "some value" }
     }
 
+The boolean patterns C<true> and C<false> use Perl's ordinary truth-value
+rules.  They match the subject according to C<SvTRUE>, rather than requiring
+the subject to be one of the internal boolean scalar objects.  For example,
+C<match (true)> also matches the number C<1>, while C<match (false)> matches
+C<0>.  Use C<match (undef)> when the distinction between an undefined value
+and a defined false value matters.
+
 =head1 ARRAY AND HASH PATTERNS
 
 An array pattern matches an array reference.  Without an ellipsis, it must
