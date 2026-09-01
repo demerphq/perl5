@@ -6242,6 +6242,7 @@ Perl_case_pattern_compile(pTHX_ const OP *pattern)
         1, sizeof(struct case_pattern_aux));
     aux->magic = CASE_PATTERN_AUX_MAGIC;
     aux->root = S_case_pattern_compile_node(aTHX_ pattern);
+    aux->simple_kind = CASE_PATTERN_SIMPLE_COMPLEX;
     if (pattern->op_type == OP_UNDEF)
         aux->simple_kind = CASE_PATTERN_SIMPLE_UNDEF;
     else if (pattern->op_type == OP_CONST
