@@ -42,10 +42,46 @@ pattern value.
 
 Simple scalar constant patterns now take a direct comparison fast path in the
 runtime matcher.  This covers `undef`, boolean, numeric, and string constants
-without changing the source-order arm selection rule.  A larger
-lookup table for cases made entirely from constants remains deliberately
-deferred until its interaction with diagnostics, duplicate patterns, and
-future arm forms is specified.
+without changing the source-order arm selection rule.
+
+The next constant-case optimization will use separate, compile-time-selected
+lookup strategies.  A case is eligible only when every direct arm is an
+unguarded simple constant.  Any guard, dynamic expression, capture, pin,
+composite pattern, regex, wildcard, or other non-constant form keeps the
+existing source-ordered dynamic matcher.
+
+The optimized representation has one domain description for each of `undef`,
+boolean, IV, NV, and PV values.  The `undef` domain uses a presence flag; the
+boolean domain uses separate presence flags for false and true.  IV, NV, and
+PV domains use parallel arrays: one sorted array of constant values and one
+array of arm indexes.  The arrays should use ordinary Perl-owned `AV`/`SV`
+building blocks wherever practical, rather than introducing collections of
+custom tuple objects.  Arm indexes are ordinary integer SVs, while the value
+arrays own normal constant SV references.
+
+The array and hash strategies are deliberately distinct.  The array strategy
+compares directly against the typed values, using a linear probe for small
+tables and binary search for larger tables.  The hash strategy constructs a
+canonical typed key only after the subject has passed the applicable domain
+checks, then performs an HV lookup whose value is an arm index.  It must not
+fall back to array searching, and the array strategy must not construct hash
+keys.  Initial thresholds are provisional and must be benchmarked.
+
+Both strategies share domain metadata: string minimum/maximum length, exact
+integer minimum/maximum bounds, and floating-point minimum/maximum bounds.
+The bounds are used to reject impossible subjects before comparisons or key
+construction.  Integer bounds must preserve IV/UV values exactly and must not
+be converted through NV.  Missing domains are represented by explicit counts
+or flags, never by zero-valued sentinels.
+
+The initial selection policy is expected to use sorted arrays for numeric
+domains, with linear search for small tables and binary search for larger
+ones.  PV tables may switch to an HV at a smaller size because string
+comparison cost grows with string length.  The exact thresholds belong to
+benchmark-driven tuning, not the language semantics.  Duplicate simple
+constants must retain deterministic first-arm behavior; duplicate detection
+and diagnostics will be specified separately from guarded or dynamic arms,
+whose source-order evaluation and side effects must remain unchanged.
 
 Boolean patterns use Perl truth-value semantics: `match(true)` compares the
 subject with `SvTRUE`, and `match(false)` compares it with the negation of
