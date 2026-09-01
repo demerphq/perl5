@@ -6441,8 +6441,12 @@ Perl_case_dispatch_compile(pTHX_ OP *body)
             continue;
         }
         if (S_case_pattern_is_wildcard(aTHX_ pattern_aux)) {
-            if (dispatch->default_arm == CASE_DISPATCH_NO_ARM)
+            if (dispatch->default_arm == CASE_DISPATCH_NO_ARM) {
                 dispatch->default_arm = pattern_aux->dispatch_arm;
+                dispatch->default_noop = target->op_next
+                    && target->op_next->op_type == OP_STUB
+                    && target->op_next->op_next == kid;
+            }
             break;
         }
         value = cSVOPx_sv(pattern);
@@ -6920,6 +6924,9 @@ PP(pp_casedispatch)
 
     cx->blk_givwhen.case_dispatch_arm = best;
     cx->blk_givwhen.case_dispatch_active = TRUE;
+    if (best == dispatch->default_arm && dispatch->default_noop
+        && dispatch->miss_target)
+        return dispatch->miss_target;
     if (best != CASE_DISPATCH_NO_ARM) {
         OP *target = dispatch->arm_targets[best];
         if (!(target->op_flags & OPf_SPECIAL)) {
