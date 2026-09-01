@@ -6823,7 +6823,7 @@ PP(pp_pushdefer)
     return NORMAL;
 }
 
-PP(pp_generator_yield)
+PP(pp_yield)
 {
     dSP;
     dMARK;

@@ -108,8 +108,8 @@ extern int yydebug;
     KW_CATCH = 302,                /* KW_CATCH  */
     KW_FINALLY = 303,              /* KW_FINALLY  */
     KW_DEFER = 304,                /* KW_DEFER  */
-    KW_GENERATOR_CREATE = 305,     /* KW_GENERATOR_CREATE  */
-    KW_GENERATOR_YIELD = 306,      /* KW_GENERATOR_YIELD  */
+    KW_GEN = 305,                  /* KW_GEN  */
+    KW_YIELD = 306,                /* KW_YIELD  */
     KW_REQUIRE = 307,              /* KW_REQUIRE  */
     KW_DO = 308,                   /* KW_DO  */
     KW_USE_or_NO = 309,            /* KW_USE_or_NO  */
@@ -253,6 +253,6 @@ int yyparse (void);
 
 
 /* Generated from:
- * 10bb14e0e458c19d4e8ba2cf179c4d5fcab910a4406be8f63795a2582bcc9fa1 perly.y
+ * 1f82c65ad6f7010074053c4b5447d6e339ea4ea22d88cb911930ef3c00b1a4b5 perly.y
  * 1a4cfc5b32006b09aba17cc80cd31ade3503ab1e829681adfe337d9c26e19fe0 regen_perly.pl
  * ex: set ro ft=c: */

@@ -126,8 +126,7 @@
 #   undef KEY_format
 #   undef KEY_formline
 #   undef KEY_ge
-#   undef KEY_generator_create
-#   undef KEY_generator_yield
+#   undef KEY_gen
 #   undef KEY_getc
 #   undef KEY_getgrent
 #   undef KEY_getgrgid
@@ -318,6 +317,7 @@
 #   undef KEY_x
 #   undef KEY_xor
 #   undef KEY_y
+#   undef KEY_yield
 #   undef MGv2f_WITH_KEYHEK
 #   undef NETDB_R_OBSOLETE
 #   undef new_XPV
@@ -1275,6 +1275,7 @@
 #   define boot_core_PerlIO()                   Perl_boot_core_PerlIO(aTHX)
 #   define boot_core_UNIVERSAL()                Perl_boot_core_UNIVERSAL(aTHX)
 #   define boot_core_builtin()                  Perl_boot_core_builtin(aTHX)
+#   define boot_core_generator()                Perl_boot_core_generator(aTHX)
 #   define boot_core_mro()                      Perl_boot_core_mro(aTHX)
 #   define build_infix_plugin(a,b,c)            Perl_build_infix_plugin(aTHX_ a,b,c)
 #   define cando(a,b,c)                         Perl_cando(aTHX_ a,b,c)

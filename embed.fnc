@@ -996,6 +996,7 @@ Adopx	|void	|blockhook_register					\
 : Used in perly.y
 ARdp	|int	|block_start	|int full
 p	|void	|boot_core_builtin
+p	|void	|boot_core_generator
 : Only used in perl.c
 p	|void	|boot_core_mro
 : Used in perl.c
@@ -1520,7 +1521,7 @@ Chp	|PERL_GENERATOR *|generator_new 				\
 Chp	|int	|generator_resume					\
 				|NN PERL_GENERATOR *generator		\
 				|NN AV *args
-Chp	|CV *	|generator_wrap |NN CV *body
+Chp	|SV *	|generator_wrap |NN CV *body
 Chp	|void	|generator_yield_values 				\
 				|NN SV **values 			\
 				|SSize_t count
