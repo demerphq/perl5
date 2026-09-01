@@ -352,6 +352,7 @@ enterwhen	when()			ck_null		d|
 leavewhen	leave when block	ck_null		1
 casematch	case pattern match	ck_null		+
 casecoerce	case typed subject	ck_null		1
+casedispatch	case constant dispatch	ck_null		+
 break		break			ck_null		0
 continue	continue		ck_null		0
 

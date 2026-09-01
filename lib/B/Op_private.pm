@@ -328,6 +328,7 @@ $bits{backtick}{0} = $bf[0];
 $bits{blessed}{0} = $bf[0];
 @{$bits{caller}}{6,5,4,3,2,1,0} = ('OPpCALLER_HINTH', 'OPpCALLER_BITS', 'OPpCALLER_HINTS', 'OPpCALLER_SUB', 'OPpCALLER_LINE', 'OPpCALLER_FILE', 'OPpCALLER_PKG');
 $bits{casecoerce}{0} = $bf[0];
+$bits{casedispatch}{0} = $bf[0];
 $bits{casematch}{0} = $bf[0];
 $bits{catch}{0} = $bf[0];
 $bits{ceil}{0} = $bf[0];

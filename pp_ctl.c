@@ -6575,6 +6575,14 @@ PP(pp_casematch)
     return NORMAL;
 }
 
+PP(pp_casedispatch)
+{
+    /* The case-level constant dispatch plan will be installed here.  Keep
+     * this as a separate opcode so the optimized path can be selected for a
+     * complete case without changing the dynamic arm optree. */
+    return NORMAL;
+}
+
 PP(pp_casecoerce)
 {
     SV * const sv = *PL_stack_sp;

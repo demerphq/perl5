@@ -104,6 +104,14 @@ are implementation tuning parameters: record the machine, compiler, build
 mode, and representative results, but do not make correctness depend on a
 particular measured crossover point.
 
+For repeatable comparisons, provide a developer-only strategy override (for
+example, `PERL_CASE_DISPATCH=none|array-linear|array-binary|hv|auto`).  The
+default is `auto`; the forced modes are for measurement and diagnostics, not a
+language interface.  The override may select among representations only
+after the case has passed the pure-simple-constant eligibility check, and an
+unknown or unavailable mode must fall back safely rather than changing case
+semantics.
+
 Boolean patterns use Perl truth-value semantics: `match(true)` compares the
 subject with `SvTRUE`, and `match(false)` compares it with the negation of
 `SvTRUE`.  They therefore match defined true and false values as well as the

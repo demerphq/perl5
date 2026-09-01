@@ -38,6 +38,7 @@ PERL_CALLCONV PP(pp_blessed) __attribute__visibility__("hidden");
 PERL_CALLCONV PP(pp_break) __attribute__visibility__("hidden");
 PERL_CALLCONV PP(pp_caller) __attribute__visibility__("hidden");
 PERL_CALLCONV PP(pp_casecoerce) __attribute__visibility__("hidden");
+PERL_CALLCONV PP(pp_casedispatch) __attribute__visibility__("hidden");
 PERL_CALLCONV PP(pp_casematch) __attribute__visibility__("hidden");
 PERL_CALLCONV PP(pp_casewith) __attribute__visibility__("hidden");
 PERL_CALLCONV PP(pp_catch) __attribute__visibility__("hidden");
