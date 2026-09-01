@@ -112,6 +112,15 @@ after the case has passed the pure-simple-constant eligibility check, and an
 unknown or unavailable mode must fall back safely rather than changing case
 semantics.
 
+The first implementation slice now recognizes eligible complete cases and
+inserts a case-level dispatch opcode.  Its current runtime strategy is the
+source-order array probe, with the selected arm recorded in the case context;
+the existing per-arm matcher remains responsible for binding and arm entry.
+The binary and HV strategies, bounds checks, override handling, and the
+benchmark harness remain to be added.  The focused regression suite includes
+mixed typed constants, duplicate constants, and misses to verify that this
+optimization preserves first-arm behavior.
+
 Boolean patterns use Perl truth-value semantics: `match(true)` compares the
 subject with `SvTRUE`, and `match(false)` compares it with the negation of
 `SvTRUE`.  They therefore match defined true and false values as well as the
