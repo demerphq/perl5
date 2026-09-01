@@ -28,6 +28,10 @@
 #   undef ALIGNED_TYPE_NAME
 #   undef AMGf_no_GETMAGIC
 #   undef CASE_PATTERN_AUX_MAGIC
+#   undef CASE_PATTERN_SIMPLE_NONE
+#   undef CASE_PATTERN_SIMPLE_NUM
+#   undef CASE_PATTERN_SIMPLE_STR
+#   undef CASE_PATTERN_SIMPLE_UNDEF
 #   undef CC_MAGICAL_
 #   undef CC_UNDERSCORE_
 #   undef compose_origins
