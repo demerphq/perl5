@@ -6340,6 +6340,8 @@ S_case_dispatch_strategy(void)
 
     if (!mode || strEQ(mode, "auto") || strEQ(mode, "array-linear"))
         return CASE_DISPATCH_ARRAY_LINEAR;
+    if (strEQ(mode, "array-binary"))
+        return CASE_DISPATCH_ARRAY_BINARY;
     if (strEQ(mode, "none"))
         return CASE_DISPATCH_NONE;
     if (strEQ(mode, "hv"))
@@ -6368,6 +6370,35 @@ S_case_dispatch_store(pTHX_ HV **tablep, SV *value, U8 kind, U32 arm)
     if (!hv_fetch_ent(*tablep, key, FALSE, 0))
         (void)hv_store_ent(*tablep, key, newSVuv((UV)arm), 0);
     SvREFCNT_dec_NN(key);
+}
+
+static void
+S_case_dispatch_sort(pTHX_ AV *values, AV *arms, U8 kind)
+{
+    SSize_t i, j, count;
+    SV **value_array;
+    SV **arm_array;
+
+    if (!values || !arms)
+        return;
+    count = av_len(values) + 1;
+    value_array = AvARRAY(values);
+    arm_array = AvARRAY(arms);
+    for (i = 1; i < count; i++) {
+        SV *value = value_array[i];
+        SV *arm = arm_array[i];
+        for (j = i; j > 0; j--) {
+            const I32 cmp = kind == CASE_PATTERN_SIMPLE_NUM
+                ? do_ncmp(value_array[j - 1], value)
+                : sv_cmp(value_array[j - 1], value);
+            if (cmp <= 0)
+                break;
+            value_array[j] = value_array[j - 1];
+            arm_array[j] = arm_array[j - 1];
+        }
+        value_array[j] = value;
+        arm_array[j] = arm;
+    }
 }
 
 static bool
@@ -6505,6 +6536,15 @@ Perl_case_dispatch_compile(pTHX_ OP *body)
                     dispatch->pv_maxlen = len;
             }
         }
+    }
+
+    if (dispatch->strategy == CASE_DISPATCH_ARRAY_BINARY) {
+        S_case_dispatch_sort(aTHX_ dispatch->iv_values, dispatch->iv_arms,
+            CASE_PATTERN_SIMPLE_NUM);
+        S_case_dispatch_sort(aTHX_ dispatch->nv_values, dispatch->nv_arms,
+            CASE_PATTERN_SIMPLE_NUM);
+        S_case_dispatch_sort(aTHX_ dispatch->pv_values, dispatch->pv_arms,
+            CASE_PATTERN_SIMPLE_STR);
     }
 
     return (UNOP_AUX_item *)dispatch;
@@ -6885,6 +6925,41 @@ S_case_dispatch_hv_candidate(pTHX_ const HV *table, SV *subject, U8 kind,
     SvREFCNT_dec_NN(key);
 }
 
+static void
+S_case_dispatch_binary_candidate(pTHX_ const AV *values, const AV *arms,
+                                  SV *subject, U8 kind, U32 *best)
+{
+    SSize_t lo = 0;
+    SSize_t hi;
+    SSize_t i;
+
+    if (!values || !arms)
+        return;
+    hi = av_len((AV *)values) + 1;
+    while (lo < hi) {
+        const SSize_t mid = lo + (hi - lo) / 2;
+        SV **value = av_fetch((AV *)values, mid, FALSE);
+        const I32 cmp = kind == CASE_PATTERN_SIMPLE_NUM
+            ? do_ncmp(*value, subject) : sv_cmp(*value, subject);
+        if (cmp < 0)
+            lo = mid + 1;
+        else
+            hi = mid;
+    }
+    for (i = lo; i <= av_len((AV *)values); i++) {
+        SV **value = av_fetch((AV *)values, i, FALSE);
+        SV **arm;
+        if (!value)
+            continue;
+        if ((kind == CASE_PATTERN_SIMPLE_NUM
+             ? do_ncmp(*value, subject) : sv_cmp(*value, subject)) != 0)
+            break;
+        arm = av_fetch((AV *)arms, i, FALSE);
+        if (arm && SvUV(*arm) < *best)
+            *best = (U32)SvUV(*arm);
+    }
+}
+
 PP(pp_casedispatch)
 {
     PERL_CONTEXT *cx = S_case_context(aTHX);
@@ -6917,6 +6992,12 @@ PP(pp_casedispatch)
             S_case_dispatch_hv_candidate(aTHX_ dispatch->nv_table, DEFSV,
                 CASE_PATTERN_SIMPLE_NUM, &best);
         }
+        else if (dispatch->strategy == CASE_DISPATCH_ARRAY_BINARY) {
+            S_case_dispatch_binary_candidate(aTHX_ dispatch->iv_values,
+                dispatch->iv_arms, DEFSV, CASE_PATTERN_SIMPLE_NUM, &best);
+            S_case_dispatch_binary_candidate(aTHX_ dispatch->nv_values,
+                dispatch->nv_arms, DEFSV, CASE_PATTERN_SIMPLE_NUM, &best);
+        }
         else {
             S_case_dispatch_candidate(aTHX_ dispatch->iv_values,
                 dispatch->iv_arms, DEFSV, CASE_PATTERN_SIMPLE_NUM, &best);
@@ -6931,6 +7012,9 @@ PP(pp_casedispatch)
             if (dispatch->strategy == CASE_DISPATCH_HV)
                 S_case_dispatch_hv_candidate(aTHX_ dispatch->pv_table, DEFSV,
                     CASE_PATTERN_SIMPLE_STR, &best);
+            else if (dispatch->strategy == CASE_DISPATCH_ARRAY_BINARY)
+                S_case_dispatch_binary_candidate(aTHX_ dispatch->pv_values,
+                    dispatch->pv_arms, DEFSV, CASE_PATTERN_SIMPLE_STR, &best);
             else
                 S_case_dispatch_candidate(aTHX_ dispatch->pv_values,
                     dispatch->pv_arms, DEFSV, CASE_PATTERN_SIMPLE_STR, &best);

@@ -114,11 +114,13 @@ semantics.
 
 The first implementation slice now recognizes eligible complete cases and
 inserts a case-level dispatch opcode.  Its runtime supports a source-order
-array probe and a separate HV strategy, with the selected arm recorded in the
-case context; the existing per-arm matcher remains responsible for binding and
-arm entry.  `PERL_CASE_DISPATCH=none|array-linear|hv|auto` can select the
-currently available modes for development comparisons.  The binary strategy,
-exact numeric bounds, automatic threshold selection, and the benchmark driver
+array probe, binary search over sorted parallel arrays, and a separate HV
+strategy, with the selected arm recorded in the case context; the existing
+per-arm matcher remains responsible for binding and arm entry.
+`PERL_CASE_DISPATCH=none|array-linear|array-binary|hv|auto` can select the
+currently available modes for development comparisons.  The binary mode uses
+stable value ordering and scans equal values for the earliest source arm.
+Exact numeric bounds, automatic threshold selection, and the benchmark driver
 remain to be added.  The focused regression suite includes mixed typed
 constants, duplicate constants, and misses to verify that this optimization
 preserves first-arm behavior.  A wildcard arm can serve as the dispatch
