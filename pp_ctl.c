@@ -6333,6 +6333,79 @@ S_case_dispatch_push(pTHX_ AV **valuesp, AV **armsp, SV *value, U32 arm,
     av_push(*armsp, newSVuv((UV)arm));
 }
 
+static void
+S_case_dispatch_add_iv_bound(struct case_dispatch_aux *dispatch, SV *value)
+{
+    const bool is_uv = SvUOK(value);
+    const IV iv = SvIVX(value);
+    const UV uv = SvUVX(value);
+
+    if (!dispatch->iv_has_bounds) {
+        dispatch->iv_has_bounds = TRUE;
+        dispatch->iv_min_is_uv = is_uv;
+        dispatch->iv_max_is_uv = is_uv;
+        dispatch->iv_min_iv = iv;
+        dispatch->iv_max_iv = iv;
+        dispatch->iv_min_uv = uv;
+        dispatch->iv_max_uv = uv;
+        return;
+    }
+    if (is_uv) {
+        if (dispatch->iv_min_is_uv) {
+            if (uv < dispatch->iv_min_uv)
+                dispatch->iv_min_uv = uv;
+        }
+        else if (iv >= 0 && uv < (UV)dispatch->iv_min_iv) {
+            dispatch->iv_min_is_uv = TRUE;
+            dispatch->iv_min_uv = uv;
+        }
+        if (dispatch->iv_max_is_uv) {
+            if (uv > dispatch->iv_max_uv)
+                dispatch->iv_max_uv = uv;
+        }
+        else if (iv < 0 || uv > (UV)dispatch->iv_max_iv) {
+            dispatch->iv_max_is_uv = TRUE;
+            dispatch->iv_max_uv = uv;
+        }
+    }
+    else {
+        if (dispatch->iv_min_is_uv) {
+            if (iv < 0 || (UV)iv < dispatch->iv_min_uv) {
+                dispatch->iv_min_is_uv = FALSE;
+                dispatch->iv_min_iv = iv;
+            }
+        }
+        else if (iv < dispatch->iv_min_iv)
+            dispatch->iv_min_iv = iv;
+        if (dispatch->iv_max_is_uv) {
+            if (iv < 0 || (UV)iv > dispatch->iv_max_uv) {
+                dispatch->iv_max_is_uv = FALSE;
+                dispatch->iv_max_iv = iv;
+            }
+        }
+        else if (iv > dispatch->iv_max_iv)
+            dispatch->iv_max_iv = iv;
+    }
+}
+
+static void
+S_case_dispatch_add_nv_bound(struct case_dispatch_aux *dispatch, SV *value)
+{
+    const NV nv = SvNVX(value);
+
+    if (!dispatch->nv_has_bounds) {
+        dispatch->nv_min = nv;
+        dispatch->nv_max = nv;
+        dispatch->nv_has_bounds = TRUE;
+    }
+    else {
+        if (nv < dispatch->nv_min)
+            dispatch->nv_min = nv;
+        if (nv > dispatch->nv_max)
+            dispatch->nv_max = nv;
+    }
+}
+
 static U8
 S_case_dispatch_strategy(void)
 {
@@ -6502,6 +6575,10 @@ Perl_case_dispatch_compile(pTHX_ OP *body)
                 dispatch->bool_arm[bool_ix] = pattern_aux->dispatch_arm;
         }
         else if (pattern_aux->kind == CASE_PATTERN_SIMPLE_NUM) {
+            if (SvNOK(value))
+                S_case_dispatch_add_nv_bound(dispatch, value);
+            else
+                S_case_dispatch_add_iv_bound(dispatch, value);
             if (dispatch->strategy == CASE_DISPATCH_HV)
                 S_case_dispatch_store(aTHX_
                     SvNOK(value) ? &dispatch->nv_table : &dispatch->iv_table,
@@ -6925,6 +7002,48 @@ S_case_dispatch_hv_candidate(pTHX_ const HV *table, SV *subject, U8 kind,
     SvREFCNT_dec_NN(key);
 }
 
+static bool
+S_case_dispatch_iv_in_bounds(const struct case_dispatch_aux *dispatch,
+                              SV *subject)
+{
+    bool is_uv;
+    IV iv;
+    UV uv;
+
+    if (!dispatch->iv_has_bounds || !SvIOK(subject))
+        return TRUE;
+    is_uv = SvUOK(subject);
+    iv = SvIVX(subject);
+    uv = SvUVX(subject);
+    if (dispatch->iv_min_is_uv
+        ? (is_uv ? uv < dispatch->iv_min_uv
+                 : iv < 0 || (UV)iv < dispatch->iv_min_uv)
+        : (is_uv ? dispatch->iv_min_iv < 0
+                       || uv < (UV)dispatch->iv_min_iv
+                 : iv < dispatch->iv_min_iv))
+        return FALSE;
+    if (dispatch->iv_max_is_uv
+        ? (is_uv ? uv > dispatch->iv_max_uv
+                 : iv >= 0 && (UV)iv > dispatch->iv_max_uv)
+        : (is_uv ? dispatch->iv_max_iv >= 0
+                       && uv > (UV)dispatch->iv_max_iv
+                 : iv > dispatch->iv_max_iv))
+        return FALSE;
+    return TRUE;
+}
+
+static bool
+S_case_dispatch_nv_in_bounds(const struct case_dispatch_aux *dispatch,
+                              SV *subject)
+{
+    NV nv;
+
+    if (!dispatch->nv_has_bounds || !SvNOK(subject))
+        return TRUE;
+    nv = SvNVX(subject);
+    return nv >= dispatch->nv_min && nv <= dispatch->nv_max;
+}
+
 static void
 S_case_dispatch_binary_candidate(pTHX_ const AV *values, const AV *arms,
                                   SV *subject, U8 kind, U32 *best)
@@ -6986,23 +7105,31 @@ PP(pp_casedispatch)
         && dispatch->bool_arm[1] < best)
         best = dispatch->bool_arm[1];
     if (SvIOK(DEFSV) || SvNOK(DEFSV)) {
-        if (dispatch->strategy == CASE_DISPATCH_HV) {
+        if (S_case_dispatch_iv_in_bounds(dispatch, DEFSV)
+            && dispatch->strategy == CASE_DISPATCH_HV) {
             S_case_dispatch_hv_candidate(aTHX_ dispatch->iv_table, DEFSV,
                 CASE_PATTERN_SIMPLE_NUM, &best);
+        }
+        if (S_case_dispatch_nv_in_bounds(dispatch, DEFSV)
+            && dispatch->strategy == CASE_DISPATCH_HV) {
             S_case_dispatch_hv_candidate(aTHX_ dispatch->nv_table, DEFSV,
                 CASE_PATTERN_SIMPLE_NUM, &best);
         }
         else if (dispatch->strategy == CASE_DISPATCH_ARRAY_BINARY) {
+            if (S_case_dispatch_iv_in_bounds(dispatch, DEFSV))
             S_case_dispatch_binary_candidate(aTHX_ dispatch->iv_values,
                 dispatch->iv_arms, DEFSV, CASE_PATTERN_SIMPLE_NUM, &best);
-            S_case_dispatch_binary_candidate(aTHX_ dispatch->nv_values,
+            if (S_case_dispatch_nv_in_bounds(dispatch, DEFSV))
+                S_case_dispatch_binary_candidate(aTHX_ dispatch->nv_values,
                 dispatch->nv_arms, DEFSV, CASE_PATTERN_SIMPLE_NUM, &best);
         }
         else {
-            S_case_dispatch_candidate(aTHX_ dispatch->iv_values,
-                dispatch->iv_arms, DEFSV, CASE_PATTERN_SIMPLE_NUM, &best);
-            S_case_dispatch_candidate(aTHX_ dispatch->nv_values,
-                dispatch->nv_arms, DEFSV, CASE_PATTERN_SIMPLE_NUM, &best);
+            if (S_case_dispatch_iv_in_bounds(dispatch, DEFSV))
+                S_case_dispatch_candidate(aTHX_ dispatch->iv_values,
+                    dispatch->iv_arms, DEFSV, CASE_PATTERN_SIMPLE_NUM, &best);
+            if (S_case_dispatch_nv_in_bounds(dispatch, DEFSV))
+                S_case_dispatch_candidate(aTHX_ dispatch->nv_values,
+                    dispatch->nv_arms, DEFSV, CASE_PATTERN_SIMPLE_NUM, &best);
         }
     }
     if (SvPOK(DEFSV)) {

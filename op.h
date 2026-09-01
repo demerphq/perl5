@@ -286,6 +286,16 @@ struct case_dispatch_aux {
     OP **arm_targets;
     OP *miss_target;
     bool default_noop;
+    bool iv_has_bounds;
+    bool iv_min_is_uv;
+    bool iv_max_is_uv;
+    IV iv_min_iv;
+    IV iv_max_iv;
+    UV iv_min_uv;
+    UV iv_max_uv;
+    bool nv_has_bounds;
+    NV nv_min;
+    NV nv_max;
     AV *iv_values;
     AV *iv_arms;
     AV *nv_values;

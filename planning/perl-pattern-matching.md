@@ -120,8 +120,10 @@ per-arm matcher remains responsible for binding and arm entry.
 `PERL_CASE_DISPATCH=none|array-linear|array-binary|hv|auto` can select the
 currently available modes for development comparisons.  The binary mode uses
 stable value ordering and scans equal values for the earliest source arm.
-Exact numeric bounds, automatic threshold selection, and the benchmark driver
-remain to be added.  The focused regression suite includes mixed typed
+The dispatch metadata now also tracks exact signed/unsigned integer bounds,
+floating-point bounds, and string length bounds; checks reject only subjects
+which are provably outside the corresponding domain.  Automatic threshold
+selection and the benchmark driver remain to be added.  The focused regression suite includes mixed typed
 constants, duplicate constants, and misses to verify that this optimization
 preserves first-arm behavior.  A wildcard arm can serve as the dispatch
 fallback: constants before it remain eligible for lookup, while the wildcard
