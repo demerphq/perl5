@@ -6242,6 +6242,15 @@ Perl_case_pattern_compile(pTHX_ const OP *pattern)
         1, sizeof(struct case_pattern_aux));
     aux->magic = CASE_PATTERN_AUX_MAGIC;
     aux->root = S_case_pattern_compile_node(aTHX_ pattern);
+    if (pattern->op_type == OP_UNDEF)
+        aux->simple_kind = CASE_PATTERN_SIMPLE_UNDEF;
+    else if (pattern->op_type == OP_CONST
+             && !(pattern->op_private & OPpCONST_BARE)
+             && (SvIOK(cSVOPx_sv(pattern)) || SvNOK(cSVOPx_sv(pattern))))
+        aux->simple_kind = CASE_PATTERN_SIMPLE_NUM;
+    else if (pattern->op_type == OP_CONST
+             && !(pattern->op_private & OPpCONST_BARE))
+        aux->simple_kind = CASE_PATTERN_SIMPLE_STR;
     return (UNOP_AUX_item *)aux;
 }
 
@@ -6524,9 +6533,18 @@ PP(pp_casematch)
         ? aux->root : NULL;
     if (!pattern)
         Perl_croak(aTHX_ "missing compiled case pattern");
-    const bool matched = S_case_pattern_match(aTHX_
-        pattern, DEFSV, *PL_stack_sp,
-        bindings, &nbindings);
+    bool matched;
+    if (aux->simple_kind == CASE_PATTERN_SIMPLE_UNDEF)
+        matched = !SvOK(DEFSV);
+    else if (aux->simple_kind == CASE_PATTERN_SIMPLE_NUM)
+        matched = (SvIOK(DEFSV) || SvNOK(DEFSV))
+            && do_ncmp(DEFSV, *PL_stack_sp) == 0;
+    else if (aux->simple_kind == CASE_PATTERN_SIMPLE_STR)
+        matched = SvPOK(DEFSV) && sv_eq(DEFSV, *PL_stack_sp);
+    else
+        matched = S_case_pattern_match(aTHX_
+            pattern, DEFSV, *PL_stack_sp,
+            bindings, &nbindings);
     size_t i;
 
     if (cx && CxTYPE(cx) == CXt_GIVEN && cx->blk_givwhen.is_case) {

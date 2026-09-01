@@ -245,10 +245,15 @@ struct case_pattern_node {
 
 struct case_pattern_aux {
     U32 magic;
+    U8 simple_kind;
     struct case_pattern_node *root;
 };
 
 #define CASE_PATTERN_AUX_MAGIC ((U32)0x43504154) /* "CPAT" */
+#define CASE_PATTERN_SIMPLE_NONE  0
+#define CASE_PATTERN_SIMPLE_UNDEF 1
+#define CASE_PATTERN_SIMPLE_NUM   2
+#define CASE_PATTERN_SIMPLE_STR   3
 
 struct binop {
     BASEOP
