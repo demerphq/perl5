@@ -128,9 +128,9 @@ our @IGNORABLE = qw(
 
 our %Modules = (
 
-    'AI Perl generators' => {
+    'XPerl generators' => {
         'FILES'      => q[lib/generator.pm],
-        'MAINTAINER' => 'AI-PERL',
+        'MAINTAINER' => 'XPERL',
         'UPSTREAM'   => 'blead',
     },
 
@@ -1559,7 +1559,7 @@ for ( keys %Modules ) {
 }
 
 our %Maintainers = (
-    'AI-PERL' => 'Yves Orton and Stevan Little',
+    'XPERL' => 'Yves Orton and Stevan Little',
 );
 # legacy MAINTAINER field
 for ( keys %Modules ) {
