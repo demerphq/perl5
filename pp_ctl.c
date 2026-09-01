@@ -6246,8 +6246,7 @@ Perl_case_pattern_compile(pTHX_ const OP *pattern)
     if (pattern->op_type == OP_UNDEF)
         aux->kind = CASE_PATTERN_SIMPLE_UNDEF;
     else if (pattern->op_type == OP_CONST
-             && (cSVOPx_sv(pattern) == &PL_sv_yes
-                 || cSVOPx_sv(pattern) == &PL_sv_no))
+             && SvIsBOOL(cSVOPx_sv(pattern)))
         aux->kind = CASE_PATTERN_SIMPLE_BOOL;
     else if (pattern->op_type == OP_CONST
              && !(pattern->op_private & OPpCONST_BARE)
@@ -6542,8 +6541,7 @@ PP(pp_casematch)
     if (aux->kind == CASE_PATTERN_SIMPLE_UNDEF)
         matched = !SvOK(DEFSV);
     else if (aux->kind == CASE_PATTERN_SIMPLE_BOOL)
-        matched = cSVOPx_sv(pattern->op) == &PL_sv_yes
-            ? SvTRUE(DEFSV) : !SvTRUE(DEFSV);
+        matched = (SvTRUE(DEFSV) == SvTRUE(cSVOPx_sv(pattern->op)));
     else if (aux->kind == CASE_PATTERN_SIMPLE_NUM)
         matched = (SvIOK(DEFSV) || SvNOK(DEFSV))
             && do_ncmp(DEFSV, *PL_stack_sp) == 0;

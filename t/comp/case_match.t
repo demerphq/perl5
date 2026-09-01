@@ -5,7 +5,7 @@ BEGIN {
     unshift @INC, '../lib';
 }
 
-print "1..38\n";
+print "1..39\n";
 
 my $ran = 0;
 $_ = 'outside';
@@ -468,3 +468,16 @@ my $with_expression = eval q{
 print !$@ && $with_expression
     ? "ok 38 - with expression pins a case-local value\n"
     : "not ok 38 - with expression pins a case-local value\n";
+
+my ($bool_yes, $bool_no, $bool_number) = (0, 0, 0);
+my $typed_boolean = eval q{
+    use feature 'case_match';
+    use builtin qw(true false);
+    case (true)  { match (true)  { $bool_yes = 1 } }
+    case (false) { match (false) { $bool_no = 1 } }
+    case (1)     { match (true)  { $bool_number = 1 } }
+    1;
+};
+print !$@ && $typed_boolean && $bool_yes && $bool_no && $bool_number
+    ? "ok 39 - boolean literals use truth-value semantics\n"
+    : "not ok 39 - boolean literals use truth-value semantics\n";
