@@ -6377,8 +6377,7 @@ Perl_case_dispatch_compile(pTHX_ OP *body)
                     &dispatch->iv_arms, value, pattern_aux->dispatch_arm);
         }
         else {
-            STRLEN len;
-            (void)SvPV_const(value, len);
+            const STRLEN len = SvCUR(value);
             S_case_dispatch_push(aTHX_ &dispatch->pv_values,
                 &dispatch->pv_arms, value, pattern_aux->dispatch_arm);
             if (!dispatch->pv_has_bounds) {
@@ -6782,8 +6781,7 @@ PP(pp_casedispatch)
             DEFSV, CASE_PATTERN_SIMPLE_NUM, &best);
     }
     if (SvPOK(DEFSV)) {
-        STRLEN len;
-        (void)SvPV_const(DEFSV, len);
+        const STRLEN len = SvCUR(DEFSV);
         if (!dispatch->pv_has_bounds
             || (len >= dispatch->pv_minlen && len <= dispatch->pv_maxlen))
             S_case_dispatch_candidate(aTHX_ dispatch->pv_values,
