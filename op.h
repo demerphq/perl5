@@ -282,6 +282,9 @@ struct case_dispatch_aux {
     U32 undef_arm;
     U32 bool_arm[2];
     U32 default_arm;
+    U32 arm_count;
+    OP **arm_targets;
+    OP *miss_target;
     AV *iv_values;
     AV *iv_arms;
     AV *nv_values;

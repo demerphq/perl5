@@ -313,7 +313,17 @@ bare_statement_case
 				body = op_prepend_elem(OP_LINESEQ,
 					newLISTOP(OP_CASEWITH, OPf_WANT_LIST,
 						$case_subject_pins, NULL), body);
-			OP *caseop = newGIVENOP(subject, op_scope(body), 0);
+			OP *scoped_body = op_scope(body);
+			OP *caseop = newGIVENOP(subject, scoped_body, 0);
+			if (dispatch && scoped_body->op_type == OP_LINESEQ) {
+				OP *scope_kid;
+				for (scope_kid = cLISTOPx(scoped_body)->op_first;
+				     scope_kid; scope_kid = OpSIBLING(scope_kid))
+					if (scope_kid->op_type == OP_LEAVE) {
+						((struct case_dispatch_aux *)dispatch)->miss_target = scope_kid;
+						break;
+					}
+			}
 			/* Mark the existing topicalizer skeleton as a case so that its
 			 * subject is snapshotted rather than aliased into $_. */
 			cUNOPx(caseop)->op_first->op_targ = 1;

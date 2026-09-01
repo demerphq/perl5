@@ -6287,7 +6287,8 @@ S_case_pattern_is_wildcard(pTHX_ const struct case_pattern_aux *aux)
 }
 
 static bool
-S_case_dispatch_arm(pTHX_ const OP *op, struct case_pattern_aux **auxp)
+S_case_dispatch_arm(pTHX_ const OP *op, struct case_pattern_aux **auxp,
+                    OP **targetp)
 {
     const OP *enterwhen;
     const OP *condition;
@@ -6309,6 +6310,8 @@ S_case_dispatch_arm(pTHX_ const OP *op, struct case_pattern_aux **auxp)
         || !aux->root)
         return FALSE;
     *auxp = (struct case_pattern_aux *)aux;
+    if (targetp)
+        *targetp = (OP *)enterwhen;
     return TRUE;
 }
 
@@ -6385,7 +6388,7 @@ Perl_case_dispatch_compile(pTHX_ OP *body)
         struct case_pattern_aux *pattern_aux;
         if (OP_TYPE_IS_COP_NN(kid))
             continue;
-        if (!S_case_dispatch_arm(aTHX_ kid, &pattern_aux)) {
+        if (!S_case_dispatch_arm(aTHX_ kid, &pattern_aux, NULL)) {
             eligible = FALSE;
             break;
         }
@@ -6407,7 +6410,11 @@ Perl_case_dispatch_compile(pTHX_ OP *body)
     dispatch->bool_arm[0] = CASE_DISPATCH_NO_ARM;
     dispatch->bool_arm[1] = CASE_DISPATCH_NO_ARM;
     dispatch->default_arm = CASE_DISPATCH_NO_ARM;
+    dispatch->arm_count = arm_count;
+    dispatch->arm_targets = (OP **)PerlMemShared_calloc(
+        arm_count, sizeof(OP *));
     if (dispatch->strategy == CASE_DISPATCH_NONE) {
+        PerlMemShared_free(dispatch->arm_targets);
         PerlMemShared_free(dispatch);
         return NULL;
     }
@@ -6420,10 +6427,12 @@ Perl_case_dispatch_compile(pTHX_ OP *body)
 
         if (OP_TYPE_IS_COP_NN(kid))
             continue;
-        (void)S_case_dispatch_arm(aTHX_ kid, &pattern_aux);
+        OP *target;
+        (void)S_case_dispatch_arm(aTHX_ kid, &pattern_aux, &target);
         pattern = pattern_aux->root->op;
         pattern_aux->dispatch = dispatch;
         pattern_aux->dispatch_arm = narm++;
+        dispatch->arm_targets[pattern_aux->dispatch_arm] = target;
         dispatch->refcnt++;
 
         if (pattern_aux->kind == CASE_PATTERN_SIMPLE_UNDEF) {
@@ -6502,6 +6511,7 @@ Perl_case_dispatch_free(pTHX_ UNOP_AUX_item *items)
     SvREFCNT_dec((SV *)dispatch->iv_table);
     SvREFCNT_dec((SV *)dispatch->nv_table);
     SvREFCNT_dec((SV *)dispatch->pv_table);
+    PerlMemShared_free(dispatch->arm_targets);
     PerlMemShared_free(dispatch);
 }
 
@@ -6870,7 +6880,8 @@ PP(pp_casedispatch)
     best = dispatch->default_arm;
 
     if (!SvOK(DEFSV)
-        && dispatch->undef_arm != CASE_DISPATCH_NO_ARM)
+        && dispatch->undef_arm != CASE_DISPATCH_NO_ARM
+        && dispatch->undef_arm < best)
         best = dispatch->undef_arm;
     if (dispatch->bool_arm[0] != CASE_DISPATCH_NO_ARM
         && !SvTRUE(DEFSV)
@@ -6909,6 +6920,19 @@ PP(pp_casedispatch)
 
     cx->blk_givwhen.case_dispatch_arm = best;
     cx->blk_givwhen.case_dispatch_active = TRUE;
+    if (best != CASE_DISPATCH_NO_ARM) {
+        OP *target = dispatch->arm_targets[best];
+        if (!(target->op_flags & OPf_SPECIAL)) {
+            rpp_extend(1);
+            rpp_push_IMM(&PL_sv_yes);
+        }
+        return target;
+    }
+    /* A miss follows the ordinary arm chain so that the body scope is
+     * unwound before leavegiven runs.  When the scoped body has an explicit
+     * leave op, jump to it and avoid executing the unreachable arm chain. */
+    if (dispatch->miss_target)
+        return dispatch->miss_target;
     return NORMAL;
 }
 
