@@ -439,6 +439,7 @@ These are a hotchpotch of opcodes still waiting to be considered
 
     entergiven leavegiven
     enterwhen leavewhen
+    casematch casecoerce casewith
     break continue
     smartmatch
 

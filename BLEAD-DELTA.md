@@ -9,10 +9,10 @@ can be inspected with:
 git diff origin/blead..HEAD
 ```
 
-Comparison baseline: `origin/blead` at `65d0414b44c1b3c1f1879069332ed7c5b85e00e4`.
+Comparison baseline: `origin/blead` at `a57c5954cbfde062678ff826818742f640b1cf60`.
 
-At the time of this update, the branch is 77 commits ahead of that baseline,
-with 620 changed paths, 39,076 additions, and 3,223 deletions. The changes
+At the time of this update, the branch is 174 commits ahead of that baseline,
+with 622 changed paths, 43,106 additions, and 3,167 deletions. The changes
 include generated files, tests, bundled distributions, documentation, and
 development tooling in addition to the runtime changes described below.
 
@@ -59,6 +59,17 @@ continuations, and cooperative resumable execution. [`pod/perlexperiment.pod`](h
 [`pod/perlfunc.pod`](https://github.com/demerphq/perl5/blob/xperl/main/pod/perlfunc.pod), [`pod/perlsyn.pod`](https://github.com/demerphq/perl5/blob/xperl/main/pod/perlsyn.pod), [`pod/perldiag.pod`](https://github.com/demerphq/perl5/blob/xperl/main/pod/perldiag.pod), and
 [`pod/perldelta.pod`](https://github.com/demerphq/perl5/blob/xperl/main/pod/perldelta.pod) cover the experimental status, keywords, syntax,
 diagnostics, and release notes.
+
+### Pattern matching
+
+The experimental `case_match` feature adds ordered `case`/`match` arms with
+scalar, nested array, nested hash, wildcard, regular-expression, binding,
+pinning, guard, and explicit scalar-conversion patterns.  Pattern bindings
+are tentative until the complete pattern and guard succeed.  The current
+implementation supports exact composite patterns and open array/hash
+patterns using edge ellipses; richer pattern protocols are not yet included.
+
+Related POD: [`pod/perlcasewhen.pod`](https://github.com/demerphq/perl5/blob/ai-perl/pod/perlcasewhen.pod) is the beginner-oriented feature guide; [`pod/perlsyn.pod`](https://github.com/demerphq/perl5/blob/ai-perl/pod/perlsyn.pod) documents the syntax and current semantics; [`pod/perldiag.pod`](https://github.com/demerphq/perl5/blob/ai-perl/pod/perldiag.pod) documents pattern diagnostics; [`pod/perlexperiment.pod`](https://github.com/demerphq/perl5/blob/ai-perl/pod/perlexperiment.pod) and [`pod/perldelta.pod`](https://github.com/demerphq/perl5/blob/ai-perl/pod/perldelta.pod) cover its experimental status and release notes.  The implementation is tested in [`t/comp/case_match.t`](https://github.com/demerphq/perl5/blob/ai-perl/t/comp/case_match.t), with further design status in [`planning/perl-pattern-matching.md`](https://github.com/demerphq/perl5/blob/ai-perl/planning/perl-pattern-matching.md).
 
 ### Lexical namespaces
 

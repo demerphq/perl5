@@ -8650,6 +8650,15 @@ yyl_word_or_keyword(pTHX_ char *s, STRLEN len, I32 key, I32 orig_keyword, struct
     case KEY_catch:
         PREBLOCK(KW_CATCH);
 
+    case KEY_case:
+        pl_yylval.ival = CopLINE(PL_curcop);
+        OPERATOR(KW_CASE);
+
+    case KEY_FloatVal:
+        PL_expect = XTERM;
+        PL_bufptr = s;
+        return REPORT(KW_FloatVal);
+
     case KEY_chop:
         UNI(OP_CHOP);
 
@@ -8988,6 +8997,11 @@ yyl_word_or_keyword(pTHX_ char *s, STRLEN len, I32 key, I32 orig_keyword, struct
     case KEY_int:
         UNI(OP_INT);
 
+    case KEY_IntVal:
+        PL_expect = XTERM;
+        PL_bufptr = s;
+        return REPORT(KW_IntVal);
+
     case KEY_ioctl:
         LOP(OP_IOCTL,XTERM);
 
@@ -9052,6 +9066,16 @@ yyl_word_or_keyword(pTHX_ char *s, STRLEN len, I32 key, I32 orig_keyword, struct
 
     case KEY_map:
         LOP(OP_MAPSTART, XREF);
+
+    case KEY_match:
+        PL_expect = XTERM;
+        PL_bufptr = s;
+        return REPORT(KW_MATCH);
+
+    case KEY_with:
+        PL_expect = XTERM;
+        PL_bufptr = s;
+        return REPORT(KW_WITH);
 
     case KEY_mkdir:
         LOP(OP_MKDIR,XTERM);
@@ -9385,6 +9409,11 @@ yyl_word_or_keyword(pTHX_ char *s, STRLEN len, I32 key, I32 orig_keyword, struct
         PL_expect = XTERM;
         s = force_word(s, BAREWORD, CHECK_KEYWORD | ALLOW_PACKAGE);
         LOP(OP_SORT,XREF);
+
+    case KEY_StrVal:
+        PL_expect = XTERM;
+        PL_bufptr = s;
+        return REPORT(KW_StrVal);
 
     case KEY_split:
         LOP(OP_SPLIT,XTERM);
@@ -10180,6 +10209,10 @@ yyl_try(pTHX_ char *s)
             PL_expect = XSTATE;
             /* formbrack==2 means dot seen where arguments expected */
             return yyl_rightcurly(aTHX_ s, 2);
+        }
+        if (PL_parser->in_case_pattern && s[1] == '.' && s[2] == '.') {
+            s += 3;
+            TOKEN(CASE_ELLIPSIS);
         }
         if (PL_expect == XSTATE && s[1] == '.' && s[2] == '.') {
             s += 3;

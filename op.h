@@ -235,6 +235,21 @@ struct unop_aux {
     UNOP_AUX_item *op_aux;
 };
 
+/* Structural data compiled for an OP_CASEMATCH.  The optree continues to
+ * own the expression ops; these nodes own only the pattern representation. */
+struct case_pattern_node {
+    const OP *op;
+    struct case_pattern_node **child;
+    U32 nchild;
+};
+
+struct case_pattern_aux {
+    U32 magic;
+    struct case_pattern_node *root;
+};
+
+#define CASE_PATTERN_AUX_MAGIC ((U32)0x43504154) /* "CPAT" */
+
 struct binop {
     BASEOP
     OP *	op_first;

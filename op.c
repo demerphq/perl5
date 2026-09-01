@@ -1421,6 +1421,10 @@ Perl_op_clear(pTHX_ OP *o)
             PerlMemShared_free(aux);
         }
         break;
+
+    case OP_CASEMATCH:
+        Perl_case_pattern_free(aTHX_ cUNOP_AUXo->op_aux);
+        break;
     }
 
     if (o->op_targ > 0) {
@@ -11162,6 +11166,8 @@ S_looks_like_bool(pTHX_ const OP *o)
         case OP_SGT:	case OP_SLE:	case OP_SGE:
 
         case OP_SMARTMATCH:
+
+        case OP_CASEMATCH:
 
         case OP_FTRREAD:  case OP_FTRWRITE: case OP_FTREXEC:
         case OP_FTEREAD:  case OP_FTEWRITE: case OP_FTEEXEC:

@@ -1,8 +1,51 @@
 # Pattern matching for Perl
 
-This document explores what would be needed to add semantics inspired by
-Elixir pattern matching to Perl. It is a design study only; it does not change
-the language.
+This document specifies the initial design for adding semantics inspired by
+Elixir pattern matching to Perl. It is a planning document only; it does not
+change the language.
+
+## Implementation status
+
+The `yves/pattern_match` branch currently has the experimental `case_match`
+feature plumbing, conflict-free lexer/parser support for the required
+`case (EXPR) { match (PATTERN) { ... } }` shape, a dedicated scalar matcher,
+typed numeric/string literal matching, the wildcard pattern `_`, and recursive
+array/hash matching. Captures are committed only after a complete match, and
+fixed or open composites are supported with `...` boundary markers, including
+leftmost subsequence matching when both boundaries are present, boolean regex
+leaf patterns, and one-time case-subject snapshots that preserve writes to the
+original lvalue. Numeric and string literals now require the subject to have
+the corresponding scalar kind rather than silently coercing between kinds. A
+case subject may also be named with `as $name`; that name is case-local and is
+evaluated by the existing scalar assignment machinery.
+The `IntVal`, `FloatVal`, and `StrVal` subject forms explicitly coerce the
+subject once before matching. They apply to the complete subject expression
+(so `StrVal $x + 1 as $p` is equivalent to `StrVal($x + 1) as $p`), preserve
+`undef`, and pass references through unchanged, including blessed references.
+Dynamic scalar expressions nested inside array and hash patterns are compared
+using their own evaluated values. The outer case body now accepts only direct
+match arms, while each arm retains a normal Perl block for its body. Focused
+compiler tests cover feature gating, multiple arms, `$_` restoration, typed
+literals, wildcard matching, nested captures, rollback after failure, and open
+composites. The current parser still uses the existing `given`/`when` optree
+for block control, with case-specific context state layered onto it. Patterns
+now have a dedicated, optree-owned auxiliary representation: the representation
+retains structural nodes while the expression optree retains ownership of the
+executable expressions. Array and hash traversal uses those compiled nodes,
+and malformed ellipsis placement is rejected while compiling the pattern. A
+first runtime slice of `with ($x, $y, ...)` is
+now implemented: it snapshots existing scalar lexical values at case entry
+and treats those names as pinned leaves. The general `with (EXPR as $name)`
+form is also implemented: the expression is evaluated once, its result is
+stored in a fresh case-local scalar, and that scalar is used as a pinned
+pattern value.
+
+The implemented first version intentionally stops at scalar, array-reference,
+and hash-reference patterns, lexical captures and pins, guards, the wildcard,
+regex predicates, and explicit scalar subject coercions. Object/class
+destructuring, regex named captures, alternatives, ranges, optional fields,
+user-defined pattern protocols, and signature dispatch remain follow-up work;
+they are not silently implied by the current implementation.
 
 ## What “pattern matching” means here
 
@@ -13,7 +56,8 @@ Elixir uses patterns in several related situations:
 * requiring an existing value through a separate pinning mechanism, rather
   than rebinding it;
 * selecting a clause with `case` or function-head patterns;
-* optionally applying a restricted guard expression after the shape matches.
+* optionally applying an ordinary Perl guard expression after the shape
+  matches.
 
 The key semantic difference from ordinary assignment is that a pattern is a
 constraint. A match either succeeds and establishes all bindings, or fails
@@ -56,14 +100,14 @@ path to eventually remove them.
 The intended long-term form is therefore conceptually:
 
 ```perl
-case $message {
-    match { type => "ok", value => $value } {
+case ($message) {
+    match({ type => "ok", value => $value }) {
         process($value);
     }
-    match { type => "error", error => $error } {
+    match({ type => "error", error => $error }) {
         report($error);
     }
-    match _ {
+    match(_) {
         ignore($message);
     }
 }
@@ -74,13 +118,30 @@ selected arm receives the pattern bindings. `match` never means an implicit
 smartmatch. A separate expression form may still be useful later, but the
 statement-oriented `case` construct is the primary design target.
 
-The subject may optionally receive a case-local name:
+When every arm consists only of simple constant patterns, the implementation
+is free—and encouraged—to compile the case into an efficient lookup or
+dispatch structure. The exact representation is intentionally left open for
+now. If any arm contains a dynamic expression or other non-constant pattern,
+the implementation must evaluate the arms in source order, preserving the
+first-match rule.
+
+The subject may optionally receive a case-local name or an explicit scalar
+coercion. The provisional coercion spellings are `IntVal`, `FloatVal`, and
+`StrVal`:
 
 ```perl
 case (fetch_message() as $message) {
-    match { type => "ok", value => $value } {
+    match({ type => "ok", value => $value }) {
         process($message, $value);
     }
+}
+
+case (IntVal $value) {
+    match(1) { print "integer one"; }
+}
+
+case (StrVal $value) {
+    match("1") { print "string one"; }
 }
 ```
 
@@ -90,13 +151,36 @@ subject binding is distinct from a pin introduced by `with`: the former names
 the value being matched, while the latter supplies existing values that
 patterns must compare against.
 
+`case (TYPE EXPR)` evaluates `EXPR` once and coerces the resulting scalar to
+the requested representation before any arm is tested. `IntVal` requests an
+integer value, `FloatVal` a floating-point value, and `StrVal` a string value.
+The exact keyword spellings remain provisional and must be checked against
+existing names and the keyword/feature machinery. The coercion is explicit:
+the matcher must not silently convert a pattern literal from one scalar kind
+to another merely because Perl's ordinary comparison operators would do so.
+This is what permits numeric and string arms to remain distinguishable, for
+example:
+
+```perl
+case ($value) {
+    match(1)   { print "1"; }
+    match("1") { print "one"; }
+}
+```
+
+With strict typed-literal matching, a numeric subject selects the first arm
+and a string subject selects the second. Dual-valued and magical scalars need
+explicit rules; those rules must not accidentally turn the construct back
+into coercive smartmatch.
+
 The design also needs to distinguish:
 
 * **shape matching**: does this value have the requested structure?
 * **binding**: which names become available, and when?
 * **equality**: must a value equal an already-bound value?
 * **identity**: must it be the same reference or object?
-* **guarding**: which expressions are allowed after a structural match?
+* **guarding**: when and in what context an ordinary Perl expression runs
+  after a structural match.
 
 Conflating these would make the feature difficult to reason about and would
 repeat problems associated with implicit smartmatch dispatch.
@@ -170,14 +254,14 @@ prefix, suffix, and sandwich forms.
 ### Option A: `case`/`match` (primary direction)
 
 ```perl
-case $person {
-    match { name => $n, age => $a } if $a >= 18 {
+case ($person) {
+    match({ name => $n, age => $a }) if $a >= 18 {
         [ $n, $a ];
     }
-    match { name => $n } {
+    match({ name => $n }) {
         [ $n, undef ];
     }
-    match _ {
+    match(_) {
         undef;
     }
 }
@@ -190,8 +274,8 @@ Advantages:
 * a clause list gives a natural home for guards and alternatives;
 * existing `given`/`when` control-flow implementation may be reusable
   internally without retaining its public semantics;
-* the arm can still have a value-producing form if expression semantics are
-  added later.
+* the block's final expression naturally supplies the `case` result without
+  requiring a second arm syntax.
 
 Costs:
 
@@ -200,11 +284,13 @@ Costs:
 * binding scope inside each arm needs precise rules;
 * expression-valued matching would need a separate extension.
 
-This is the clearest initial form to prototype, but it is not a final
-commitment about the spelling of an arm body. The proposal should remain open
-to a block form, an expression form, or a syntax that supports both.
+This is the initial arm form: every arm is a block. The block supplies a
+lexical boundary and may contain multiple statements, declarations, control
+flow, and a final expression whose value becomes the value of the `case`.
+Expression and arrow arms are deferred and are not part of the initial
+language design.
 
-### Arm-body forms still under consideration
+### Deferred arm-body forms
 
 The following forms are plausible and should be compared against the actual
 Perl grammar before syntax is fixed:
@@ -230,11 +316,11 @@ support expression-valued `case`, but `=>` already participates in hash
 constructors and fat-comma parsing. It would therefore need careful grammar
 and precedence rules, especially for nested patterns and blocks.
 
-`match(PATTERN) BLOCK`, `match(PATTERN) => EXPR`, and
-`match(PATTERN) => BLOCK` should remain design candidates until parser
-prototypes and representative examples show which combination is least
-surprising. The selected form must preserve arm-local lexical scope and must
-not make a pattern indistinguishable from an ordinary hash constructor.
+The initial language deliberately supports only `match(PATTERN) BLOCK`.
+`match(PATTERN) => EXPR` and `match(PATTERN) => BLOCK` are deferred until
+there is a demonstrated need for shorter arms. Any later form must preserve
+arm-local lexical scope and must not make a pattern indistinguishable from an
+ordinary hash constructor.
 
 ### Other rejected alternatives
 
@@ -269,12 +355,12 @@ The safest progression is:
    evaluation and arm-control machinery while replacing implicit smartmatch
    with explicit patterns.
 4. Add `_`, literals, scalar bindings, array/hash destructuring, pinned values,
-   and a deliberately small guard language.
-5. Enable the new keywords with `use feature 'pattern_matching'` or another
-   dedicated experimental feature name; do not change the meaning of legacy
+   and ordinary Perl guard expressions.
+5. Enable the new keywords with `use feature 'case_match'`; do not change the meaning of legacy
    `given`/`when` under that feature.
-6. Consider an expression-level `match` form only if real programs need a
-   value-producing form that statement-oriented `case` cannot provide cleanly.
+6. Use block-only arm bodies initially. The selected arm returns the value of
+   its last expression using ordinary Perl context rules; no-match returns
+   `undef` in scalar context and an empty list in list context.
 7. Consider a compact operator only after precedence, rollback, and context
    behavior are proven.
 8. Extend signatures and function-head dispatch separately.
@@ -298,12 +384,12 @@ framework while using new keywords and new semantics:
 | Concern | Existing framework | Pattern-matching replacement |
 | --- | --- | --- |
 | Subject | `given` evaluates a subject | `case` evaluates the subject once and retains the matched value |
-| Clause test | `when` performs implicit smartmatch/boolean behavior | `match` evaluates an explicit pattern, then an optional guard |
+| Clause test | `when` performs implicit smartmatch/boolean behavior | `match(PATTERN)` evaluates an explicit pattern, then an optional guard |
 | Binding | No general structural bindings | Tentative bindings committed only after pattern and guard success |
-| Fall-through | Existing `continue`/control-flow rules | Preserve only after auditing interaction with arm scopes |
+| Fall-through | Existing `continue`/control-flow rules | No implicit fall-through; exactly one arm executes |
 | Default arm | Common idiom using `default` or a catch-all | `_` catch-all pattern, with a defined no-match policy |
 | Failure | Legacy behavior depends on smartmatch and context | Explicit no-arm-match behavior |
-| Feature gate | Existing `switch`/smartmatch controls | New experimental `pattern_matching` feature |
+| Feature gate | Existing `switch`/smartmatch controls | New experimental `case_match` feature |
 
 The project should avoid silently changing the behavior of old source. During
 the transition, legacy `given`/`when` can remain available under its existing
@@ -377,15 +463,18 @@ default should preserve references and avoid recursive copying.
 
 The matcher should have explicit scalar/list behavior. A successful match can
 return a true match object, a boolean, or bindings, but mixing these based on
-context would be hard to teach. A `match` expression should likely return the
-selected arm's value, while the arm's bindings remain lexical.
+context would be hard to teach. A `case` expression should return the
+selected arm's last expression, using ordinary Perl scalar, list, or void
+context, while the arm's bindings remain lexical. If no arm matches, `case`
+returns `undef` in scalar context and an empty list in list context.
 
 ### Failure behavior
 
-Possible policies are a false value, an empty list, a dedicated match-failure
-exception, or a required default arm. A `case` construct can reasonably throw
-when no arm matches; an operator used in `if` should probably return false.
-The policy may differ by construct, but the difference must be explicit.
+No-match is not an exception in the initial design: `case` returns `undef` in
+scalar context and an empty list in list context. A catch-all `match(_)` arm is
+the normal way to make a case exhaustive, following the Elixir strategy. No
+arm falls through to another arm; exactly one matching arm executes. A
+dedicated exception class is not introduced for no-match in the first version.
 
 ## Data and object patterns
 
@@ -487,10 +576,10 @@ regex pattern must operate on the explicitly supplied subject, never an
 implicit `$_`, and the subject and regex should each be evaluated once.
 
 The initial implementation should support regexes as predicate patterns and
-then add named-capture bindings once their interaction with transactional arm
-bindings is specified. It must define duplicate named captures, captures that
-did not participate, stringification and Unicode behavior, and whether regex
-code blocks such as `(?{ ... })` and `(??{ ... })` are forbidden or isolated.
+named-capture bindings together. It must define duplicate named captures,
+captures that did not participate, stringification and Unicode behavior, and
+reject regex code blocks such as `(?{ ... })` and `(??{ ... })` in pattern
+regexes.
 Regex patterns should use normal Perl regex matching rules where possible, but
 must not become a route for arbitrary hidden method dispatch. User-defined
 patterns should likewise be an explicit protocol, not arbitrary overload
@@ -503,14 +592,23 @@ An implementation will likely need:
 1. A feature gate and experimental warning category.
 2. Grammar productions for the chosen construct and pattern forms.
 3. A pattern AST or auxiliary op tree which preserves source locations.
+   **Implemented for the supported structural forms; arm-specific source
+   diagnostics remain a follow-up.**
 4. Compile-time validation of duplicate bindings, illegal slurps, and scope.
+   **Ellipsis placement is implemented; duplicate-binding and scope rules
+   remain tied to the existing lexical compiler checks.**
 5. Runtime matching operations for scalar, array, hash, and object shapes.
 6. A temporary binding frame with commit/rollback behavior.
-7. Defined guard evaluation rules and protection against arbitrary context
-   changes during a structural match.
-8. Diagnostics that identify the failed arm and pattern location.
-9. `B::Deparse`, opcode tables, `regen` outputs, and syntax tooling updates.
-10. Threaded/unthreaded, taint, magic, tied-variable, and destructor tests.
+7. Explicit subject coercion for `IntVal`, `FloatVal`, and `StrVal`, together
+   with scalar-kind-aware literal matching. **Implemented.**
+8. Defined guard evaluation order and context. Guards are unrestricted,
+   ordinary Perl expressions and may have side effects; the implementation
+   must not pretend that those effects can be statically prevented.
+9. Diagnostics for invalid pattern forms. **Implemented for the supported
+   ellipsis errors and missing compiled representation.** Diagnostics naming a
+   failed arm or exact pattern source location remain a follow-up.
+10. `B::Deparse`, opcode tables, `regen` outputs, and syntax tooling updates.
+11. Threaded/unthreaded, taint, magic, tied-variable, and destructor tests.
 
 If matching is implemented as ordinary op sequences rather than one large
 opcode, the compiler must still ensure that temporary bindings cannot leak
@@ -539,6 +637,8 @@ the repository root and from `t/` using the established `@INC` setup.
 Before implementation, tests should be written for the intended semantics:
 
 * literals, `_`, scalar bindings, and pinned bindings;
+* numeric, string, and floating-point subject coercions and typed literal
+  distinctions;
 * nested arrays, hashes, and mixed shapes;
 * exact, partial, optional, and slurpy forms;
 * failed matches leave no bindings behind;
@@ -558,18 +658,19 @@ Before implementation, tests should be written for the intended semantics:
 
 The project should settle these questions before committing to public syntax:
 
-1. Is the primary construct an expression (`match`) or a statement (`case`)?
-2. What exact grammar introduces a new arm-local binding?
-3. What comparison semantics apply to values named by a `with` clause?
-4. Are patterns matching values, references, object fields, or all three?
-5. Are guards restricted to side-effect-free operations, or merely documented
-   as ordinary Perl expressions?
-6. Does no match return false, return an empty list, or throw?
-7. Does a successful match return the arm value, a boolean, or a binding map?
-8. How should tied, magical, overloaded, and blessed values participate?
-9. Should pattern matching integrate with signatures and function dispatch in
+1. What exact grammar introduces a new arm-local binding?
+2. What are the final spellings and semantics of `IntVal`, `FloatVal`, and
+   `StrVal`?
+3. How are dual-valued and magical scalars classified for typed matching?
+4. What comparison semantics apply to values named by a `with` clause?
+5. Are patterns matching values, references, object fields, or all three?
+6. What evaluation order and context should unrestricted Perl guard
+   expressions use, and how should their side effects interact with failed
+   arms?
+7. How should tied, magical, overloaded, and blessed values participate?
+8. Should pattern matching integrate with signatures and function dispatch in
    the first version or remain separate?
-10. What, if anything, should be required for exhaustiveness checking?
+9. What, if anything, should be required for exhaustiveness checking?
 
 The strongest initial design is an experimental `case`/`match` construct with
 lexically scoped transactional bindings, explicit pinning, a small structural
@@ -590,9 +691,9 @@ meet all of these constraints:
 5. Bindings are tentative and rolled back on any failed subpattern or guard.
 6. No hidden assignment to `$_`, caller lexicals, or package variables occurs.
 7. The subject is evaluated once, with documented context and lifetime.
-8. Arms do not fall through unless an explicit, documented construct requests
-   it.
-9. A no-match result or exception is specified independently of pattern truth.
+8. Arms do not fall through; exactly one arm executes after a successful match.
+9. A no-match result is specified independently of pattern truth: `undef` in
+   scalar context and an empty list in list context.
 10. Legacy `given`/`when` and `~~` are not silently reinterpreted outside the
     new feature mode.
 
@@ -699,8 +800,10 @@ context, another fact that is easy to miss.
 
 **Protection for the new design:** evaluate the subject exactly once and make
 it available by an explicit name or a well-defined read-only match subject.
-Patterns and guards must have specified context. Arm entry, fall-through,
-`next`, `last`, `redo`, and nested-loop behavior must be tested independently.
+Patterns and guards must have specified context. Arm entry, `next`, `last`,
+`redo`, and nested-loop behavior must be tested independently. Guard side
+effects are ordinary Perl side effects and are not rolled back merely because
+the guard returns false.
 The new mode should not depend on ambient `$_` as the subject.
 
 ### 7. The semantics changed repeatedly while the syntax stayed familiar

@@ -6053,12 +6053,23 @@ PP(pp_entergiven)
     PERL_CONTEXT *cx;
     const U8 gimme = GIMME_V;
     SV *origsv = DEFSV;
-    
-    assert(!PL_op->op_targ); /* used to be set for lexical $_ */
-    GvSV(PL_defgv) = rpp_pop_1_norc();
+    SV *subject = rpp_pop_1_norc();
+
+    if (PL_op->op_targ) {
+        SvGETMAGIC(subject);
+        {
+            SV *snapshot = newSV(0);
+            sv_setsv_nomg(snapshot, subject);
+            subject = snapshot;
+        }
+    }
+    else
+        assert(!PL_op->op_targ); /* used to be set for lexical $_ */
+    GvSV(PL_defgv) = subject;
 
     cx = cx_pushblock(CXt_GIVEN, gimme, PL_stack_sp, PL_savestack_ix);
     cx_pushgiven(cx, origsv);
+    cx->blk_givwhen.is_case = PL_op->op_targ != 0;
 
     return NORMAL;
 }
@@ -6085,6 +6096,551 @@ PP(pp_leavegiven)
     cx_popblock(cx);
     CX_POP(cx);
 
+    return NORMAL;
+}
+
+struct case_binding {
+    PADOFFSET padix;
+    SV *value;
+};
+
+static struct case_pattern_node *
+S_case_pattern_compile_node(pTHX_ const OP *op)
+{
+    const OP *kid;
+    U32 nchild = 0;
+    U32 i = 0;
+    struct case_pattern_node *node;
+
+    if (!op)
+        return NULL;
+
+    if (op->op_type == OP_NULL && (op->op_flags & OPf_KIDS))
+        return S_case_pattern_compile_node(aTHX_ cUNOPx(op)->op_first);
+
+    if (op->op_flags & OPf_KIDS) {
+        for (kid = cUNOPx(op)->op_first; kid; kid = OpSIBLING(kid))
+            nchild++;
+    }
+
+    node = (struct case_pattern_node *)PerlMemShared_calloc(
+        1, sizeof(struct case_pattern_node));
+    node->op = op;
+    node->nchild = nchild;
+    if (nchild) {
+        node->child = (struct case_pattern_node **)
+            PerlMemShared_malloc(nchild * sizeof(struct case_pattern_node *));
+        for (kid = cUNOPx(op)->op_first; kid; kid = OpSIBLING(kid), i++)
+            node->child[i] = S_case_pattern_compile_node(aTHX_ kid);
+    }
+    return node;
+}
+
+static bool
+S_case_pattern_is_ellipsis(pTHX_ const OP *op)
+{
+    return op->op_type == OP_CONST
+        && (op->op_flags & OPf_SPECIAL)
+        && strEQ(SvPV_nolen_const(cSVOPx_sv(op)), "...");
+}
+
+static void
+S_case_pattern_validate(pTHX_ const OP *op)
+{
+    const OP *kid;
+
+    if (!op)
+        return;
+    if (op->op_type == OP_NULL && (op->op_flags & OPf_KIDS)) {
+        S_case_pattern_validate(aTHX_ cUNOPx(op)->op_first);
+        return;
+    }
+
+    if (op->op_type == OP_ANONLIST) {
+        U32 logical_ix = 0;
+        U32 ellipses = 0;
+        U32 nchild = 0;
+        for (kid = cLISTOPx(op)->op_first; kid; kid = OpSIBLING(kid)) {
+            if (kid->op_type == OP_PUSHMARK)
+                continue;
+            nchild++;
+            if (S_case_pattern_is_ellipsis(aTHX_ kid))
+                ellipses++;
+        }
+        if (ellipses > 2 || (ellipses == 2 && nchild < 3))
+            Perl_croak(aTHX_ "array pattern has invalid ellipsis placement");
+        for (kid = cLISTOPx(op)->op_first; kid; kid = OpSIBLING(kid)) {
+            if (kid->op_type == OP_PUSHMARK)
+                continue;
+            if (S_case_pattern_is_ellipsis(aTHX_ kid)) {
+                if (logical_ix != 0 && logical_ix != nchild - 1)
+                    Perl_croak(aTHX_ "array pattern ellipsis must be at an edge");
+                logical_ix++;
+                continue;
+            }
+            S_case_pattern_validate(aTHX_ kid);
+            logical_ix++;
+        }
+        return;
+    }
+
+    if (op->op_type == OP_ANONHASH) {
+        U32 ellipses = 0;
+        U32 logical_ix = 0;
+        U32 nchild = 0;
+        for (kid = cLISTOPx(op)->op_first; kid; kid = OpSIBLING(kid)) {
+            if (kid->op_type == OP_PUSHMARK)
+                continue;
+            nchild++;
+            if (S_case_pattern_is_ellipsis(aTHX_ kid))
+                ellipses++;
+        }
+        if (ellipses > 1)
+            Perl_croak(aTHX_ "hash pattern may contain only one ellipsis");
+        for (kid = cLISTOPx(op)->op_first; kid; kid = OpSIBLING(kid)) {
+            if (kid->op_type == OP_PUSHMARK)
+                continue;
+            if (S_case_pattern_is_ellipsis(aTHX_ kid)) {
+                if (logical_ix != nchild - 1)
+                    Perl_croak(aTHX_ "hash pattern ellipsis must be last");
+                logical_ix++;
+                continue;
+            }
+            S_case_pattern_validate(aTHX_ kid);
+            logical_ix++;
+        }
+        return;
+    }
+
+    if (op->op_flags & OPf_KIDS)
+        for (kid = cUNOPx(op)->op_first; kid; kid = OpSIBLING(kid))
+            S_case_pattern_validate(aTHX_ kid);
+}
+
+static void
+S_case_pattern_free_node(struct case_pattern_node *node)
+{
+    U32 i;
+
+    if (!node)
+        return;
+    for (i = 0; i < node->nchild; i++)
+        S_case_pattern_free_node(node->child[i]);
+    PerlMemShared_free(node->child);
+    PerlMemShared_free(node);
+}
+
+UNOP_AUX_item *
+Perl_case_pattern_compile(pTHX_ const OP *pattern)
+{
+    struct case_pattern_aux *aux;
+
+    S_case_pattern_validate(aTHX_ pattern);
+    aux = (struct case_pattern_aux *)PerlMemShared_calloc(
+        1, sizeof(struct case_pattern_aux));
+    aux->magic = CASE_PATTERN_AUX_MAGIC;
+    aux->root = S_case_pattern_compile_node(aTHX_ pattern);
+    return (UNOP_AUX_item *)aux;
+}
+
+void
+Perl_case_pattern_free(pTHX_ UNOP_AUX_item *items)
+{
+    struct case_pattern_aux *aux = (struct case_pattern_aux *)items;
+    PERL_UNUSED_CONTEXT;
+
+    if (aux && aux->magic == CASE_PATTERN_AUX_MAGIC) {
+        S_case_pattern_free_node(aux->root);
+        PerlMemShared_free(aux);
+    }
+}
+
+static PERL_CONTEXT *
+S_case_context(pTHX)
+{
+    I32 i;
+    PERL_UNUSED_CONTEXT;
+    for (i = cxstack_ix; i >= 0; i--) {
+        PERL_CONTEXT *cx = &cxstack[i];
+        if (CxTYPE(cx) == CXt_GIVEN && cx->blk_givwhen.is_case)
+            return cx;
+    }
+    return NULL;
+}
+
+static void
+S_case_discard_bindings(pTHX_ PERL_CONTEXT *cx)
+{
+    if (cx->blk_givwhen.case_bindings) {
+        SvREFCNT_dec((SV *)cx->blk_givwhen.case_bindings);
+        cx->blk_givwhen.case_bindings = NULL;
+    }
+}
+
+static void
+S_case_commit_bindings(pTHX_ PERL_CONTEXT *cx)
+{
+    AV *bindings = cx->blk_givwhen.case_bindings;
+
+    if (!bindings)
+        return;
+    S_case_discard_bindings(aTHX_ cx);
+}
+
+static void
+S_case_rollback_bindings(pTHX_ PERL_CONTEXT *cx)
+{
+    AV *bindings = cx->blk_givwhen.case_bindings;
+    SSize_t i;
+
+    if (!bindings)
+        return;
+    for (i = 0; i + 1 <= av_len(bindings); i += 2) {
+        SV **padix_sv = av_fetch(bindings, i, FALSE);
+        SV **old_value_sv = av_fetch(bindings, i + 1, FALSE);
+        if (padix_sv && old_value_sv)
+            sv_setsv(PAD_SV((PADOFFSET)SvUV(*padix_sv)), *old_value_sv);
+    }
+    S_case_discard_bindings(aTHX_ cx);
+}
+
+static bool
+S_case_pattern_match(pTHX_ const struct case_pattern_node *node, SV *value,
+                      SV *pattern_value,
+                      struct case_binding *bindings, size_t *nbindings)
+{
+    const OP *pattern = node->op;
+    const OP *kid;
+
+    if (pattern->op_type == OP_UNDEF)
+        return !SvOK(value);
+
+    if (pattern->op_type == OP_CONST) {
+        SV *pattern_sv = cSVOPx_sv(pattern);
+        if (pattern->op_private & OPpCONST_BARE
+            && strEQ(SvPV_nolen_const(pattern_sv), "_"))
+            return TRUE;
+        if (pattern->op_flags & OPf_SPECIAL || SvIOK(pattern_sv)
+            || SvNOK(pattern_sv)) {
+            return (SvIOK(value) || SvNOK(value))
+                && do_ncmp(value, pattern_sv) == 0;
+        }
+        return SvPOK(value) && sv_eq(value, pattern_sv);
+    }
+
+    if (pattern->op_type == OP_PADSV) {
+        size_t i;
+        const PADOFFSET padix = pattern->op_targ;
+        PERL_CONTEXT *cx = S_case_context(aTHX);
+        if (cx && CxTYPE(cx) == CXt_GIVEN && cx->blk_givwhen.is_case
+            && cx->blk_givwhen.case_pins) {
+            AV *pins = cx->blk_givwhen.case_pins;
+            SSize_t j;
+            for (j = 0; j + 1 <= av_len(pins); j += 2) {
+                SV **pinix = av_fetch(pins, j, FALSE);
+                SV **pinvalue = av_fetch(pins, j + 1, FALSE);
+                if (pinix && pinvalue && SvUV(*pinix) == (UV)padix)
+                    return sv_eq(*pinvalue, value);
+            }
+        }
+        for (i = 0; i < *nbindings; i++) {
+            if (bindings[i].padix == padix)
+                return sv_eq(bindings[i].value, value);
+        }
+        if (*nbindings >= 64)
+            return FALSE;
+        bindings[*nbindings].padix = padix;
+        bindings[*nbindings].value = value;
+        (*nbindings)++;
+        return TRUE;
+    }
+
+    if (pattern->op_type == OP_MATCH)
+        return pattern_value && SvTRUE((SV *)pattern_value);
+
+    if (pattern->op_type == OP_ANONLIST) {
+        AV *av;
+        const struct case_pattern_node *fixed[64];
+        size_t nfixed = 0;
+        bool leading_open = FALSE;
+        bool trailing_open = FALSE;
+        size_t i;
+        U32 childix;
+
+        if (SvROK(value) == 0 || SvTYPE(SvRV(value)) != SVt_PVAV)
+            return FALSE;
+        av = MUTABLE_AV(SvRV(value));
+        for (childix = 0; childix < node->nchild; childix++)
+        {
+            const struct case_pattern_node *child = node->child[childix];
+            kid = child->op;
+            if (kid->op_type == OP_PUSHMARK)
+                continue;
+            if (kid->op_type == OP_CONST
+                && (kid->op_flags & OPf_SPECIAL)
+                && strEQ(SvPV_nolen_const(cSVOPx_sv(kid)), "...")) {
+                if (nfixed == 0) {
+                    if (leading_open)
+                        return FALSE;
+                    leading_open = TRUE;
+                }
+                else if (trailing_open)
+                    return FALSE;
+                else
+                    trailing_open = TRUE;
+                continue;
+            }
+            if (trailing_open || nfixed == 64)
+                return FALSE;
+            fixed[nfixed++] = child;
+        }
+
+        {
+            const SSize_t nvalues = AvFILLp(av) + 1;
+            AV *pattern_av = pattern_value && SvROK(pattern_value)
+                && SvTYPE(SvRV(pattern_value)) == SVt_PVAV
+                ? MUTABLE_AV(SvRV(pattern_value)) : NULL;
+            SSize_t first = leading_open ? 0 : 0;
+            SSize_t last = nvalues - (SSize_t)nfixed;
+
+            if (nvalues < (SSize_t)nfixed)
+                return FALSE;
+            if (!leading_open && !trailing_open && nvalues != (SSize_t)nfixed)
+                return FALSE;
+            if (leading_open && trailing_open) {
+                /* Try candidates from left to right.  Bindings made by a
+                 * rejected candidate must not affect the next candidate. */
+                for (first = 0; first <= last; first++) {
+                    const size_t saved = *nbindings;
+                    bool ok = TRUE;
+                    for (i = 0; i < nfixed; i++) {
+                        SV **svp = av_fetch(av, first + (SSize_t)i, FALSE);
+                        SV **pattern_svp = pattern_av
+                            ? av_fetch(pattern_av, i + (leading_open ? 1 : 0), FALSE)
+                            : NULL;
+                        if (!svp || !S_case_pattern_match(aTHX_ fixed[i], *svp,
+                                                           pattern_svp ? *pattern_svp : NULL,
+                                                           bindings, nbindings)) {
+                            ok = FALSE;
+                            break;
+                        }
+                    }
+                    if (ok)
+                        return TRUE;
+                    *nbindings = saved;
+                }
+                return FALSE;
+            }
+
+            if (leading_open)
+                first = last;
+            for (i = 0; i < nfixed; i++) {
+                SV **svp = av_fetch(av, first + (SSize_t)i, FALSE);
+                SV **pattern_svp = pattern_av
+                    ? av_fetch(pattern_av, i + (leading_open ? 1 : 0), FALSE)
+                    : NULL;
+                if (!svp || !S_case_pattern_match(aTHX_ fixed[i], *svp,
+                                                   pattern_svp ? *pattern_svp : NULL,
+                                                   bindings, nbindings))
+                    return FALSE;
+            }
+            return TRUE;
+        }
+    }
+
+    if (pattern->op_type == OP_ANONHASH) {
+        HV *hv;
+        HV *pattern_hv = NULL;
+        SSize_t pairs = 0;
+        bool open = FALSE;
+
+        if (SvROK(value) == 0 || SvTYPE(SvRV(value)) != SVt_PVHV)
+            return FALSE;
+        hv = MUTABLE_HV(SvRV(value));
+        if (pattern_value && SvROK(pattern_value)
+            && SvTYPE(SvRV(pattern_value)) == SVt_PVHV)
+            pattern_hv = MUTABLE_HV(SvRV(pattern_value));
+        {
+            U32 childix;
+            for (childix = 0; childix < node->nchild; childix++)
+        {
+            const struct case_pattern_node *keynode;
+            const struct case_pattern_node *valnode;
+            const OP *valop;
+            SV *keysv;
+            HE *he;
+            kid = node->child[childix]->op;
+            if (kid->op_type == OP_PUSHMARK)
+                continue;
+            if (kid->op_type == OP_CONST
+                && (kid->op_flags & OPf_SPECIAL)
+                && strEQ(SvPV_nolen_const(cSVOPx_sv(kid)), "...")) {
+                if (open)
+                    return FALSE;
+                open = TRUE;
+                continue;
+            }
+            if (open)
+                return FALSE;
+            keynode = node->child[childix++];
+            valnode = childix < node->nchild ? node->child[childix] : NULL;
+            valop = valnode ? valnode->op : NULL;
+            keysv = (keynode->op->op_type == OP_CONST)
+                ? cSVOPx_sv(keynode->op) : NULL;
+            if (!keysv || !valop)
+                return FALSE;
+            he = hv_fetch_ent(hv, keysv, FALSE, 0);
+            {
+                HE *pattern_he = pattern_hv
+                    ? hv_fetch_ent(pattern_hv, keysv, FALSE, 0) : NULL;
+                if (!he || !S_case_pattern_match(aTHX_ valnode, HeVAL(he),
+                                                  pattern_he ? HeVAL(pattern_he) : NULL,
+                                                  bindings, nbindings))
+                    return FALSE;
+            }
+            pairs++;
+        }
+        }
+        return open || pairs == (SSize_t)HvUSEDKEYS(hv);
+    }
+
+    /* The enclosing pattern expression has already been evaluated.  For a
+     * dynamic leaf, compare against the value produced for this node. */
+    return pattern_value && sv_eq(value, pattern_value);
+}
+
+PP(pp_casematch)
+{
+    struct case_binding bindings[64];
+    size_t nbindings = 0;
+    PERL_CONTEXT *cx = S_case_context(aTHX);
+    const struct case_pattern_aux *aux =
+        (const struct case_pattern_aux *)cUNOP_AUXx(PL_op)->op_aux;
+    const struct case_pattern_node *pattern =
+        (aux && aux->magic == CASE_PATTERN_AUX_MAGIC && aux->root)
+        ? aux->root : NULL;
+    if (!pattern)
+        Perl_croak(aTHX_ "missing compiled case pattern");
+    const bool matched = S_case_pattern_match(aTHX_
+        pattern, DEFSV, *PL_stack_sp,
+        bindings, &nbindings);
+    size_t i;
+
+    if (cx && CxTYPE(cx) == CXt_GIVEN && cx->blk_givwhen.is_case) {
+        S_case_discard_bindings(aTHX_ cx);
+        if (matched && nbindings) {
+            AV *pending = newAV();
+            for (i = 0; i < nbindings; i++) {
+                av_push(pending, newSVuv((UV)bindings[i].padix));
+                av_push(pending, newSVsv(PAD_SV(bindings[i].padix)));
+                sv_setsv(PAD_SV(bindings[i].padix), bindings[i].value);
+            }
+            cx->blk_givwhen.case_bindings = pending;
+        }
+    }
+    else if (matched) {
+        for (i = 0; i < nbindings; i++)
+            sv_setsv(PAD_SV(bindings[i].padix), bindings[i].value);
+    }
+
+    rpp_popfree_1_NN();
+    rpp_push_IMM(boolSV(matched));
+    return NORMAL;
+}
+
+PP(pp_casecoerce)
+{
+    SV * const sv = *PL_stack_sp;
+    SV *targ;
+
+    /* Typed case subjects preserve undefined values and references.  In
+     * particular, do not stringify a reference merely because StrVal was
+     * requested; that could invoke an object's overload methods. */
+    if (!SvOK(sv) || SvROK(sv))
+        return NORMAL;
+
+    targ = sv_2mortal(newSV(0));
+    switch (PL_op->op_targ) {
+    case 1:
+        sv_setiv(targ, SvIV_nomg(sv));
+        break;
+    case 2:
+        sv_setnv(targ, SvNV_nomg(sv));
+        break;
+    case 3:
+        sv_copypv(targ, sv);
+        SvSETMAGIC(targ);
+        break;
+    default:
+        Perl_croak(aTHX_ "unknown case subject coercion");
+    }
+    rpp_replace_1_1_NN(targ);
+    return NORMAL;
+}
+
+static void
+S_case_collect_pin_ops(pTHX_ const OP *op, AV *padixes)
+{
+    const OP *kid;
+
+    if (!op)
+        return;
+    if (op->op_type == OP_PADSV_STORE) {
+        av_push(padixes, newSVuv((UV)op->op_targ));
+        return;
+    }
+    if (op->op_type == OP_SASSIGN) {
+        /* Before peephole optimisation, a lexical store is represented as
+         * sassign with the destination PADSV as its final child. */
+        for (kid = cUNOPx(op)->op_first; kid; kid = OpSIBLING(kid)) {
+            if (kid->op_type == OP_PADSV)
+                av_push(padixes, newSVuv((UV)kid->op_targ));
+        }
+        if (av_len(padixes) >= 0)
+            return;
+    }
+    if (op->op_type == OP_PADSV) {
+        av_push(padixes, newSVuv((UV)op->op_targ));
+        return;
+    }
+    if (op->op_type == OP_PADRANGE) {
+        int i;
+        const int count = (int)op->op_private & OPpPADRANGE_COUNTMASK;
+        for (i = 0; i < count; i++)
+            av_push(padixes, newSVuv((UV)op->op_targ + (UV)i));
+        return;
+    }
+    if (op->op_type == OP_PUSHMARK)
+        return;
+    if (!(op->op_flags & OPf_KIDS))
+        Perl_croak(aTHX_ "case with values must be scalar lexicals (got %s)",
+                   PL_op_name[op->op_type]);
+    for (kid = cUNOPx(op)->op_first; kid; kid = OpSIBLING(kid))
+        S_case_collect_pin_ops(aTHX_ kid, padixes);
+}
+
+PP(pp_casewith)
+{
+    PERL_CONTEXT *cx = S_case_context(aTHX);
+    AV *padixes = newAV();
+    AV *pins = newAV();
+    const OP *child = cUNOPx(PL_op)->op_first;
+    SSize_t i;
+
+    if (!cx || CxTYPE(cx) != CXt_GIVEN || !cx->blk_givwhen.is_case)
+        Perl_croak(aTHX_ "case with clause outside case");
+    S_case_collect_pin_ops(aTHX_ child, padixes);
+    for (i = 0; i <= av_len(padixes); i++) {
+        SV **padix = av_fetch(padixes, i, FALSE);
+        SV *pinvalue = PAD_SV((PADOFFSET)SvUV(*padix));
+        SvGETMAGIC(pinvalue);
+        av_push(pins, newSVsv(*padix));
+        av_push(pins, newSVsv(pinvalue));
+    }
+    SvREFCNT_dec((SV *)padixes);
+    if (cx->blk_givwhen.case_pins)
+        SvREFCNT_dec((SV *)cx->blk_givwhen.case_pins);
+    cx->blk_givwhen.case_pins = pins;
     return NORMAL;
 }
 
@@ -6613,6 +7169,7 @@ S_do_smartmatch(pTHX_ HV *seen_this, HV *seen_other, const bool copied)
 PP(pp_enterwhen)
 {
     PERL_CONTEXT *cx;
+    PERL_CONTEXT *given = S_case_context(aTHX);
     const U8 gimme = GIMME_V;
 
     /* This is essentially an optimization: if the match
@@ -6624,11 +7181,17 @@ PP(pp_enterwhen)
         bool tr = SvTRUEx(*PL_stack_sp);
         rpp_popfree_1_NN();
         if (!tr) {
+            if (given && CxTYPE(given) == CXt_GIVEN
+                && given->blk_givwhen.is_case)
+                S_case_rollback_bindings(aTHX_ given);
             if (gimme == G_SCALAR)
                 rpp_push_IMM(&PL_sv_undef);
             return cLOGOP->op_other->op_next;
         }
     }
+
+    if (given && CxTYPE(given) == CXt_GIVEN && given->blk_givwhen.is_case)
+        S_case_commit_bindings(aTHX_ given);
 
     cx = cx_pushblock(CXt_WHEN, gimme, PL_stack_sp, PL_savestack_ix);
     cx_pushwhen(cx);

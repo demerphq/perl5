@@ -368,6 +368,7 @@ my %not_tested = map { $_ => 1} qw(
     INIT
     UNITCHECK
     __NAMESPACE__
+    case
     catch
     class
     default
@@ -375,7 +376,9 @@ my %not_tested = map { $_ => 1} qw(
     else
     elsif
     field
+    FloatVal
     gen
+    IntVal
     implements
     finally
     for
@@ -385,6 +388,8 @@ my %not_tested = map { $_ => 1} qw(
     if
     m
     method
+    match
+    with
     as
     namespace
     no
@@ -396,12 +401,12 @@ my %not_tested = map { $_ => 1} qw(
     qx
     require
     s
+    StrVal
     tr
     try
     unless
     until
     use
-    gen
     yield
     role
     when

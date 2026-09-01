@@ -1656,6 +1656,44 @@ is not allowed.
 (F) The return statement was executed in mainline code, that is, where
 there was no subroutine call to return out of.  See L<perlsub>.
 
+=item case with clause outside case
+
+(F) A C<with> clause was encountered outside a C<case> statement.
+
+=item case with values must be scalar lexicals (got %s)
+
+(F) A C<case> C<with> clause currently accepts only scalar lexical
+variables, but received a value of the indicated kind.
+
+=item array pattern has invalid ellipsis placement
+
+(F) An array pattern contained too many ellipses for the supported pattern
+form.
+
+=item array pattern ellipsis must be at an edge
+
+(F) An array pattern used an ellipsis anywhere other than at its beginning or
+end.
+
+=item hash pattern may contain only one ellipsis
+
+(F) A hash pattern contained more than one ellipsis.
+
+=item hash pattern ellipsis must be last
+
+(F) A hash pattern used an ellipsis anywhere other than at its end.
+
+=item missing compiled case pattern
+
+(P) The case matcher was executed without the compiled pattern representation
+created by the compiler.  This indicates an internal error.
+
+=item only match arms are allowed directly in a case
+
+(F) A C<case> body contained a statement other than a direct C<match>
+arm.  Ordinary Perl statements are allowed inside the body of a match
+arm, but not directly in the case body.
+
 =item Can't return %s to lvalue scalar context
 
 (F) You tried to return a complete array or hash from an lvalue
@@ -7593,6 +7631,11 @@ is to be written, but is not complete, similar to the following:
 
 If C<not_done_yet()> is called, Perl will die with an C<Unimplemented> error
 at the line containing C<...>.
+
+=item unknown case subject coercion
+
+(F) The internal typed-subject operation received an unsupported coercion
+kind.  This indicates a compiler or interpreter bug.
 
 =item Unknown charname '%s'
 

@@ -63,6 +63,12 @@ my %feature_kw = (
     all       => 'keyword_all',
     yield               => 'generator',
     gen                 => 'generator',
+    case                => 'case_match',
+    match               => 'case_match',
+    with                => 'case_match',
+    IntVal              => 'case_match',
+    FloatVal            => 'case_match',
+    StrVal              => 'case_match',
     namespace           => 'namespaces',
     as                  => 'namespaces',
     __NAMESPACE__       => 'namespaces',
@@ -139,7 +145,10 @@ __END__
 +CHECK
 +DESTROY
 +END
+-FloatVal
 +INIT
+-IntVal
+-StrVal
 +UNITCHECK
 -abs
 -accept
@@ -237,6 +246,8 @@ __END__
 -getsockname
 -getsockopt
 +given
++case
++match
 +glob
 -gmtime
 +goto
@@ -396,6 +407,7 @@ __END__
 -warn
 +when
 +while
++with
 -write
 -x
 -xor

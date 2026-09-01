@@ -1055,6 +1055,10 @@ AOdp	|SSize_t|call_sv	|NN SV *sv				\
 Rp	|bool	|cando		|Mode_t mode				\
 				|bool effective 			\
 				|NN const Stat_t *statbufp
+p	|UNOP_AUX_item *|case_pattern_compile				\
+				|NN const OP *pattern
+p	|void	|case_pattern_free					\
+				|NULLOK UNOP_AUX_item *aux
 CRTp	|I32	|cast_i32	|NV f
 CRTp	|IV	|cast_iv	|NV f
 CRTp	|U32	|cast_ulong	|NV f

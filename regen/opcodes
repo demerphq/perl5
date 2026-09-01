@@ -350,6 +350,8 @@ entergiven	given()			ck_null		d|
 leavegiven	leave given block	ck_null		1
 enterwhen	when()			ck_null		d|
 leavewhen	leave when block	ck_null		1
+casematch	case pattern match	ck_null		+
+casecoerce	case typed subject	ck_null		1
 break		break			ck_null		0
 continue	continue		ck_null		0
 
@@ -628,3 +630,4 @@ multiparam	signature processing	ck_null		+
 paramtest	signature argument value test	ck_null	|
 paramstore	signature parameter default expression	ck_null	1
 yield	yield values from a generator	ck_null	m@	L
+casewith	case pinned values	ck_null		m@

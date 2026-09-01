@@ -100,6 +100,7 @@ typedef struct yy_parser {
        bers in multiline constructs using the number of the first line. */
     line_t	copline;
     U16		in_my;		/* we're compiling a "my"/"our" declaration */
+    bool        in_case_pattern; /* parsing a case pattern expression */
     U8		lex_state;	/* next token is determined */
     U8		error_count;	/* how many compile errors so far, max 10 */
     HV		*in_my_stash;	/* declared class of this "my" declaration */

@@ -34,6 +34,6 @@ asks for a different approach.
 
 ## Agent Skills
 
-Repository-specific skill files live in `.agents/skills`. Read the relevant
-skill before editing the associated subsystem. The skill tree is documented in
-`pod/perlagentskills.pod`.
+Repository-specific skill files live in `.agent/skills`. Read the relevant
+skill before editing the associated subsystem. This directory is the
+canonical skill tree; there is no separate `pod/perlagentskills.pod` index.

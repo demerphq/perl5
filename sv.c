@@ -16461,6 +16461,10 @@ Perl_cx_dup(pTHX_ PERL_CONTEXT *cxs, I32 ix, I32 max, CLONE_PARAMS* param)
             case CXt_GIVEN:
                 ncx->blk_givwhen.defsv_save =
                                 sv_dup_inc(ncx->blk_givwhen.defsv_save, param);
+                ncx->blk_givwhen.case_bindings =
+                    av_dup_inc(ncx->blk_givwhen.case_bindings, param);
+                ncx->blk_givwhen.case_pins =
+                    av_dup_inc(ncx->blk_givwhen.case_pins, param);
                 break;
             case CXt_BLOCK:
             case CXt_NULL:

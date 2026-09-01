@@ -581,6 +581,21 @@ Perl_cando(pTHX_ Mode_t mode, bool effective, const Stat_t *statbufp)
 #define PERL_ARGS_ASSERT_CANDO                  \
         Perl_assert_aTHX; assert(statbufp)
 
+PERL_CALLCONV UNOP_AUX_item *
+Perl_case_pattern_compile(pTHX_ const OP *pattern)
+        Perl_attribute_nonnull_aTHX
+        Perl_attribute_nonnull(pTHX_1)
+        __attribute__visibility__("hidden");
+#define PERL_ARGS_ASSERT_CASE_PATTERN_COMPILE   \
+        Perl_assert_aTHX; assert(pattern)
+
+PERL_CALLCONV void
+Perl_case_pattern_free(pTHX_ UNOP_AUX_item *aux)
+        Perl_attribute_nonnull_aTHX
+        __attribute__visibility__("hidden");
+#define PERL_ARGS_ASSERT_CASE_PATTERN_FREE      \
+        Perl_assert_aTHX
+
 PERL_CALLCONV I32
 Perl_cast_i32(NV f)
         __attribute__warn_unused_result__;

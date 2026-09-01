@@ -4434,6 +4434,9 @@ Perl_cx_pushgiven(pTHX_ PERL_CONTEXT *cx, SV *orig_defsv)
 
     cx->blk_givwhen.leave_op = cLOGOP->op_other;
     cx->blk_givwhen.defsv_save = orig_defsv;
+    cx->blk_givwhen.is_case = FALSE;
+    cx->blk_givwhen.case_bindings = NULL;
+    cx->blk_givwhen.case_pins = NULL;
 }
 
 
@@ -4450,6 +4453,22 @@ Perl_cx_popgiven(pTHX_ PERL_CONTEXT *cx)
     GvSV(PL_defgv) = cx->blk_givwhen.defsv_save;
     cx->blk_givwhen.defsv_save = NULL;
     SvREFCNT_dec(sv);
+    if (cx->blk_givwhen.case_bindings) {
+        AV *bindings = cx->blk_givwhen.case_bindings;
+        SSize_t i;
+        for (i = 0; i + 1 <= av_len(bindings); i += 2) {
+            SV **padix_sv = av_fetch(bindings, i, FALSE);
+            SV **old_value_sv = av_fetch(bindings, i + 1, FALSE);
+            if (padix_sv && old_value_sv)
+                sv_setsv(PAD_SV((PADOFFSET)SvUV(*padix_sv)), *old_value_sv);
+        }
+        SvREFCNT_dec((SV *)cx->blk_givwhen.case_bindings);
+        cx->blk_givwhen.case_bindings = NULL;
+    }
+    if (cx->blk_givwhen.case_pins) {
+        SvREFCNT_dec((SV *)cx->blk_givwhen.case_pins);
+        cx->blk_givwhen.case_pins = NULL;
+    }
 }
 
 

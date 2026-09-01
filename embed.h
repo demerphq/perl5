@@ -27,6 +27,7 @@
 # if !defined(PERL_CORE)
 #   undef ALIGNED_TYPE_NAME
 #   undef AMGf_no_GETMAGIC
+#   undef CASE_PATTERN_AUX_MAGIC
 #   undef CC_MAGICAL_
 #   undef CC_UNDERSCORE_
 #   undef compose_origins
@@ -68,6 +69,7 @@
 #   undef KEY_bless
 #   undef KEY_break
 #   undef KEY_caller
+#   undef KEY_case
 #   undef KEY_catch
 #   undef KEY_chdir
 #   undef KEY_CHECK
@@ -119,6 +121,7 @@
 #   undef KEY_field
 #   undef KEY_fileno
 #   undef KEY_finally
+#   undef KEY_FloatVal
 #   undef KEY_flock
 #   undef KEY_for
 #   undef KEY_foreach
@@ -166,6 +169,7 @@
 #   undef KEY_index
 #   undef KEY_INIT
 #   undef KEY_int
+#   undef KEY_IntVal
 #   undef KEY_ioctl
 #   undef KEY_isa
 #   undef KEY_join
@@ -186,6 +190,7 @@
 #   undef KEY_lt
 #   undef KEY_m
 #   undef KEY_map
+#   undef KEY_match
 #   undef KEY_method
 #   undef KEY_mkdir
 #   undef KEY_msgctl
@@ -274,6 +279,7 @@
 #   undef KEY_srand
 #   undef KEY_stat
 #   undef KEY_state
+#   undef KEY_StrVal
 #   undef KEY_study
 #   undef KEY_sub
 #   undef KEY_substr
@@ -313,6 +319,7 @@
 #   undef KEY_warn
 #   undef KEY_when
 #   undef KEY_while
+#   undef KEY_with
 #   undef KEY_write
 #   undef KEY_x
 #   undef KEY_xor
@@ -1279,6 +1286,8 @@
 #   define boot_core_mro()                      Perl_boot_core_mro(aTHX)
 #   define build_infix_plugin(a,b,c)            Perl_build_infix_plugin(aTHX_ a,b,c)
 #   define cando(a,b,c)                         Perl_cando(aTHX_ a,b,c)
+#   define case_pattern_compile(a)              Perl_case_pattern_compile(aTHX_ a)
+#   define case_pattern_free(a)                 Perl_case_pattern_free(aTHX_ a)
 #   define check_utf8_print(a,b)                Perl_check_utf8_print(aTHX_ a,b)
 #   define closest_cop(a,b,c,d)                 Perl_closest_cop(aTHX_ a,b,c,d)
 #   define cmpchain_extend(a,b,c)               Perl_cmpchain_extend(aTHX_ a,b,c)

@@ -1,0 +1,224 @@
+=encoding utf8
+
+=head1 NAME
+
+perlcasewhen - a gentle introduction to experimental case and match
+
+=head1 DESCRIPTION
+
+This document introduces Perl's experimental pattern-matching feature.  It
+assumes that you know a little Perl, but not that you have used pattern
+matching in another language.
+
+Pattern matching asks two questions at once: does a value have the shape we
+want, and which parts of it should receive names?
+
+The feature is enabled with:
+
+    use feature 'case_match';
+
+It is experimental, so its spelling and behaviour may change.
+
+=head1 THE BASIC IDEA
+
+A C<case> examines one subject and tries its C<match> arms from top to
+bottom.  The first matching arm runs.  Arms do not fall through.
+
+    use feature 'case_match';
+
+    case ($value) {
+        match (1) { say "one" }
+        match (2) { say "two" }
+        match (_) { say "something else" }
+    }
+
+The underscore is a wildcard.  It matches any value and does not create a
+binding, so it is useful as a final default arm.
+
+If no arm matches, the C<case> expression returns C<undef> in scalar context
+and an empty list in list context.
+
+=head1 BINDING VALUES
+
+A scalar variable in a pattern is a name to be filled in when the pattern
+matches:
+
+    case ($message) {
+        match ({ name => $name, age => $age, ... }) {
+            say "$name is $age years old";
+        }
+    }
+
+Bindings are tentative.  Perl does not change the variables while it is
+deciding whether the complete pattern matches.  If a later part fails,
+earlier bindings are discarded.  The names become available only after the
+complete pattern, and its guard if any, succeeds.
+
+Pattern variables are lexical to the case arm and do not unexpectedly become
+variables in the surrounding scope.
+
+=head1 SCALAR PATTERNS
+
+Literal numbers and literal strings are different patterns:
+
+    case ($value) {
+        match (1)   { say "the number one" }
+        match ("1") { say "the string one" }
+    }
+
+The number pattern is intended for a numeric scalar and the string pattern for
+a string scalar.  This is deliberately more explicit than ordinary Perl
+comparison, where conversion may happen during the comparison.
+
+An undefined value can be matched directly:
+
+    case ($value) {
+        match (undef) { say "no value" }
+        match (_)     { say "some value" }
+    }
+
+=head1 ARRAY AND HASH PATTERNS
+
+An array pattern matches an array reference.  Without an ellipsis, it must
+have exactly the listed number of elements:
+
+    case ($point) {
+        match ([ $x, $y ]) { say "point: $x, $y" }
+    }
+
+A hash pattern lists keys which must be present.  A trailing C<...> allows
+additional keys:
+
+    case ($record) {
+        match ({ status => "ok", value => $value, ... }) {
+            use_value($value);
+        }
+    }
+
+For arrays, C<...> can be used at the beginning, at the end, or at both ends:
+
+    match ([ $first, ... ])
+    match ([ ..., $last ])
+    match ([ ..., "start", $middle, "end", ... ])
+
+The last form searches from the left and binds the first matching subsequence.
+Array and hash patterns can be nested in one another.
+
+=head1 GUARDS
+
+A guard is an ordinary Perl expression checked after the pattern has matched
+structurally:
+
+    case ($value) {
+        match ([ $number ] if $number > 0) {
+            say "positive: $number";
+        }
+        match (_) { say "not a positive one-element array" }
+    }
+
+Guards are unrestricted Perl expressions.  They may have side effects or
+throw exceptions.  If a guard is false, that arm's tentative bindings are
+discarded and the next arm is considered.  If a guard throws, the exception
+is propagated in the usual way; the tentative bindings are still discarded.
+
+=head1 NAMING AND PINNING
+
+The subject can be given a case-local name with C<as>:
+
+    case (read_record() as $record) {
+        match ({ type => "ok", ... }) { use_record($record) }
+    }
+
+This evaluates the subject once and does not assign to an outer variable.
+
+A C<with> clause pins an existing value.  A pinned variable is checked rather
+than filled in by the pattern:
+
+    my $wanted = "ok";
+    case ($record) with ($wanted) {
+        match ({ type => $wanted, ... }) { use_record($record) }
+    }
+
+An expression can be evaluated once and made into a case-local pin:
+
+    case ($record) with (expected_type() as $wanted) {
+        match ({ type => $wanted, ... }) { use_record($record) }
+    }
+
+=head1 EXPLICIT SUBJECT CONVERSION
+
+The grammar provides three explicit subject conversions:
+
+    case (IntVal  $value) { ... }
+    case (FloatVal $value) { ... }
+    case (StrVal   $value) { ... }
+
+The subject is evaluated once and converted before any arm is tested.  An
+undefined value remains undefined, and references pass through unchanged.
+
+=head1 A COMPLETE EXAMPLE
+
+This example classifies a small message represented by an array reference:
+
+    use feature 'case_match';
+
+    my $value = [ "ok", 42 ];
+
+    case ($value) {
+        match ([ "ok", $number ]) { say "received $number" }
+        match ([ "error", $message ]) { warn $message }
+        match (_) { say "unrecognised value" }
+    }
+
+=head1 WHAT WORKS NOW
+
+The current experimental implementation supports scalar patterns, lexical
+bindings and pins, wildcards, regular-expression predicate patterns, nested
+array and hash references, open composite patterns, guards, and explicit
+scalar subject conversion.
+
+=head1 WHAT IS LEFT TO DO
+
+This is an experimental first implementation.  The following features are
+not part of the language yet:
+
+=over
+
+=item *
+
+Destructuring objects or class instances.
+
+=item *
+
+Alternatives, optional fields, ranges, and other richer pattern forms.
+
+=item *
+
+Capturing named values from regular expressions, or using regular expressions
+as part of a larger string pattern.
+
+=item *
+
+A user-defined pattern protocol.
+
+=item *
+
+An optimization for a C<case> whose patterns are all simple constants.  Such
+a case currently tests its arms in source order, like any other case.
+
+=item *
+
+More precise diagnostics that identify the source location of a particular
+pattern or arm when compilation fails.
+
+=back
+
+These are future design and implementation work, not promises about the
+final feature.  Because the feature is experimental, its syntax and behavior
+may change before it is released.
+
+=head1 SEE ALSO
+
+L<perlsyn/Experimental Pattern Matching>, L<perlfunc>, L<perldelta>
+
+=cut
