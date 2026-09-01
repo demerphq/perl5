@@ -287,6 +287,9 @@ struct case_dispatch_aux {
     AV *nv_arms;
     AV *pv_values;
     AV *pv_arms;
+    HV *iv_table;
+    HV *nv_table;
+    HV *pv_table;
     bool pv_has_bounds;
     STRLEN pv_minlen;
     STRLEN pv_maxlen;

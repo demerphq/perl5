@@ -6309,6 +6309,43 @@ S_case_dispatch_push(pTHX_ AV **valuesp, AV **armsp, SV *value, U32 arm)
     av_push(*armsp, newSVuv((UV)arm));
 }
 
+static U8
+S_case_dispatch_strategy(void)
+{
+    const char *mode = PerlEnv_getenv("PERL_CASE_DISPATCH");
+
+    if (!mode || strEQ(mode, "auto") || strEQ(mode, "array-linear"))
+        return CASE_DISPATCH_ARRAY_LINEAR;
+    if (strEQ(mode, "none"))
+        return CASE_DISPATCH_NONE;
+    if (strEQ(mode, "hv"))
+        return CASE_DISPATCH_HV;
+    return CASE_DISPATCH_ARRAY_LINEAR;
+}
+
+static SV *
+S_case_dispatch_key(pTHX_ SV *value, U8 kind)
+{
+    const char *prefix = kind == CASE_PATTERN_SIMPLE_NUM
+        ? (SvNOK(value) ? "n:" : "i:") : "s:";
+    SV *key = newSVpvn(prefix, 2);
+    sv_catsv(key, value);
+    return key;
+}
+
+static void
+S_case_dispatch_store(pTHX_ HV **tablep, SV *value, U8 kind, U32 arm)
+{
+    SV *key;
+
+    if (!*tablep)
+        *tablep = newHV();
+    key = S_case_dispatch_key(aTHX_ value, kind);
+    if (!hv_exists_ent(*tablep, key, 0))
+        (void)hv_store_ent(*tablep, key, newSVuv((UV)arm), 0);
+    SvREFCNT_dec_NN(key);
+}
+
 UNOP_AUX_item *
 Perl_case_dispatch_compile(pTHX_ OP *body)
 {
@@ -6338,10 +6375,14 @@ Perl_case_dispatch_compile(pTHX_ OP *body)
         1, sizeof(struct case_dispatch_aux));
     dispatch->magic = CASE_DISPATCH_AUX_MAGIC;
     dispatch->refcnt = 1;
-    dispatch->strategy = CASE_DISPATCH_ARRAY_LINEAR;
+    dispatch->strategy = S_case_dispatch_strategy();
     dispatch->undef_arm = CASE_DISPATCH_NO_ARM;
     dispatch->bool_arm[0] = CASE_DISPATCH_NO_ARM;
     dispatch->bool_arm[1] = CASE_DISPATCH_NO_ARM;
+    if (dispatch->strategy == CASE_DISPATCH_NONE) {
+        PerlMemShared_free(dispatch);
+        return NULL;
+    }
 
     narm = 0;
     for (kid = cLISTOPx(body)->op_first; kid; kid = OpSIBLING(kid)) {
@@ -6369,7 +6410,11 @@ Perl_case_dispatch_compile(pTHX_ OP *body)
                 dispatch->bool_arm[bool_ix] = pattern_aux->dispatch_arm;
         }
         else if (pattern_aux->kind == CASE_PATTERN_SIMPLE_NUM) {
-            if (SvNOK(value))
+            if (dispatch->strategy == CASE_DISPATCH_HV)
+                S_case_dispatch_store(aTHX_
+                    SvNOK(value) ? &dispatch->nv_table : &dispatch->iv_table,
+                    value, CASE_PATTERN_SIMPLE_NUM, pattern_aux->dispatch_arm);
+            else if (SvNOK(value))
                 S_case_dispatch_push(aTHX_ &dispatch->nv_values,
                     &dispatch->nv_arms, value, pattern_aux->dispatch_arm);
             else
@@ -6378,8 +6423,12 @@ Perl_case_dispatch_compile(pTHX_ OP *body)
         }
         else {
             const STRLEN len = SvCUR(value);
-            S_case_dispatch_push(aTHX_ &dispatch->pv_values,
-                &dispatch->pv_arms, value, pattern_aux->dispatch_arm);
+            if (dispatch->strategy == CASE_DISPATCH_HV)
+                S_case_dispatch_store(aTHX_ &dispatch->pv_table, value,
+                    CASE_PATTERN_SIMPLE_STR, pattern_aux->dispatch_arm);
+            else
+                S_case_dispatch_push(aTHX_ &dispatch->pv_values,
+                    &dispatch->pv_arms, value, pattern_aux->dispatch_arm);
             if (!dispatch->pv_has_bounds) {
                 dispatch->pv_minlen = len;
                 dispatch->pv_maxlen = len;
@@ -6414,6 +6463,9 @@ Perl_case_dispatch_free(pTHX_ UNOP_AUX_item *items)
     SvREFCNT_dec((SV *)dispatch->nv_arms);
     SvREFCNT_dec((SV *)dispatch->pv_values);
     SvREFCNT_dec((SV *)dispatch->pv_arms);
+    SvREFCNT_dec((SV *)dispatch->iv_table);
+    SvREFCNT_dec((SV *)dispatch->nv_table);
+    SvREFCNT_dec((SV *)dispatch->pv_table);
     PerlMemShared_free(dispatch);
 }
 
@@ -6752,6 +6804,22 @@ S_case_dispatch_candidate(pTHX_ const AV *values, const AV *arms, SV *subject,
     }
 }
 
+static void
+S_case_dispatch_hv_candidate(pTHX_ const HV *table, SV *subject, U8 kind,
+                             U32 *best)
+{
+    SV *key;
+    HE *entry;
+
+    if (!table)
+        return;
+    key = S_case_dispatch_key(aTHX_ subject, kind);
+    entry = hv_fetch_ent((HV *)table, key, FALSE, 0);
+    if (entry && SvUV(HeVAL(entry)) < *best)
+        *best = (U32)SvUV(HeVAL(entry));
+    SvREFCNT_dec_NN(key);
+}
+
 PP(pp_casedispatch)
 {
     PERL_CONTEXT *cx = S_case_context(aTHX);
@@ -6775,17 +6843,30 @@ PP(pp_casedispatch)
         && dispatch->bool_arm[1] < best)
         best = dispatch->bool_arm[1];
     if (SvIOK(DEFSV) || SvNOK(DEFSV)) {
-        S_case_dispatch_candidate(aTHX_ dispatch->iv_values, dispatch->iv_arms,
-            DEFSV, CASE_PATTERN_SIMPLE_NUM, &best);
-        S_case_dispatch_candidate(aTHX_ dispatch->nv_values, dispatch->nv_arms,
-            DEFSV, CASE_PATTERN_SIMPLE_NUM, &best);
+        if (dispatch->strategy == CASE_DISPATCH_HV) {
+            S_case_dispatch_hv_candidate(aTHX_ dispatch->iv_table, DEFSV,
+                CASE_PATTERN_SIMPLE_NUM, &best);
+            S_case_dispatch_hv_candidate(aTHX_ dispatch->nv_table, DEFSV,
+                CASE_PATTERN_SIMPLE_NUM, &best);
+        }
+        else {
+            S_case_dispatch_candidate(aTHX_ dispatch->iv_values,
+                dispatch->iv_arms, DEFSV, CASE_PATTERN_SIMPLE_NUM, &best);
+            S_case_dispatch_candidate(aTHX_ dispatch->nv_values,
+                dispatch->nv_arms, DEFSV, CASE_PATTERN_SIMPLE_NUM, &best);
+        }
     }
     if (SvPOK(DEFSV)) {
         const STRLEN len = SvCUR(DEFSV);
         if (!dispatch->pv_has_bounds
-            || (len >= dispatch->pv_minlen && len <= dispatch->pv_maxlen))
-            S_case_dispatch_candidate(aTHX_ dispatch->pv_values,
-                dispatch->pv_arms, DEFSV, CASE_PATTERN_SIMPLE_STR, &best);
+            || (len >= dispatch->pv_minlen && len <= dispatch->pv_maxlen)) {
+            if (dispatch->strategy == CASE_DISPATCH_HV)
+                S_case_dispatch_hv_candidate(aTHX_ dispatch->pv_table, DEFSV,
+                    CASE_PATTERN_SIMPLE_STR, &best);
+            else
+                S_case_dispatch_candidate(aTHX_ dispatch->pv_values,
+                    dispatch->pv_arms, DEFSV, CASE_PATTERN_SIMPLE_STR, &best);
+        }
     }
 
     cx->blk_givwhen.case_dispatch_arm = best;
