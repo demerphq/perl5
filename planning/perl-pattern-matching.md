@@ -40,6 +40,13 @@ form is also implemented: the expression is evaluated once, its result is
 stored in a fresh case-local scalar, and that scalar is used as a pinned
 pattern value.
 
+Simple scalar constant patterns now take a direct comparison fast path in the
+runtime matcher.  This covers `undef`, numeric constants, and string
+constants without changing the source-order arm selection rule.  A larger
+lookup table for cases made entirely from constants remains deliberately
+deferred until its interaction with diagnostics, duplicate patterns, and
+future arm forms is specified.
+
 The implemented first version intentionally stops at scalar, array-reference,
 and hash-reference patterns, lexical captures and pins, guards, the wildcard,
 regex predicates, and explicit scalar subject coercions. Object/class
@@ -118,12 +125,12 @@ selected arm receives the pattern bindings. `match` never means an implicit
 smartmatch. A separate expression form may still be useful later, but the
 statement-oriented `case` construct is the primary design target.
 
-When every arm consists only of simple constant patterns, the implementation
-is free—and encouraged—to compile the case into an efficient lookup or
-dispatch structure. The exact representation is intentionally left open for
-now. If any arm contains a dynamic expression or other non-constant pattern,
-the implementation must evaluate the arms in source order, preserving the
-first-match rule.
+When every arm consists only of simple constant patterns, a future
+implementation may compile the case into a larger lookup or dispatch
+structure. The current implementation keeps the observable source-order
+first-match rule and applies only the safe direct-comparison fast path. If any
+arm contains a dynamic expression or other non-constant pattern, the
+implementation must evaluate the arms in source order.
 
 The subject may optionally receive a case-local name or an explicit scalar
 coercion. The provisional coercion spellings are `IntVal`, `FloatVal`, and
@@ -805,6 +812,21 @@ Patterns and guards must have specified context. Arm entry, `next`, `last`,
 effects are ordinary Perl side effects and are not rolled back merely because
 the guard returns false.
 The new mode should not depend on ambient `$_` as the subject.
+
+## Current implementation checkpoint
+
+The initial implementation and its focused regression tests are complete for
+the supported language described above.  The implementation has been checked
+with the built DEBUGGING interpreter, including the compiler-facing
+`coreamp`, `coresubs`, and `B::Deparse-core` tests after a clean rebuild.
+Simple scalar constants have a direct runtime comparison fast path; this is
+an intentionally conservative first optimization and does not reorder arms.
+
+Before expanding the pattern language, the next full validation should be a
+fresh `test_porting` run followed by `make_test`.  Any failure in generated
+parser/opcode files must be fixed at its source and regenerated, not repaired
+by hand.  The next feature work should be separately planned for object
+patterns, richer scalar/string patterns, and a true constant dispatch table.
 
 ### 7. The semantics changed repeatedly while the syntax stayed familiar
 
