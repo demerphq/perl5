@@ -41,8 +41,8 @@ stored in a fresh case-local scalar, and that scalar is used as a pinned
 pattern value.
 
 Simple scalar constant patterns now take a direct comparison fast path in the
-runtime matcher.  This covers `undef`, numeric constants, and string
-constants without changing the source-order arm selection rule.  A larger
+runtime matcher.  This covers `undef`, boolean, numeric, and string constants
+without changing the source-order arm selection rule.  A larger
 lookup table for cases made entirely from constants remains deliberately
 deferred until its interaction with diagnostics, duplicate patterns, and
 future arm forms is specified.
