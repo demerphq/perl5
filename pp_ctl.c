@@ -6299,12 +6299,19 @@ S_case_dispatch_arm(pTHX_ const OP *op, struct case_pattern_aux **auxp)
 }
 
 static void
-S_case_dispatch_push(pTHX_ AV **valuesp, AV **armsp, SV *value, U32 arm)
+S_case_dispatch_push(pTHX_ AV **valuesp, AV **armsp, SV *value, U32 arm,
+                     U32 capacity)
 {
-    if (!*valuesp)
+    if (!*valuesp) {
         *valuesp = newAV();
-    if (!*armsp)
+        if (capacity)
+            av_extend(*valuesp, (SSize_t)capacity - 1);
+    }
+    if (!*armsp) {
         *armsp = newAV();
+        if (capacity)
+            av_extend(*armsp, (SSize_t)capacity - 1);
+    }
     av_push(*valuesp, newSVsv(value));
     av_push(*armsp, newSVuv((UV)arm));
 }
@@ -6341,7 +6348,7 @@ S_case_dispatch_store(pTHX_ HV **tablep, SV *value, U8 kind, U32 arm)
     if (!*tablep)
         *tablep = newHV();
     key = S_case_dispatch_key(aTHX_ value, kind);
-    if (!hv_exists_ent(*tablep, key, 0))
+    if (!hv_fetch_ent(*tablep, key, FALSE, 0))
         (void)hv_store_ent(*tablep, key, newSVuv((UV)arm), 0);
     SvREFCNT_dec_NN(key);
 }
@@ -6352,6 +6359,7 @@ Perl_case_dispatch_compile(pTHX_ OP *body)
     struct case_dispatch_aux *dispatch;
     OP *kid;
     U32 narm = 0;
+    U32 arm_count;
     bool eligible = TRUE;
 
     PERL_ARGS_ASSERT_CASE_DISPATCH_COMPILE;
@@ -6370,6 +6378,7 @@ Perl_case_dispatch_compile(pTHX_ OP *body)
     }
     if (!eligible || !narm)
         return NULL;
+    arm_count = narm;
 
     dispatch = (struct case_dispatch_aux *)PerlMemShared_calloc(
         1, sizeof(struct case_dispatch_aux));
@@ -6416,10 +6425,12 @@ Perl_case_dispatch_compile(pTHX_ OP *body)
                     value, CASE_PATTERN_SIMPLE_NUM, pattern_aux->dispatch_arm);
             else if (SvNOK(value))
                 S_case_dispatch_push(aTHX_ &dispatch->nv_values,
-                    &dispatch->nv_arms, value, pattern_aux->dispatch_arm);
+                    &dispatch->nv_arms, value, pattern_aux->dispatch_arm,
+                    arm_count);
             else
                 S_case_dispatch_push(aTHX_ &dispatch->iv_values,
-                    &dispatch->iv_arms, value, pattern_aux->dispatch_arm);
+                    &dispatch->iv_arms, value, pattern_aux->dispatch_arm,
+                    arm_count);
         }
         else {
             const STRLEN len = SvCUR(value);
@@ -6428,7 +6439,8 @@ Perl_case_dispatch_compile(pTHX_ OP *body)
                     CASE_PATTERN_SIMPLE_STR, pattern_aux->dispatch_arm);
             else
                 S_case_dispatch_push(aTHX_ &dispatch->pv_values,
-                    &dispatch->pv_arms, value, pattern_aux->dispatch_arm);
+                    &dispatch->pv_arms, value, pattern_aux->dispatch_arm,
+                    arm_count);
             if (!dispatch->pv_has_bounds) {
                 dispatch->pv_minlen = len;
                 dispatch->pv_maxlen = len;
