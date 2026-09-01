@@ -6376,9 +6376,23 @@ Perl_case_dispatch_compile(pTHX_ OP *body)
                 S_case_dispatch_push(aTHX_ &dispatch->iv_values,
                     &dispatch->iv_arms, value, pattern_aux->dispatch_arm);
         }
-        else
+        else {
+            STRLEN len;
+            (void)SvPV_const(value, len);
             S_case_dispatch_push(aTHX_ &dispatch->pv_values,
                 &dispatch->pv_arms, value, pattern_aux->dispatch_arm);
+            if (!dispatch->pv_has_bounds) {
+                dispatch->pv_minlen = len;
+                dispatch->pv_maxlen = len;
+                dispatch->pv_has_bounds = TRUE;
+            }
+            else {
+                if (len < dispatch->pv_minlen)
+                    dispatch->pv_minlen = len;
+                if (len > dispatch->pv_maxlen)
+                    dispatch->pv_maxlen = len;
+            }
+        }
     }
 
     return (UNOP_AUX_item *)dispatch;
@@ -6767,9 +6781,14 @@ PP(pp_casedispatch)
         S_case_dispatch_candidate(aTHX_ dispatch->nv_values, dispatch->nv_arms,
             DEFSV, CASE_PATTERN_SIMPLE_NUM, &best);
     }
-    if (SvPOK(DEFSV))
-        S_case_dispatch_candidate(aTHX_ dispatch->pv_values, dispatch->pv_arms,
-            DEFSV, CASE_PATTERN_SIMPLE_STR, &best);
+    if (SvPOK(DEFSV)) {
+        STRLEN len;
+        (void)SvPV_const(DEFSV, len);
+        if (!dispatch->pv_has_bounds
+            || (len >= dispatch->pv_minlen && len <= dispatch->pv_maxlen))
+            S_case_dispatch_candidate(aTHX_ dispatch->pv_values,
+                dispatch->pv_arms, DEFSV, CASE_PATTERN_SIMPLE_STR, &best);
+    }
 
     cx->blk_givwhen.case_dispatch_arm = best;
     cx->blk_givwhen.case_dispatch_active = TRUE;
