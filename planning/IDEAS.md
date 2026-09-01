@@ -3,6 +3,19 @@
 This file collects possible future work that is not currently part of an
 active implementation plan.
 
+## AI-oriented benchmark and comparison tools
+
+Develop developer-facing tools for AI-assisted Perl work that can turn
+benchmark measurements into compact, reproducible comparison tables. The
+tools should accept named implementations and scenarios, record the Perl
+revision, compiler, build mode, machine, and relevant environment, and emit
+plain text and Markdown tables with rates, relative speedups, and variability.
+They should make it easy to compare generated code, optree variants, XS and
+pure-Perl implementations, and alternative runtime strategies without each
+experiment needing to invent its own reporting format. Keep the output useful
+for both human review and later machine-assisted analysis, and ensure the
+measurement layer does not hide warm-up, compilation, or setup costs.
+
 ## Block-scoped namespace declarations
 
 The experimental `namespaces` feature currently supports only declarations
