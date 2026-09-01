@@ -27,6 +27,8 @@
 # if !defined(PERL_CORE)
 #   undef ALIGNED_TYPE_NAME
 #   undef AMGf_no_GETMAGIC
+#   undef CASE_DISPATCH_AUX_MAGIC
+#   undef CASE_DISPATCH_NO_ARM
 #   undef CASE_PATTERN_AUX_MAGIC
 #   undef CC_MAGICAL_
 #   undef CC_UNDERSCORE_
@@ -1286,6 +1288,8 @@
 #   define boot_core_mro()                      Perl_boot_core_mro(aTHX)
 #   define build_infix_plugin(a,b,c)            Perl_build_infix_plugin(aTHX_ a,b,c)
 #   define cando(a,b,c)                         Perl_cando(aTHX_ a,b,c)
+#   define case_dispatch_compile(a)             Perl_case_dispatch_compile(aTHX_ a)
+#   define case_dispatch_free(a)                Perl_case_dispatch_free(aTHX_ a)
 #   define case_pattern_compile(a)              Perl_case_pattern_compile(aTHX_ a)
 #   define case_pattern_free(a)                 Perl_case_pattern_free(aTHX_ a)
 #   define check_utf8_print(a,b)                Perl_check_utf8_print(aTHX_ a,b)

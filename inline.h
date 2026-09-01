@@ -4435,6 +4435,8 @@ Perl_cx_pushgiven(pTHX_ PERL_CONTEXT *cx, SV *orig_defsv)
     cx->blk_givwhen.leave_op = cLOGOP->op_other;
     cx->blk_givwhen.defsv_save = orig_defsv;
     cx->blk_givwhen.is_case = FALSE;
+    cx->blk_givwhen.case_dispatch_active = FALSE;
+    cx->blk_givwhen.case_dispatch_arm = CASE_DISPATCH_NO_ARM;
     cx->blk_givwhen.case_bindings = NULL;
     cx->blk_givwhen.case_pins = NULL;
 }

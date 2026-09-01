@@ -1024,6 +1024,8 @@ struct block_givwhen {
         OP *leave_op;
         SV *defsv_save; /* the original $_ */
         bool is_case;
+        bool case_dispatch_active;
+        U32 case_dispatch_arm;
         AV *case_bindings; /* old pad values for tentative bindings */
         AV *case_pins;     /* pad indexes and values pinned by with */
 };

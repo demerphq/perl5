@@ -303,6 +303,10 @@ bare_statement_case
 				subject->op_targ = $case_subject_type;
 			}
 			OP *body = $case_mblock;
+			UNOP_AUX_item *dispatch = case_dispatch_compile(body);
+			if (dispatch)
+				body = op_prepend_elem(OP_LINESEQ,
+					newUNOP_AUX(OP_CASEDISPATCH, 0, NULL, dispatch), body);
 			if ($case_subject_alias)
 				subject = newASSIGNOP(0, $case_subject_alias, 0, subject);
 			if ($case_subject_pins)

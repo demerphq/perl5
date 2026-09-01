@@ -1425,6 +1425,10 @@ Perl_op_clear(pTHX_ OP *o)
     case OP_CASEMATCH:
         Perl_case_pattern_free(aTHX_ cUNOP_AUXo->op_aux);
         break;
+
+    case OP_CASEDISPATCH:
+        Perl_case_dispatch_free(aTHX_ cUNOP_AUXo->op_aux);
+        break;
     }
 
     if (o->op_targ > 0) {

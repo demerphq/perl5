@@ -6267,8 +6267,141 @@ Perl_case_pattern_free(pTHX_ UNOP_AUX_item *items)
 
     if (aux && aux->magic == CASE_PATTERN_AUX_MAGIC) {
         S_case_pattern_free_node(aux->root);
+        if (aux->dispatch)
+            Perl_case_dispatch_free(aTHX_ (UNOP_AUX_item *)aux->dispatch);
         PerlMemShared_free(aux);
     }
+}
+
+static bool
+S_case_dispatch_arm(pTHX_ const OP *op, struct case_pattern_aux **auxp)
+{
+    const OP *enterwhen;
+    const OP *condition;
+    const struct case_pattern_aux *aux;
+
+    PERL_UNUSED_CONTEXT;
+    if (op->op_type != OP_LEAVEWHEN)
+        return FALSE;
+    enterwhen = cUNOPx(op)->op_first;
+    if (!enterwhen || enterwhen->op_type != OP_ENTERWHEN)
+        return FALSE;
+    condition = cUNOPx(enterwhen)->op_first;
+    if (!condition || condition->op_type != OP_CASEMATCH)
+        return FALSE;
+    aux = (const struct case_pattern_aux *)cUNOP_AUXx(condition)->op_aux;
+    if (!aux || aux->magic != CASE_PATTERN_AUX_MAGIC
+        || aux->kind == CASE_PATTERN_COMPLEX
+        || !aux->root)
+        return FALSE;
+    *auxp = (struct case_pattern_aux *)aux;
+    return TRUE;
+}
+
+static void
+S_case_dispatch_push(pTHX_ AV **valuesp, AV **armsp, SV *value, U32 arm)
+{
+    if (!*valuesp)
+        *valuesp = newAV();
+    if (!*armsp)
+        *armsp = newAV();
+    av_push(*valuesp, newSVsv(value));
+    av_push(*armsp, newSVuv((UV)arm));
+}
+
+UNOP_AUX_item *
+Perl_case_dispatch_compile(pTHX_ OP *body)
+{
+    struct case_dispatch_aux *dispatch;
+    OP *kid;
+    U32 narm = 0;
+    bool eligible = TRUE;
+
+    PERL_ARGS_ASSERT_CASE_DISPATCH_COMPILE;
+
+    if (!body || body->op_type != OP_LINESEQ)
+        return NULL;
+    for (kid = cLISTOPx(body)->op_first; kid; kid = OpSIBLING(kid)) {
+        struct case_pattern_aux *pattern_aux;
+        if (OP_TYPE_IS_COP_NN(kid))
+            continue;
+        if (!S_case_dispatch_arm(aTHX_ kid, &pattern_aux)) {
+            eligible = FALSE;
+            break;
+        }
+        narm++;
+    }
+    if (!eligible || !narm)
+        return NULL;
+
+    dispatch = (struct case_dispatch_aux *)PerlMemShared_calloc(
+        1, sizeof(struct case_dispatch_aux));
+    dispatch->magic = CASE_DISPATCH_AUX_MAGIC;
+    dispatch->refcnt = 1;
+    dispatch->strategy = CASE_DISPATCH_ARRAY_LINEAR;
+    dispatch->undef_arm = CASE_DISPATCH_NO_ARM;
+    dispatch->bool_arm[0] = CASE_DISPATCH_NO_ARM;
+    dispatch->bool_arm[1] = CASE_DISPATCH_NO_ARM;
+
+    narm = 0;
+    for (kid = cLISTOPx(body)->op_first; kid; kid = OpSIBLING(kid)) {
+        struct case_pattern_aux *pattern_aux;
+        const OP *pattern;
+    SV *value;
+
+        if (OP_TYPE_IS_COP_NN(kid))
+            continue;
+        (void)S_case_dispatch_arm(aTHX_ kid, &pattern_aux);
+        pattern = pattern_aux->root->op;
+        pattern_aux->dispatch = dispatch;
+        pattern_aux->dispatch_arm = narm++;
+        dispatch->refcnt++;
+
+        if (pattern_aux->kind == CASE_PATTERN_SIMPLE_UNDEF) {
+            if (dispatch->undef_arm == CASE_DISPATCH_NO_ARM)
+                dispatch->undef_arm = pattern_aux->dispatch_arm;
+            continue;
+        }
+        value = cSVOPx_sv(pattern);
+        if (pattern_aux->kind == CASE_PATTERN_SIMPLE_BOOL) {
+            const U32 bool_ix = SvTRUE(value) ? 1 : 0;
+            if (dispatch->bool_arm[bool_ix] == CASE_DISPATCH_NO_ARM)
+                dispatch->bool_arm[bool_ix] = pattern_aux->dispatch_arm;
+        }
+        else if (pattern_aux->kind == CASE_PATTERN_SIMPLE_NUM) {
+            if (SvNOK(value))
+                S_case_dispatch_push(aTHX_ &dispatch->nv_values,
+                    &dispatch->nv_arms, value, pattern_aux->dispatch_arm);
+            else
+                S_case_dispatch_push(aTHX_ &dispatch->iv_values,
+                    &dispatch->iv_arms, value, pattern_aux->dispatch_arm);
+        }
+        else
+            S_case_dispatch_push(aTHX_ &dispatch->pv_values,
+                &dispatch->pv_arms, value, pattern_aux->dispatch_arm);
+    }
+
+    return (UNOP_AUX_item *)dispatch;
+}
+
+void
+Perl_case_dispatch_free(pTHX_ UNOP_AUX_item *items)
+{
+    struct case_dispatch_aux *dispatch = (struct case_dispatch_aux *)items;
+
+    PERL_ARGS_ASSERT_CASE_DISPATCH_FREE;
+    PERL_UNUSED_CONTEXT;
+    if (!dispatch || dispatch->magic != CASE_DISPATCH_AUX_MAGIC)
+        return;
+    if (--dispatch->refcnt)
+        return;
+    SvREFCNT_dec((SV *)dispatch->iv_values);
+    SvREFCNT_dec((SV *)dispatch->iv_arms);
+    SvREFCNT_dec((SV *)dispatch->nv_values);
+    SvREFCNT_dec((SV *)dispatch->nv_arms);
+    SvREFCNT_dec((SV *)dispatch->pv_values);
+    SvREFCNT_dec((SV *)dispatch->pv_arms);
+    PerlMemShared_free(dispatch);
 }
 
 static PERL_CONTEXT *
@@ -6538,7 +6671,9 @@ PP(pp_casematch)
     if (!pattern)
         Perl_croak(aTHX_ "missing compiled case pattern");
     bool matched;
-    if (aux->kind == CASE_PATTERN_SIMPLE_UNDEF)
+    if (cx && cx->blk_givwhen.case_dispatch_active && aux->dispatch)
+        matched = aux->dispatch_arm == cx->blk_givwhen.case_dispatch_arm;
+    else if (aux->kind == CASE_PATTERN_SIMPLE_UNDEF)
         matched = !SvOK(DEFSV);
     else if (aux->kind == CASE_PATTERN_SIMPLE_BOOL)
         matched = (SvTRUE(DEFSV) == SvTRUE(cSVOPx_sv(pattern->op)));
@@ -6575,11 +6710,69 @@ PP(pp_casematch)
     return NORMAL;
 }
 
+static void
+S_case_dispatch_candidate(pTHX_ const AV *values, const AV *arms, SV *subject,
+                          U8 kind, U32 *best)
+{
+    SSize_t i;
+    if (!values || !arms)
+        return;
+    for (i = 0; i <= av_len((AV *)values); i++) {
+        SV **value = av_fetch((AV *)values, i, FALSE);
+        SV **arm = av_fetch((AV *)arms, i, FALSE);
+        bool matched = FALSE;
+        if (!value || !arm)
+            continue;
+        switch (kind) {
+        case CASE_PATTERN_SIMPLE_BOOL:
+            matched = (SvTRUE(subject) == SvTRUE(*value));
+            break;
+        case CASE_PATTERN_SIMPLE_NUM:
+            matched = do_ncmp(subject, *value) == 0;
+            break;
+        case CASE_PATTERN_SIMPLE_STR:
+            matched = sv_eq(subject, *value);
+            break;
+        }
+        if (matched && SvUV(*arm) < *best)
+            *best = (U32)SvUV(*arm);
+    }
+}
+
 PP(pp_casedispatch)
 {
-    /* The case-level constant dispatch plan will be installed here.  Keep
-     * this as a separate opcode so the optimized path can be selected for a
-     * complete case without changing the dynamic arm optree. */
+    PERL_CONTEXT *cx = S_case_context(aTHX);
+    struct case_dispatch_aux *dispatch =
+        (struct case_dispatch_aux *)cUNOP_AUXx(PL_op)->op_aux;
+    U32 best = CASE_DISPATCH_NO_ARM;
+
+    if (!cx || !cx->blk_givwhen.is_case
+        || !dispatch || dispatch->magic != CASE_DISPATCH_AUX_MAGIC)
+        return NORMAL;
+
+    if (!SvOK(DEFSV)
+        && dispatch->undef_arm != CASE_DISPATCH_NO_ARM)
+        best = dispatch->undef_arm;
+    if (dispatch->bool_arm[0] != CASE_DISPATCH_NO_ARM
+        && !SvTRUE(DEFSV)
+        && dispatch->bool_arm[0] < best)
+        best = dispatch->bool_arm[0];
+    if (dispatch->bool_arm[1] != CASE_DISPATCH_NO_ARM
+        && SvTRUE(DEFSV)
+        && dispatch->bool_arm[1] < best)
+        best = dispatch->bool_arm[1];
+    if (SvIOK(DEFSV) || SvNOK(DEFSV)) {
+        S_case_dispatch_candidate(aTHX_ dispatch->iv_values, dispatch->iv_arms,
+            DEFSV, CASE_PATTERN_SIMPLE_NUM, &best);
+        S_case_dispatch_candidate(aTHX_ dispatch->nv_values, dispatch->nv_arms,
+            DEFSV, CASE_PATTERN_SIMPLE_NUM, &best);
+    }
+    if (SvPOK(DEFSV))
+        S_case_dispatch_candidate(aTHX_ dispatch->pv_values, dispatch->pv_arms,
+            DEFSV, CASE_PATTERN_SIMPLE_STR, &best);
+
+    cx->blk_givwhen.case_dispatch_arm = best;
+    cx->blk_givwhen.case_dispatch_active = TRUE;
     return NORMAL;
 }
 

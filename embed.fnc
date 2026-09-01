@@ -1055,6 +1055,10 @@ AOdp	|SSize_t|call_sv	|NN SV *sv				\
 Rp	|bool	|cando		|Mode_t mode				\
 				|bool effective 			\
 				|NN const Stat_t *statbufp
+p	|UNOP_AUX_item *|case_dispatch_compile				\
+				|NN OP *body
+p	|void	|case_dispatch_free					\
+				|NULLOK UNOP_AUX_item *aux
 p	|UNOP_AUX_item *|case_pattern_compile				\
 				|NN const OP *pattern
 p	|void	|case_pattern_free					\

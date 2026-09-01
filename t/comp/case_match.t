@@ -5,7 +5,7 @@ BEGIN {
     unshift @INC, '../lib';
 }
 
-print "1..39\n";
+print "1..40\n";
 
 my $ran = 0;
 $_ = 'outside';
@@ -481,3 +481,26 @@ my $typed_boolean = eval q{
 print !$@ && $typed_boolean && $bool_yes && $bool_no && $bool_number
     ? "ok 39 - boolean literals use truth-value semantics\n"
     : "not ok 39 - boolean literals use truth-value semantics\n";
+
+my ($dispatch_order, $dispatch_duplicate, $dispatch_miss) = (0, 0, 0);
+my $constant_dispatch = eval q{
+    use feature 'case_match';
+    use builtin qw(true false);
+    case (1) {
+        match ('1') { $dispatch_order = 1 }
+        match (true) { $dispatch_order = 2 }
+        match (1) { $dispatch_order = 3 }
+    }
+    case (1) {
+        match (1) { $dispatch_duplicate++ }
+        match (1) { $dispatch_duplicate += 10 }
+    }
+    case (3) {
+        match (1) { $dispatch_miss = 1 }
+    }
+    1;
+};
+print !$@ && $constant_dispatch && $dispatch_order == 2
+    && $dispatch_duplicate == 1 && !$dispatch_miss
+    ? "ok 40 - constant dispatch preserves typed source order\n"
+    : "not ok 40 - constant dispatch preserves typed source order\n";

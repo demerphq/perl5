@@ -243,10 +243,14 @@ struct case_pattern_node {
     U32 nchild;
 };
 
+struct case_dispatch_aux;
+
 struct case_pattern_aux {
     U32 magic;
     U8 kind;
     struct case_pattern_node *root;
+    struct case_dispatch_aux *dispatch;
+    U32 dispatch_arm;
 };
 
 #define CASE_PATTERN_AUX_MAGIC ((U32)0x43504154) /* "CPAT" */
@@ -257,6 +261,32 @@ enum {
     CASE_PATTERN_SIMPLE_NUM,
     CASE_PATTERN_SIMPLE_STR,
     CASE_PATTERN_COMPLEX
+};
+
+#define CASE_DISPATCH_AUX_MAGIC ((U32)0x43444953) /* "CDIS" */
+#define CASE_DISPATCH_NO_ARM ((U32)-1)
+enum {
+    CASE_DISPATCH_NONE,
+    CASE_DISPATCH_ARRAY_LINEAR,
+    CASE_DISPATCH_ARRAY_BINARY,
+    CASE_DISPATCH_HV
+};
+
+/* The arrays are parallel: the value at an index selects the arm at the
+ * same index.  The arrays themselves are ordinary Perl AVs so their values
+ * remain visible to the normal ownership and cloning machinery. */
+struct case_dispatch_aux {
+    U32 magic;
+    U32 refcnt;
+    U8 strategy;
+    U32 undef_arm;
+    U32 bool_arm[2];
+    AV *iv_values;
+    AV *iv_arms;
+    AV *nv_values;
+    AV *nv_arms;
+    AV *pv_values;
+    AV *pv_arms;
 };
 
 struct binop {
