@@ -6274,6 +6274,19 @@ Perl_case_pattern_free(pTHX_ UNOP_AUX_item *items)
 }
 
 static bool
+S_case_pattern_is_wildcard(pTHX_ const struct case_pattern_aux *aux)
+{
+    const OP *pattern;
+
+    if (!aux || !aux->root || aux->root->nchild)
+        return FALSE;
+    pattern = aux->root->op;
+    return pattern->op_type == OP_CONST
+        && (pattern->op_private & OPpCONST_BARE)
+        && strEQ(SvPV_nolen_const(cSVOPx_sv(pattern)), "_");
+}
+
+static bool
 S_case_dispatch_arm(pTHX_ const OP *op, struct case_pattern_aux **auxp)
 {
     const OP *enterwhen;
@@ -6291,7 +6304,8 @@ S_case_dispatch_arm(pTHX_ const OP *op, struct case_pattern_aux **auxp)
         return FALSE;
     aux = (const struct case_pattern_aux *)cUNOP_AUXx(condition)->op_aux;
     if (!aux || aux->magic != CASE_PATTERN_AUX_MAGIC
-        || aux->kind == CASE_PATTERN_COMPLEX
+        || (aux->kind == CASE_PATTERN_COMPLEX
+            && !S_case_pattern_is_wildcard(aTHX_ aux))
         || !aux->root)
         return FALSE;
     *auxp = (struct case_pattern_aux *)aux;
@@ -6361,6 +6375,7 @@ Perl_case_dispatch_compile(pTHX_ OP *body)
     U32 narm = 0;
     U32 arm_count;
     bool eligible = TRUE;
+    bool has_constant = FALSE;
 
     PERL_ARGS_ASSERT_CASE_DISPATCH_COMPILE;
 
@@ -6375,8 +6390,11 @@ Perl_case_dispatch_compile(pTHX_ OP *body)
             break;
         }
         narm++;
+        if (S_case_pattern_is_wildcard(aTHX_ pattern_aux))
+            break;
+        has_constant = TRUE;
     }
-    if (!eligible || !narm)
+    if (!eligible || !narm || !has_constant)
         return NULL;
     arm_count = narm;
 
@@ -6388,6 +6406,7 @@ Perl_case_dispatch_compile(pTHX_ OP *body)
     dispatch->undef_arm = CASE_DISPATCH_NO_ARM;
     dispatch->bool_arm[0] = CASE_DISPATCH_NO_ARM;
     dispatch->bool_arm[1] = CASE_DISPATCH_NO_ARM;
+    dispatch->default_arm = CASE_DISPATCH_NO_ARM;
     if (dispatch->strategy == CASE_DISPATCH_NONE) {
         PerlMemShared_free(dispatch);
         return NULL;
@@ -6411,6 +6430,11 @@ Perl_case_dispatch_compile(pTHX_ OP *body)
             if (dispatch->undef_arm == CASE_DISPATCH_NO_ARM)
                 dispatch->undef_arm = pattern_aux->dispatch_arm;
             continue;
+        }
+        if (S_case_pattern_is_wildcard(aTHX_ pattern_aux)) {
+            if (dispatch->default_arm == CASE_DISPATCH_NO_ARM)
+                dispatch->default_arm = pattern_aux->dispatch_arm;
+            break;
         }
         value = cSVOPx_sv(pattern);
         if (pattern_aux->kind == CASE_PATTERN_SIMPLE_BOOL) {
@@ -6842,6 +6866,8 @@ PP(pp_casedispatch)
     if (!cx || !cx->blk_givwhen.is_case
         || !dispatch || dispatch->magic != CASE_DISPATCH_AUX_MAGIC)
         return NORMAL;
+
+    best = dispatch->default_arm;
 
     if (!SvOK(DEFSV)
         && dispatch->undef_arm != CASE_DISPATCH_NO_ARM)

@@ -281,6 +281,7 @@ struct case_dispatch_aux {
     U8 strategy;
     U32 undef_arm;
     U32 bool_arm[2];
+    U32 default_arm;
     AV *iv_values;
     AV *iv_arms;
     AV *nv_values;

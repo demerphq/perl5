@@ -5,7 +5,7 @@ BEGIN {
     unshift @INC, '../lib';
 }
 
-print "1..40\n";
+print "1..41\n";
 
 my $ran = 0;
 $_ = 'outside';
@@ -504,3 +504,21 @@ print !$@ && $constant_dispatch && $dispatch_order == 2
     && $dispatch_duplicate == 1 && !$dispatch_miss
     ? "ok 40 - constant dispatch preserves typed source order\n"
     : "not ok 40 - constant dispatch preserves typed source order\n";
+
+my ($dispatch_default, $dispatch_early_default) = (0, 0);
+my $constant_dispatch_default = eval q{
+    use feature 'case_match';
+    case (99) {
+        match (1) { $dispatch_default = 1 }
+        match (_) { $dispatch_default = 2 }
+    }
+    case (99) {
+        match (_)  { $dispatch_early_default = 3 }
+        match (99) { $dispatch_early_default = 4 }
+    }
+    1;
+};
+print !$@ && $constant_dispatch_default
+    && $dispatch_default == 2 && $dispatch_early_default == 3
+    ? "ok 41 - constant dispatch preserves wildcard defaults\n"
+    : "not ok 41 - constant dispatch preserves wildcard defaults\n";

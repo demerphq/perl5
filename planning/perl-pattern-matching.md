@@ -121,7 +121,11 @@ currently available modes for development comparisons.  The binary strategy,
 exact numeric bounds, automatic threshold selection, and the benchmark driver
 remain to be added.  The focused regression suite includes mixed typed
 constants, duplicate constants, and misses to verify that this optimization
-preserves first-arm behavior.
+preserves first-arm behavior.  A wildcard arm can serve as the dispatch
+fallback: constants before it remain eligible for lookup, while the wildcard
+and all arms after it are handled as the source-ordered fallback suffix.  A
+case containing only a wildcard does not receive a dispatch opcode because it
+has no useful lookup work to optimize.
 
 Boolean patterns use Perl truth-value semantics: `match(true)` compares the
 subject with `SvTRUE`, and `match(false)` compares it with the negation of
