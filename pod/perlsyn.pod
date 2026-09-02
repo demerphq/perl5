@@ -910,6 +910,21 @@ An undefined subject remains undefined, and references, including blessed
 references, pass through unchanged.  Without an explicit coercion, numeric
 and string literals remain distinct pattern kinds.
 
+String patterns may contain literal fragments and one unpinned scalar
+capture.  For example:
+
+    case ($text) {
+        match ("x" . $middle . "z") { say $middle }
+    }
+
+This matches a string beginning with C<x> and ending with C<z>, binding the
+text between them to C<$middle>.  Prefix-only and suffix-only forms such as
+C<"x" . $suffix> and C<$prefix . "z"> are also supported, including empty
+captures.  The concatenation is pattern syntax; it is not evaluated as an
+ordinary Perl concatenation before matching.  A name pinned by C<with>
+contributes its existing value instead of capturing.  Multiple captures and
+general expression operands are not currently supported.
+
 Array and hash-reference patterns may contain nested patterns.  A trailing
 C<...> makes an array or hash pattern open; without it, the pattern is exact.
 Pattern bindings are tentative and are visible only after the complete

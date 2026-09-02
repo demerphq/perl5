@@ -78,6 +78,10 @@ pinning, guard, and explicit scalar-conversion patterns.  Pattern bindings
 are tentative until the complete pattern and guard succeed.  The current
 implementation supports exact composite patterns and open array/hash
 patterns using edge ellipses; richer pattern protocols are not yet included.
+String patterns also support one unpinned scalar capture surrounded by literal
+concatenation fragments, including prefix, suffix, sandwich, pinned, and empty
+captures.  Multiple captures and general expression operands remain outside
+the current implementation.
 Pure constant cases without guards can use specialized constant dispatch,
 including linear-array, binary-search, and hash-based strategies.  These
 strategies preserve source-order semantics and default-arm behavior while

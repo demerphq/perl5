@@ -84,6 +84,33 @@ C<match (true)> also matches the number C<1>, while C<match (false)> matches
 C<0>.  Use C<match (undef)> when the distinction between an undefined value
 and a defined false value matters.
 
+=head2 Concatenated string patterns
+
+A string pattern can combine literal text with one unpinned scalar name.  The
+name receives the part of the subject between the literal pieces:
+
+    case ($text) {
+        match ("x" . $middle . "z") {
+            say "middle is $middle";
+        }
+    }
+
+This matches C<xmiddlez> and binds C<$middle> to C<middle>.  A literal may
+appear on only one side as well, as in C<"x" . $suffix> or C<$prefix . "z">.
+An empty part is valid, so C<xz> matches the first example with an empty
+C<$middle>.
+
+The concatenation is interpreted as a pattern, not as an ordinary Perl
+expression.  A scalar named in a C<with> clause is pinned and contributes its
+existing value instead of capturing text:
+
+    case ($text) with ($wanted) {
+        match ("x" . $wanted) { say "it matched" }
+    }
+
+Multiple unpinned names and more general expression operands are not part of
+the current implementation.
+
 =head1 ARRAY AND HASH PATTERNS
 
 An array pattern matches an array reference.  Without an ellipsis, it must
