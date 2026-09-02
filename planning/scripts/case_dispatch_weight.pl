@@ -7,7 +7,7 @@ sub make_case {
     my ($mode, $n) = @_;
     my $arms = join '', map {
         my $value = 2 * ($_ + 1);
-        "match ($value) { \\$sink++ }\n"
+        "match ($value) { \$sink++ }\n"
     } 0 .. $n - 1;
     local $ENV{PERL_CASE_DISPATCH} = $mode;
     my $sub = eval qq{
@@ -34,10 +34,10 @@ for my $n (2, 4, 8, 16, 32, 64, 128, 256) {
     my $miss = $max + 1;
 
     my $arms = join '', map {
-        "elsif (\$x == $_) { \\$sink++ }\n"
+        "elsif (\$x == $_) { \$sink++ }\n"
     } 2 .. $n - 1;
     my $if = eval qq{
-        sub { my (\$x) = \@_; if (\$x == 2) { \\$sink++ } $arms }
+        sub { my (\$x) = \@_; if (\$x == 2) { \$sink++ } $arms }
     };
     die "$@\n" unless $if;
 

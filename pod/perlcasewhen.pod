@@ -210,10 +210,12 @@ A user-defined pattern protocol.
 
 =item *
 
-Simple scalar constant patterns (including C<undef>, boolean, numeric, and
-string constants) use a direct comparison fast path.  Cases still visit arms
-in source order, and a larger lookup/dispatch structure for a case made up
-entirely of constants remains future work.
+When every arm is a simple constant and has no guard, the implementation may
+use a faster dispatch table instead of checking the arms one at a time.  This
+does not change the result: the first matching arm in source order still wins,
+and a default arm still has its normal meaning.  The choice of dispatch
+strategy is an implementation detail and may change while the feature is
+experimental.
 
 =item *
 

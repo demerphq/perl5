@@ -8,7 +8,7 @@ sub rate {
 }
 sub case_sub {
     my ($mode, $n, $default) = @_;
-    my $arms = join '', map { "match ($_ ) { \\$sink++ }\n" } 0 .. $n - 1;
+    my $arms = join '', map { "match ($_ ) { \$sink++ }\n" } 0 .. $n - 1;
     $arms .= "match (_) { () }\n" if $default;
     local $ENV{PERL_CASE_DISPATCH} = $mode;
     my $sub = eval qq{
@@ -21,11 +21,11 @@ sub case_sub {
 sub if_sub {
     my ($n) = @_;
     my $chain = join '', map {
-        $_ ? "elsif (\$x == $_) { \\$sink++ }\n"
-           : "if (\$x == $_) { \\$sink++ }\n"
+        $_ ? "elsif (\$x == $_) { \$sink++ }\n"
+           : "if (\$x == $_) { \$sink++ }\n"
     } 0 .. $n - 1;
     my $sub = eval qq{
-        sub { my (\$x) = \@_; for (1 .. 100) { $chain else { \\$sink++ } } }
+        sub { my (\$x) = \@_; for (1 .. 100) { $chain else { \$sink++ } } }
     };
     die "$@\n" unless $sub;
     return $sub;
