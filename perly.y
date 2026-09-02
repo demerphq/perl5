@@ -314,7 +314,7 @@ bare_statement_case
 					newLISTOP(OP_CASEWITH, OPf_WANT_LIST,
 						$case_subject_pins, NULL), body);
 			OP *scoped_body = op_scope(body);
-			OP *caseop = newGIVENOP(subject, scoped_body, 0);
+			OP *caseop = newCASEOP(subject, scoped_body);
 			if (dispatch && (scoped_body->op_type == OP_LINESEQ
 			                 || scoped_body->op_type == OP_SCOPE)) {
 				OP *scope_kid;

@@ -11237,6 +11237,14 @@ Perl_newGIVENOP(pTHX_ OP *cond, OP *block, PADOFFSET defsv_off)
         0);
 }
 
+OP *
+Perl_newCASEOP(pTHX_ OP *cond, OP *block)
+{
+    PERL_ARGS_ASSERT_NEWCASEOP;
+
+    return newGIVWHENOP(cond, block, OP_ENTERCASE, OP_LEAVECASE, 0);
+}
+
 /*
 =for apidoc newWHENOP
 

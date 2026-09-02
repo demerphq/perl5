@@ -4449,7 +4449,7 @@ Perl_cx_popgiven(pTHX_ PERL_CONTEXT *cx)
 
     SV *sv;
 
-    assert(CxTYPE(cx) == CXt_GIVEN);
+    assert(CxTYPE(cx) == CXt_GIVEN || CxTYPE(cx) == CXt_CASE);
 
     sv = GvSV(PL_defgv);
     GvSV(PL_defgv) = cx->blk_givwhen.defsv_save;
@@ -4471,6 +4471,31 @@ Perl_cx_popgiven(pTHX_ PERL_CONTEXT *cx)
         SvREFCNT_dec((SV *)cx->blk_givwhen.case_pins);
         cx->blk_givwhen.case_pins = NULL;
     }
+}
+
+
+PERL_STATIC_INLINE void
+Perl_cx_pushcase(pTHX_ PERL_CONTEXT *cx, SV *orig_defsv)
+{
+    PERL_ARGS_ASSERT_CX_PUSHCASE;
+
+    cx->blk_givwhen.leave_op = cLOGOP->op_other;
+    cx->blk_givwhen.defsv_save = orig_defsv;
+    cx->blk_givwhen.is_case = TRUE;
+    cx->blk_givwhen.case_dispatch_active = FALSE;
+    cx->blk_givwhen.case_dispatch_arm = CASE_DISPATCH_NO_ARM;
+    cx->blk_givwhen.case_bindings = NULL;
+    cx->blk_givwhen.case_pins = NULL;
+    cx->blk_case.redo_op = cLOGOP->op_first;
+}
+
+
+PERL_STATIC_INLINE void
+Perl_cx_popcase(pTHX_ PERL_CONTEXT *cx)
+{
+    PERL_ARGS_ASSERT_CX_POPCASE;
+    assert(CxTYPE(cx) == CXt_CASE);
+    Perl_cx_popgiven(aTHX_ cx);
 }
 
 

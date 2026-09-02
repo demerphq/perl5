@@ -513,6 +513,7 @@ my %unresolved_visibility_overrides = map { $_ => 1 } qw(
     CX_PUSHSUB_GET_LVALUE_MASK
     CxREALEVAL
     cxstack_max
+    CXt_CASE
     CXt_DEFER
     CxTRY
     CxTRYBLOCK

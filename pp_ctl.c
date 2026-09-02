@@ -1602,6 +1602,7 @@ S_dopoptolabel(pTHX_ const char *label, STRLEN len, U32 flags)
         case CXt_LOOP_LAZYSV:
         case CXt_LOOP_LIST:
         case CXt_LOOP_ARY:
+        case CXt_CASE:
           {
             STRLEN cx_label_len = 0;
             U32 cx_label_flags = 0;
@@ -1818,6 +1819,10 @@ S_dopoptogivenfor(pTHX_ I32 startingblock)
             DEBUG_l( deb("(dopoptogivenfor(): found given at cx=%ld)\n",
                          (long)i));
             return i;
+        case CXt_CASE:
+            DEBUG_l( deb("(dopoptogivenfor(): found case at cx=%ld)\n",
+                         (long)i));
+            return i;
         case CXt_LOOP_PLAIN:
             assert(!(cx->cx_type & CXp_FOR_DEF));
             break;
@@ -1905,6 +1910,9 @@ Perl_dounwind(pTHX_ I32 cxix)
             break;
         case CXt_GIVEN:
             cx_popgiven(cx);
+            break;
+        case CXt_CASE:
+            cx_popcase(cx);
             break;
         case CXt_BLOCK:
         case CXt_NULL:
@@ -3295,6 +3303,17 @@ PP(pp_last)
 
     cx = S_unwind_loop(aTHX);
 
+    if (CxTYPE(cx) == CXt_CASE) {
+        rpp_popfree_to_NN(PL_stack_base + cx->blk_oldsp);
+        TAINT_NOT;
+        CX_LEAVE_SCOPE(cx);
+        cx_popcase(cx);
+        cx_popblock(cx);
+        nextop = cx->blk_case.givwhen.leave_op->op_next;
+        CX_POP(cx);
+        return nextop;
+    }
+
     assert(CxTYPE_is_LOOP(cx));
     rpp_popfree_to_NN(PL_stack_base
                 + (CxTYPE(cx) == CXt_LOOP_LIST
@@ -3323,6 +3342,19 @@ PP(pp_next)
     if (!((PL_op->op_flags & OPf_SPECIAL) && CxTYPE_is_LOOP(cx)))
         cx = S_unwind_loop(aTHX);
 
+    if (CxTYPE(cx) == CXt_CASE) {
+        rpp_popfree_to_NN(PL_stack_base + cx->blk_oldsp);
+        TAINT_NOT;
+        CX_LEAVE_SCOPE(cx);
+        cx_popcase(cx);
+        cx_popblock(cx);
+        {
+            OP * const nextop = cx->blk_case.givwhen.leave_op->op_next;
+            CX_POP(cx);
+            return nextop;
+        }
+    }
+
     cx_topblock(cx);
     PL_curcop = cx->blk_oldcop;
     PERL_ASYNC_CHECK();
@@ -3332,6 +3364,18 @@ PP(pp_next)
 PP(pp_redo)
 {
     PERL_CONTEXT *cx = S_unwind_loop(aTHX);
+
+    if (CxTYPE(cx) == CXt_CASE) {
+        OP * const redo_op = cx->blk_case.redo_op;
+        rpp_popfree_to_NN(PL_stack_base + cx->blk_oldsp);
+        FREETMPS;
+        CX_LEAVE_SCOPE(cx);
+        cx_topblock(cx);
+        PL_curcop = cx->blk_oldcop;
+        PERL_ASYNC_CHECK();
+        return redo_op;
+    }
+
     OP* redo_op = cx->blk_loop.my_op->op_redoop;
 
     if (redo_op->op_type == OP_ENTER) {
@@ -6075,6 +6119,26 @@ PP(pp_entergiven)
     return NORMAL;
 }
 
+PP(pp_entercase)
+{
+    PERL_CONTEXT *cx;
+    const U8 gimme = GIMME_V;
+    SV * const origsv = DEFSV;
+    SV *subject = rpp_pop_1_norc();
+
+    SvGETMAGIC(subject);
+    {
+        SV *snapshot = newSV(0);
+        sv_setsv_nomg(snapshot, subject);
+        subject = snapshot;
+    }
+    GvSV(PL_defgv) = subject;
+
+    cx = cx_pushblock(CXt_CASE, gimme, PL_stack_sp, PL_savestack_ix);
+    cx_pushcase(cx, origsv);
+    return NORMAL;
+}
+
 PP(pp_leavegiven)
 {
     PERL_CONTEXT *cx;
@@ -6097,6 +6161,29 @@ PP(pp_leavegiven)
     cx_popblock(cx);
     CX_POP(cx);
 
+    return NORMAL;
+}
+
+PP(pp_leavecase)
+{
+    PERL_CONTEXT *cx;
+    U8 gimme;
+    SV **oldsp;
+
+    cx = CX_CUR();
+    assert(CxTYPE(cx) == CXt_CASE);
+    oldsp = PL_stack_base + cx->blk_oldsp;
+    gimme = cx->blk_gimme;
+
+    if (gimme == G_VOID)
+        rpp_popfree_to_NN(oldsp);
+    else
+        leave_adjust_stacks(oldsp, oldsp, gimme, 1);
+
+    CX_LEAVE_SCOPE(cx);
+    cx_popcase(cx);
+    cx_popblock(cx);
+    CX_POP(cx);
     return NORMAL;
 }
 
@@ -6673,7 +6760,8 @@ S_case_context(pTHX)
     PERL_UNUSED_CONTEXT;
     for (i = cxstack_ix; i >= 0; i--) {
         PERL_CONTEXT *cx = &cxstack[i];
-        if (CxTYPE(cx) == CXt_GIVEN && cx->blk_givwhen.is_case)
+        if ((CxTYPE(cx) == CXt_GIVEN || CxTYPE(cx) == CXt_CASE)
+            && cx->blk_givwhen.is_case)
             return cx;
     }
     return NULL;
@@ -6743,7 +6831,8 @@ S_case_pattern_match(pTHX_ const struct case_pattern_node *node, SV *value,
         size_t i;
         const PADOFFSET padix = pattern->op_targ;
         PERL_CONTEXT *cx = S_case_context(aTHX);
-        if (cx && CxTYPE(cx) == CXt_GIVEN && cx->blk_givwhen.is_case
+        if (cx && (CxTYPE(cx) == CXt_GIVEN || CxTYPE(cx) == CXt_CASE)
+            && cx->blk_givwhen.is_case
             && cx->blk_givwhen.case_pins) {
             AV *pins = cx->blk_givwhen.case_pins;
             SSize_t j;
@@ -6950,7 +7039,8 @@ PP(pp_casematch)
             bindings, &nbindings);
     size_t i;
 
-    if (cx && CxTYPE(cx) == CXt_GIVEN && cx->blk_givwhen.is_case) {
+    if (cx && (CxTYPE(cx) == CXt_GIVEN || CxTYPE(cx) == CXt_CASE)
+        && cx->blk_givwhen.is_case) {
         S_case_discard_bindings(aTHX_ cx);
         if (matched && nbindings) {
             AV *pending = newAV();
@@ -7277,7 +7367,8 @@ PP(pp_casewith)
     const OP *child = cUNOPx(PL_op)->op_first;
     SSize_t i;
 
-    if (!cx || CxTYPE(cx) != CXt_GIVEN || !cx->blk_givwhen.is_case)
+    if (!cx || (CxTYPE(cx) != CXt_GIVEN && CxTYPE(cx) != CXt_CASE)
+        || !cx->blk_givwhen.is_case)
         Perl_croak(aTHX_ "case with clause outside case");
     S_case_collect_pin_ops(aTHX_ child, padixes);
     for (i = 0; i <= av_len(padixes); i++) {
@@ -7831,7 +7922,7 @@ PP(pp_enterwhen)
         bool tr = SvTRUEx(*PL_stack_sp);
         rpp_popfree_1_NN();
         if (!tr) {
-            if (given && CxTYPE(given) == CXt_GIVEN
+            if (given && (CxTYPE(given) == CXt_GIVEN || CxTYPE(given) == CXt_CASE)
                 && given->blk_givwhen.is_case)
                 S_case_rollback_bindings(aTHX_ given);
             if (gimme == G_SCALAR)
@@ -7840,7 +7931,8 @@ PP(pp_enterwhen)
         }
     }
 
-    if (given && CxTYPE(given) == CXt_GIVEN && given->blk_givwhen.is_case)
+    if (given && (CxTYPE(given) == CXt_GIVEN || CxTYPE(given) == CXt_CASE)
+        && given->blk_givwhen.is_case)
         S_case_commit_bindings(aTHX_ given);
 
     cx = cx_pushblock(CXt_WHEN, gimme, PL_stack_sp, PL_savestack_ix);
@@ -7888,7 +7980,8 @@ PP(pp_leavewhen)
     }
     else {
         PERL_ASYNC_CHECK();
-        assert(cx->blk_givwhen.leave_op->op_type == OP_LEAVEGIVEN);
+        assert(cx->blk_givwhen.leave_op->op_type == OP_LEAVEGIVEN
+            || cx->blk_givwhen.leave_op->op_type == OP_LEAVECASE);
         return cx->blk_givwhen.leave_op;
     }
 }
