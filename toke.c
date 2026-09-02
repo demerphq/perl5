@@ -8280,6 +8280,12 @@ yyl_just_a_word(pTHX_ char *s, STRLEN len, I32 orig_keyword, struct code c)
        called.  intuit_method returns 0 or > 255.  */
     int key = 1;
 
+    /* The contents of match(...) are pattern syntax.  In particular, the
+     * wildcard is not an ordinary Perl bareword and must remain available
+     * when strict subs is enabled by a version declaration. */
+    if (PL_parser->in_case_pattern && len == 1 && PL_tokenbuf[0] == '_')
+        return yyl_fatcomma(aTHX_ s, len);
+
     if (PL_expect == XOPERATOR) {
         if (PL_bufptr == PL_linestart) {
             CopLINE_dec(PL_curcop);

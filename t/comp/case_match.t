@@ -5,7 +5,7 @@ BEGIN {
     unshift @INC, '../lib';
 }
 
-print "1..46\n";
+print "1..47\n";
 
 my $ran = 0;
 $_ = 'outside';
@@ -624,3 +624,14 @@ print !$@ && $concat_shapes && $sandwich eq 'middle'
     && $leading eq 'middle' && $trailing eq 'middle'
     ? "ok 46 - concatenation supports prefix suffix and sandwich forms\n"
     : "not ok 46 - concatenation supports prefix suffix and sandwich forms\n";
+
+my $strict_wildcard = eval q{
+    use v5.45.3;
+    use feature 'case_match';
+    case (10) {
+        match (_) { 1 }
+    }
+};
+print !$@ && $strict_wildcard
+    ? "ok 47 - wildcard works with strict subs\n"
+    : "not ok 47 - wildcard works with strict subs\n";
