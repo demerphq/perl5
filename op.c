@@ -1811,6 +1811,7 @@ Perl_alloc_LOGOP(pTHX_ I32 type, OP *first, OP* other)
     OpTYPE_set(logop, type);
     logop->op_first = first;
     logop->op_other = other;
+    logop->op_redoop = NULL;
     if (first)
         logop->op_flags = OPf_KIDS;
     while (kid && OpHAS_SIBLING(kid))
@@ -9792,6 +9793,12 @@ Perl_newSTATEOP(pTHX_ I32 flags, char *label, OP *o)
         }
     }
 
+    if (o && o->op_type == OP_LEAVECASE && (o->op_flags & OPf_KIDS)) {
+        OP * const enterop = cUNOPx(o)->op_first;
+        if (enterop && enterop->op_type == OP_ENTERCASE)
+            cLOGOPx(enterop)->op_redoop = (OP *)cop;
+    }
+
     if (flags & OPf_SPECIAL)
         op_null((OP*)cop);
     return op_prepend_elem(OP_LINESEQ, (OP*)cop, o);
@@ -11090,6 +11097,7 @@ S_newBLOCKOP(pTHX_ OP *cond, OP *block,
     enterop = alloc_LOGOP(enter_opcode, block, NULL);
     enterop->op_targ = 0;
     enterop->op_private = 0;
+    enterop->op_redoop = NULL;
 
     o = newUNOP(leave_opcode, 0, (OP *) enterop);
 

@@ -326,6 +326,7 @@ struct logop {
      * To find the structural subtree root (what could be called
      * ->op_otherroot), use OpSIBLING of ->op_first  */
     OP *	op_other;
+    OP *	op_redoop; /* case redo entry point, when present */
 };
 
 struct listop {

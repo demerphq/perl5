@@ -5,7 +5,7 @@ BEGIN {
     unshift @INC, '../lib';
 }
 
-print "1..42\n";
+print "1..43\n";
 
 my $ran = 0;
 $_ = 'outside';
@@ -544,3 +544,24 @@ print !$@ && $empty_default_result && !defined($empty_default_scalar)
     && !@empty_default_list
     ? "ok 42 - empty wildcard default preserves context\n"
     : "not ok 42 - empty wildcard default preserves context\n";
+
+my ($last_label, $next_label, $redo_label) = (0, 0, 0);
+my $label_control = eval q{
+    use feature 'case_match';
+    LABEL_LAST: case (1) {
+        match (1) { $last_label = 1; last LABEL_LAST; $last_label = 2 }
+    }
+    LABEL_NEXT: case (1) {
+        match (1) { $next_label = 1; next LABEL_NEXT; $next_label = 2 }
+    }
+    my $n = 0;
+    LABEL_REDO: case (++$n) {
+        match (1) { redo LABEL_REDO }
+        match (_) { $redo_label = $n }
+    }
+    1;
+};
+print !$@ && $label_control && $last_label == 1 && $next_label == 1
+    && $redo_label == 2
+    ? "ok 43 - labelled case control exits and redoes correctly\n"
+    : "not ok 43 - labelled case control exits and redoes correctly\n";

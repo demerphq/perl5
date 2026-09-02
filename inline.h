@@ -4485,7 +4485,8 @@ Perl_cx_pushcase(pTHX_ PERL_CONTEXT *cx, SV *orig_defsv)
     cx->blk_case.case_dispatch_arm = CASE_DISPATCH_NO_ARM;
     cx->blk_case.case_bindings = NULL;
     cx->blk_case.case_pins = NULL;
-    cx->blk_case.redo_op = cLOGOP->op_first;
+    cx->blk_case.redo_op = cLOGOP->op_redoop
+        ? cLOGOP->op_redoop : cLOGOP->op_first;
 }
 
 

@@ -3370,9 +3370,9 @@ PP(pp_redo)
         rpp_popfree_to_NN(PL_stack_base + cx->blk_oldsp);
         FREETMPS;
         CX_LEAVE_SCOPE(cx);
-        cx_topblock(cx);
-        PL_curcop = cx->blk_oldcop;
-        PERL_ASYNC_CHECK();
+        cx_popcase(cx);
+        cx_popblock(cx);
+        CX_POP(cx);
         return redo_op;
     }
 
@@ -7973,8 +7973,12 @@ PP(pp_leavewhen)
     }
     else {
         PERL_ASYNC_CHECK();
-        assert(cx->blk_case.leave_op->op_type == OP_LEAVECASE);
-        return cx->blk_case.leave_op;
+        if (CxTYPE(cx) == CXt_CASE) {
+            assert(cx->blk_case.leave_op->op_type == OP_LEAVECASE);
+            return cx->blk_case.leave_op;
+        }
+        assert(cx->blk_givwhen.leave_op->op_type == OP_LEAVEGIVEN);
+        return cx->blk_givwhen.leave_op;
     }
 }
 
