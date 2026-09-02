@@ -11246,6 +11246,18 @@ Perl_newGIVENOP(pTHX_ OP *cond, OP *block, PADOFFSET defsv_off)
         0);
 }
 
+/*
+=for apidoc newCASEOP
+
+Constructs and returns an op tree expressing an experimental C<case>
+statement.  C<cond> supplies the subject expression and C<block> supplies
+the case body; both are consumed by this function and become part of the
+constructed op tree.  The resulting tree uses the dedicated case execution
+context and has no given/when fall-through semantics.
+
+=cut
+*/
+
 OP *
 Perl_newCASEOP(pTHX_ OP *cond, OP *block)
 {
