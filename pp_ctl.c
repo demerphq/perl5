@@ -6513,10 +6513,14 @@ S_case_dispatch_strategy(void)
 {
     const char *mode = PerlEnv_getenv("PERL_CASE_DISPATCH");
 
-    if (!mode || strEQ(mode, "auto") || strEQ(mode, "array-linear"))
-        return CASE_DISPATCH_ARRAY_LINEAR;
-    if (strEQ(mode, "array-binary"))
+    /* The hash backend is deliberately retained as a forced benchmarking
+     * mode.  Its key construction and lookup overhead make it a poor default
+     * on the representative workloads, so automatic dispatch uses the
+     * typed, sorted arrays instead. */
+    if (!mode || strEQ(mode, "auto") || strEQ(mode, "array-binary"))
         return CASE_DISPATCH_ARRAY_BINARY;
+    if (strEQ(mode, "array-linear"))
+        return CASE_DISPATCH_ARRAY_LINEAR;
     if (strEQ(mode, "none"))
         return CASE_DISPATCH_NONE;
     if (strEQ(mode, "hv"))
