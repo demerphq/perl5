@@ -2198,7 +2198,7 @@ EXTCONST U32 PL_opargs[] INIT({
 	0x00000100,	/* leavewhen */
 	0x00000f00,	/* casematch */
 	0x00000100,	/* casecoerce */
-	0x00000f00,	/* casedispatch */
+	0x00000f08,	/* casedispatch */
 	0x00000000,	/* break */
 	0x00000000,	/* continue */
 	0x0029640d,	/* open */
