@@ -1467,7 +1467,6 @@ my %unresolved_visibility_overrides = map { $_ => 1 } qw(
     OPpASSIGN_TRUEBOOL
     OPpAVHVSWITCH_MASK
     OPpCONCAT_NESTED
-    OPpCONCAT_PATTERN
     OPpCONST_BARE
     OPpCONST_ENTERED
     OPpCONST_NOVER
@@ -2801,6 +2800,7 @@ my @undocumented_potentially_always_hidden = qw(
 # not be directly usable by XS code
 my %undocumented_always_visible = map { $_ => 1 } qw(
     CXt_CASE
+    OPpCONCAT_PATTERN
     _
     COP_FEATURE_SIZE
     CVf_HasNAME_HEK

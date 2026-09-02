@@ -6257,6 +6257,7 @@ S_case_pattern_mark_concat(pTHX_ OP *pattern, bool in_concat)
 void
 Perl_case_pattern_preserve_concat(pTHX_ OP *pattern)
 {
+    PERL_ARGS_ASSERT_CASE_PATTERN_PRESERVE_CONCAT;
     S_case_pattern_mark_concat(aTHX_ pattern, FALSE);
 }
 
