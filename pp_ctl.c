@@ -6529,7 +6529,14 @@ S_case_dispatch_key(pTHX_ SV *key, SV *value, U8 kind)
 {
     const char *prefix = kind == CASE_PATTERN_SIMPLE_NUM
         ? (SvNOK(value) ? "n:" : "i:") : "s:";
-    sv_setpvn(key, prefix, 2);
+    if (UNLIKELY(!SvPOK(key) || SvLEN(key) < 3))
+        sv_setpvn(key, prefix, 2);
+    else {
+        SvPOK_only(key);
+        Copy(prefix, SvPVX_mutable(key), 2, char);
+        SvCUR_set(key, 2);
+        SvPVX_mutable(key)[2] = '\0';
+    }
     sv_catsv(key, value);
 }
 
