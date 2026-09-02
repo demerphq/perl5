@@ -6509,15 +6509,18 @@ S_case_dispatch_add_nv_bound(struct case_dispatch_aux *dispatch, SV *value)
 }
 
 static U8
-S_case_dispatch_strategy(void)
+S_case_dispatch_strategy(U32 arm_count)
 {
     const char *mode = PerlEnv_getenv("PERL_CASE_DISPATCH");
 
     /* The hash backend is deliberately retained as a forced benchmarking
      * mode.  Its key construction and lookup overhead make it a poor default
-     * on the representative workloads, so automatic dispatch uses the
-     * typed, sorted arrays instead. */
-    if (!mode || strEQ(mode, "auto") || strEQ(mode, "array-binary"))
+     * on the representative workloads, so automatic dispatch uses the typed,
+     * sorted arrays instead. */
+    if (!mode || strEQ(mode, "auto"))
+        return arm_count < 16 ? CASE_DISPATCH_ARRAY_LINEAR
+                              : CASE_DISPATCH_ARRAY_BINARY;
+    if (strEQ(mode, "array-binary"))
         return CASE_DISPATCH_ARRAY_BINARY;
     if (strEQ(mode, "array-linear"))
         return CASE_DISPATCH_ARRAY_LINEAR;
@@ -6638,7 +6641,7 @@ Perl_case_dispatch_compile(pTHX_ OP *body)
         1, sizeof(struct case_dispatch_aux));
     dispatch->magic = CASE_DISPATCH_AUX_MAGIC;
     dispatch->refcnt = 1;
-    dispatch->strategy = S_case_dispatch_strategy();
+    dispatch->strategy = S_case_dispatch_strategy(arm_count);
     dispatch->undef_arm = CASE_DISPATCH_NO_ARM;
     dispatch->bool_arm[0] = CASE_DISPATCH_NO_ARM;
     dispatch->bool_arm[1] = CASE_DISPATCH_NO_ARM;

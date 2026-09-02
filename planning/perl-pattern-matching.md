@@ -116,7 +116,14 @@ The first implementation slice now recognizes eligible complete cases and
 inserts a case-level dispatch opcode.  Its runtime supports a source-order
 array probe, binary search over sorted parallel arrays, and a separate HV
 strategy, with the selected arm recorded in the case context; the existing
-per-arm matcher remains responsible for binding and arm entry.
+per-arm matcher remains responsible for binding and arm entry.  Automatic
+dispatch currently selects linear probing below 16 arms and binary search at
+16 arms or above; the threshold is provisional.  The HV strategy is retained
+as an explicit benchmarking mode because its typed-key construction and hash
+lookup were slower on the representative workloads measured so far.  Small
+pure-constant cases are expected to gain a later compiler lowering to an
+ordinary conditional tree, with the crossover threshold tuned separately for
+the scalar domains rather than treated as a language-visible guarantee.
 `PERL_CASE_DISPATCH=none|array-linear|array-binary|hv|auto` can select the
 currently available modes for development comparisons.  The binary mode uses
 stable value ordering and scans equal values for the earliest source arm.
