@@ -1570,6 +1570,7 @@ static const char * const context_name[] = {
     "eval",
     "substitution",
     "defer block",
+    "case",
 };
 
 static I32

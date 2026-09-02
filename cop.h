@@ -1030,6 +1030,18 @@ struct block_givwhen {
         AV *case_pins;     /* pad indexes and values pinned by with */
 };
 
+/* case/match context.  Unlike block_givwhen, this context has no
+ * fall-through or topicalizer semantics. */
+struct block_case {
+        OP *leave_op;
+        OP *redo_op;
+        SV *subject;
+        bool case_dispatch_active;
+        U32 case_dispatch_arm;
+        AV *case_bindings;
+        AV *case_pins;
+};
+
 
 
 /* context common to subroutines, evals and loops */
@@ -1052,6 +1064,7 @@ struct block {
         struct block_eval	blku_eval;
         struct block_loop	blku_loop;
         struct block_givwhen	blku_givwhen;
+        struct block_case	blku_case;
     } blk_u;
 };
 #define blk_oldsp	cx_u.cx_blk.blku_oldsp
@@ -1068,6 +1081,7 @@ struct block {
 #define blk_eval	cx_u.cx_blk.blk_u.blku_eval
 #define blk_loop	cx_u.cx_blk.blk_u.blku_loop
 #define blk_givwhen	cx_u.cx_blk.blk_u.blku_givwhen
+#define blk_case	cx_u.cx_blk.blk_u.blku_case
 
 #define CX_DEBUG(cx, action)						\
     DEBUG_l(								\
@@ -1183,6 +1197,7 @@ struct context {
 #define CXt_EVAL       11 /* eval'', eval{}, try{} */
 #define CXt_SUBST      12
 #define CXt_DEFER      13
+#define CXt_CASE       14
 /* SUBST doesn't feature in all switch statements.  */
 
 /* private flags for CXt_SUB and CXt_FORMAT */
