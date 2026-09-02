@@ -774,6 +774,13 @@ XS(XS_builtin_import)
             croak(builtin_not_recognised, sym);
 
         if(sympv[0] == ':') {
+            if (strEQ(sympv, ":all")) {
+                for (int j = 0; builtins[j].name; j++)
+                    import_sym(newSVpvn_flags(builtins[j].name,
+                                               strlen(builtins[j].name),
+                                               SVs_TEMP));
+                continue;
+            }
             UV vmajor, vminor;
             if(!S_parse_version(sympv + 1, sympv + symlen, &vmajor, &vminor))
                 croak("Invalid version bundle %" SVf_QUOTEDPREFIX, sym);

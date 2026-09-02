@@ -77,6 +77,11 @@ C<exhausted> predicates are methods on generator objects and functions in the
 C<generator::> package.  The C<generator> pragma enables the feature and makes
 the package interface available.
 
+The C<-E> command-line switch now enables the complete experimental feature
+set and imports the complete builtin set, including the generator syntax and
+its supporting builtins.  This is an XPerl extension to the traditional
+version-bundle behaviour of C<-E>.
+
 =head2 Data::Dumper supports class objects
 
 C<Data::Dumper> can now dump objects created by the experimental C<class>
