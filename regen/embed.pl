@@ -1467,6 +1467,7 @@ my %unresolved_visibility_overrides = map { $_ => 1 } qw(
     OPpASSIGN_TRUEBOOL
     OPpAVHVSWITCH_MASK
     OPpCONCAT_NESTED
+    OPpCONCAT_PATTERN
     OPpCONST_BARE
     OPpCONST_ENTERED
     OPpCONST_NOVER
