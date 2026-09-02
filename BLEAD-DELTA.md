@@ -11,8 +11,8 @@ git diff origin/blead..HEAD
 
 Comparison baseline: `origin/blead` at `a57c5954cbfde062678ff826818742f640b1cf60`.
 
-At the time of this update, the branch is 156 commits ahead of that baseline,
-with 626 changed paths, 45,360 additions, and 3,191 deletions. The changes
+At the time of this update, the branch is 163 commits ahead of that baseline,
+with 628 changed paths, 45,412 additions, and 3,195 deletions. The changes
 include generated files, tests, bundled distributions, documentation, and
 development tooling in addition to the runtime changes described below.
 
@@ -59,6 +59,16 @@ continuations, and cooperative resumable execution. [`pod/perlexperiment.pod`](h
 [`pod/perlfunc.pod`](https://github.com/demerphq/perl5/blob/xperl/main/pod/perlfunc.pod), [`pod/perlsyn.pod`](https://github.com/demerphq/perl5/blob/xperl/main/pod/perlsyn.pod), [`pod/perldiag.pod`](https://github.com/demerphq/perl5/blob/xperl/main/pod/perldiag.pod), and
 [`pod/perldelta.pod`](https://github.com/demerphq/perl5/blob/xperl/main/pod/perldelta.pod) cover the experimental status, keywords, syntax,
 diagnostics, and release notes.
+
+### `-E` enables the XPerl experimental surface
+
+The `-E` command-line switch now enables `feature ':all'` and imports
+`builtin ':all'`. This makes the branch's experimental keywords and builtin
+functions available directly in one-liners and command-line programs, while
+preserving the ordinary `-e` behavior. Experimental functions still retain
+their normal experimental warnings.
+
+Related POD: [`pod/perlrun.pod`](https://github.com/demerphq/perl5/blob/xperl/main/pod/perlrun.pod) documents `-E`; [`lib/builtin.pm`](https://github.com/demerphq/perl5/blob/xperl/main/lib/builtin.pm) documents the `:all` builtin bundle; [`pod/perldelta.pod`](https://github.com/demerphq/perl5/blob/xperl/main/pod/perldelta.pod) records the release-note entry. The command-line regression is in [`t/run/switches.t`](https://github.com/demerphq/perl5/blob/xperl/main/t/run/switches.t).
 
 ### Pattern matching
 
