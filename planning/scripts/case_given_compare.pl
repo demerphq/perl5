@@ -57,7 +57,13 @@ sub case_sub {
 printf "%-16s %10s %12s %13s %13s %10s\n",
     'arms/probes', 'if/else', 'given/when', 'case-none',
     'case-binary', 'case-hv';
-for my $n (2, 4, 8, 16, 32, 64, 128, 256, 512, 1024) {
+my %duration_for = (
+    256  => -2,
+    512  => -4,
+    1024 => -16,
+    2048 => -32,
+);
+for my $n (2, 4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048) {
     my %sub = (
         if_else   => if_sub($n),
         given_when => given_sub($n),
@@ -76,7 +82,7 @@ for my $n (2, 4, 8, 16, 32, 64, 128, 256, 512, 1024) {
             my $runner = $sub{$_};
             ($_ => sub { $runner->($_) for @$probes })
         } keys %sub;
-        my $duration = $n <= 128 ? -1 : -($n / 128);
+        my $duration = $duration_for{$n} // -1;
         my $result = timethese($duration, \%bench, 'none');
         printf "%-16s %10.1f %12.1f %13.1f %13.1f %10.1f\n",
             "$n/$label", map { rate($result->{$_}) * @$probes }
