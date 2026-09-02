@@ -11064,8 +11064,9 @@ S_ref_array_or_hash(pTHX_ OP *cond)
         return cond;
 }
 
-/* These construct the optree fragments representing given()
-   and when() blocks.
+/* Construct the generic enter/body/leave optree wiring used by
+   given/when and case/match.  The opcode-specific runtime semantics
+   belong to the callers; this helper only links the tree.
 
    entergiven and enterwhen are LOGOPs; the op_other pointer
    points up to the associated leave op. We need this so we
@@ -11075,11 +11076,11 @@ S_ref_array_or_hash(pTHX_ OP *cond)
  */
 
 static OP *
-S_newGIVWHENOP(pTHX_ OP *cond, OP *block,
+S_newBLOCKOP(pTHX_ OP *cond, OP *block,
                    I32 enter_opcode, I32 leave_opcode,
                    PADOFFSET entertarg)
 {
-    PERL_ARGS_ASSERT_NEWGIVWHENOP;
+    PERL_ARGS_ASSERT_NEWBLOCKOP;
 
     LOGOP *enterop;
     OP *o;
@@ -11230,7 +11231,7 @@ Perl_newGIVENOP(pTHX_ OP *cond, OP *block, PADOFFSET defsv_off)
     PERL_UNUSED_ARG(defsv_off);
 
     assert(!defsv_off);
-    return newGIVWHENOP(
+    return S_newBLOCKOP(aTHX_
         ref_array_or_hash(cond),
         block,
         OP_ENTERGIVEN, OP_LEAVEGIVEN,
@@ -11242,7 +11243,7 @@ Perl_newCASEOP(pTHX_ OP *cond, OP *block)
 {
     PERL_ARGS_ASSERT_NEWCASEOP;
 
-    return newGIVWHENOP(cond, block, OP_ENTERCASE, OP_LEAVECASE, 0);
+    return S_newBLOCKOP(aTHX_ cond, block, OP_ENTERCASE, OP_LEAVECASE, 0);
 }
 
 /*
@@ -11274,7 +11275,7 @@ Perl_newWHENOP(pTHX_ OP *cond, OP *block)
                 scalar(ref_array_or_hash(cond)));
     }
 
-    return newGIVWHENOP(cond_op, block, OP_ENTERWHEN, OP_LEAVEWHEN, 0);
+    return S_newBLOCKOP(aTHX_ cond_op, block, OP_ENTERWHEN, OP_LEAVEWHEN, 0);
 }
 
 /*

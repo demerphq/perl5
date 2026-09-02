@@ -1033,7 +1033,12 @@ struct block_givwhen {
 /* case/match context.  Unlike block_givwhen, this context has no
  * fall-through or topicalizer semantics. */
 struct block_case {
-        struct block_givwhen givwhen;
+        OP *leave_op;
+        SV *defsv_save;
+        bool case_dispatch_active;
+        U32 case_dispatch_arm;
+        AV *case_bindings;
+        AV *case_pins;
         OP *redo_op;
 };
 

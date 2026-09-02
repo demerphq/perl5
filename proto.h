@@ -11418,10 +11418,10 @@ S_move_proto_attr(pTHX_ OP **proto, OP **attrs, const GV *name, bool curstash)
         Perl_assert_aTHX; assert(proto); assert(attrs); assert(name)
 
 static OP *
-S_newGIVWHENOP(pTHX_ OP *cond, OP *block, I32 enter_opcode, I32 leave_opcode, PADOFFSET entertarg)
+S_newBLOCKOP(pTHX_ OP *cond, OP *block, I32 enter_opcode, I32 leave_opcode, PADOFFSET entertarg)
         Perl_attribute_nonnull_aTHX
         Perl_attribute_nonnull(pTHX_2);
-# define PERL_ARGS_ASSERT_NEWGIVWHENOP          \
+# define PERL_ARGS_ASSERT_NEWBLOCKOP            \
         Perl_assert_aTHX; assert(block)
 
 static OP *

@@ -3309,7 +3309,7 @@ PP(pp_last)
         CX_LEAVE_SCOPE(cx);
         cx_popcase(cx);
         cx_popblock(cx);
-        nextop = cx->blk_case.givwhen.leave_op->op_next;
+        nextop = cx->blk_case.leave_op->op_next;
         CX_POP(cx);
         return nextop;
     }
@@ -3349,7 +3349,7 @@ PP(pp_next)
         cx_popcase(cx);
         cx_popblock(cx);
         {
-            OP * const nextop = cx->blk_case.givwhen.leave_op->op_next;
+            OP * const nextop = cx->blk_case.leave_op->op_next;
             CX_POP(cx);
             return nextop;
         }
@@ -6760,8 +6760,7 @@ S_case_context(pTHX)
     PERL_UNUSED_CONTEXT;
     for (i = cxstack_ix; i >= 0; i--) {
         PERL_CONTEXT *cx = &cxstack[i];
-        if ((CxTYPE(cx) == CXt_GIVEN || CxTYPE(cx) == CXt_CASE)
-            && cx->blk_givwhen.is_case)
+        if (CxTYPE(cx) == CXt_CASE)
             return cx;
     }
     return NULL;
@@ -6770,16 +6769,16 @@ S_case_context(pTHX)
 static void
 S_case_discard_bindings(pTHX_ PERL_CONTEXT *cx)
 {
-    if (cx->blk_givwhen.case_bindings) {
-        SvREFCNT_dec((SV *)cx->blk_givwhen.case_bindings);
-        cx->blk_givwhen.case_bindings = NULL;
+    if (cx->blk_case.case_bindings) {
+        SvREFCNT_dec((SV *)cx->blk_case.case_bindings);
+        cx->blk_case.case_bindings = NULL;
     }
 }
 
 static void
 S_case_commit_bindings(pTHX_ PERL_CONTEXT *cx)
 {
-    AV *bindings = cx->blk_givwhen.case_bindings;
+    AV *bindings = cx->blk_case.case_bindings;
 
     if (!bindings)
         return;
@@ -6789,7 +6788,7 @@ S_case_commit_bindings(pTHX_ PERL_CONTEXT *cx)
 static void
 S_case_rollback_bindings(pTHX_ PERL_CONTEXT *cx)
 {
-    AV *bindings = cx->blk_givwhen.case_bindings;
+    AV *bindings = cx->blk_case.case_bindings;
     SSize_t i;
 
     if (!bindings)
@@ -6831,10 +6830,8 @@ S_case_pattern_match(pTHX_ const struct case_pattern_node *node, SV *value,
         size_t i;
         const PADOFFSET padix = pattern->op_targ;
         PERL_CONTEXT *cx = S_case_context(aTHX);
-        if (cx && (CxTYPE(cx) == CXt_GIVEN || CxTYPE(cx) == CXt_CASE)
-            && cx->blk_givwhen.is_case
-            && cx->blk_givwhen.case_pins) {
-            AV *pins = cx->blk_givwhen.case_pins;
+        if (cx && CxTYPE(cx) == CXt_CASE && cx->blk_case.case_pins) {
+            AV *pins = cx->blk_case.case_pins;
             SSize_t j;
             for (j = 0; j + 1 <= av_len(pins); j += 2) {
                 SV **pinix = av_fetch(pins, j, FALSE);
@@ -7022,8 +7019,8 @@ PP(pp_casematch)
     if (!pattern)
         Perl_croak(aTHX_ "missing compiled case pattern");
     bool matched;
-    if (cx && cx->blk_givwhen.case_dispatch_active && aux->dispatch)
-        matched = aux->dispatch_arm == cx->blk_givwhen.case_dispatch_arm;
+    if (cx && cx->blk_case.case_dispatch_active && aux->dispatch)
+        matched = aux->dispatch_arm == cx->blk_case.case_dispatch_arm;
     else if (aux->kind == CASE_PATTERN_SIMPLE_UNDEF)
         matched = !SvOK(DEFSV);
     else if (aux->kind == CASE_PATTERN_SIMPLE_BOOL)
@@ -7039,8 +7036,7 @@ PP(pp_casematch)
             bindings, &nbindings);
     size_t i;
 
-    if (cx && (CxTYPE(cx) == CXt_GIVEN || CxTYPE(cx) == CXt_CASE)
-        && cx->blk_givwhen.is_case) {
+    if (cx && CxTYPE(cx) == CXt_CASE) {
         S_case_discard_bindings(aTHX_ cx);
         if (matched && nbindings) {
             AV *pending = newAV();
@@ -7049,7 +7045,7 @@ PP(pp_casematch)
                 av_push(pending, newSVsv(PAD_SV(bindings[i].padix)));
                 sv_setsv(PAD_SV(bindings[i].padix), bindings[i].value);
             }
-            cx->blk_givwhen.case_bindings = pending;
+            cx->blk_case.case_bindings = pending;
         }
     }
     else if (matched) {
@@ -7200,7 +7196,7 @@ PP(pp_casedispatch)
         (struct case_dispatch_aux *)cUNOP_AUXx(PL_op)->op_aux;
     U32 best = CASE_DISPATCH_NO_ARM;
 
-    if (!cx || !cx->blk_givwhen.is_case
+    if (!cx || CxTYPE(cx) != CXt_CASE
         || !dispatch || dispatch->magic != CASE_DISPATCH_AUX_MAGIC)
         return NORMAL;
 
@@ -7265,8 +7261,8 @@ PP(pp_casedispatch)
         }
     }
 
-    cx->blk_givwhen.case_dispatch_arm = best;
-    cx->blk_givwhen.case_dispatch_active = TRUE;
+    cx->blk_case.case_dispatch_arm = best;
+    cx->blk_case.case_dispatch_active = TRUE;
     if (best == dispatch->default_arm && dispatch->default_noop
         && dispatch->miss_target)
     {
@@ -7367,8 +7363,7 @@ PP(pp_casewith)
     const OP *child = cUNOPx(PL_op)->op_first;
     SSize_t i;
 
-    if (!cx || (CxTYPE(cx) != CXt_GIVEN && CxTYPE(cx) != CXt_CASE)
-        || !cx->blk_givwhen.is_case)
+    if (!cx || CxTYPE(cx) != CXt_CASE)
         Perl_croak(aTHX_ "case with clause outside case");
     S_case_collect_pin_ops(aTHX_ child, padixes);
     for (i = 0; i <= av_len(padixes); i++) {
@@ -7379,9 +7374,9 @@ PP(pp_casewith)
         av_push(pins, newSVsv(pinvalue));
     }
     SvREFCNT_dec((SV *)padixes);
-    if (cx->blk_givwhen.case_pins)
-        SvREFCNT_dec((SV *)cx->blk_givwhen.case_pins);
-    cx->blk_givwhen.case_pins = pins;
+    if (cx->blk_case.case_pins)
+        SvREFCNT_dec((SV *)cx->blk_case.case_pins);
+    cx->blk_case.case_pins = pins;
     return NORMAL;
 }
 
@@ -7922,8 +7917,7 @@ PP(pp_enterwhen)
         bool tr = SvTRUEx(*PL_stack_sp);
         rpp_popfree_1_NN();
         if (!tr) {
-            if (given && (CxTYPE(given) == CXt_GIVEN || CxTYPE(given) == CXt_CASE)
-                && given->blk_givwhen.is_case)
+            if (given && CxTYPE(given) == CXt_CASE)
                 S_case_rollback_bindings(aTHX_ given);
             if (gimme == G_SCALAR)
                 rpp_push_IMM(&PL_sv_undef);
@@ -7931,8 +7925,7 @@ PP(pp_enterwhen)
         }
     }
 
-    if (given && (CxTYPE(given) == CXt_GIVEN || CxTYPE(given) == CXt_CASE)
-        && given->blk_givwhen.is_case)
+    if (given && CxTYPE(given) == CXt_CASE)
         S_case_commit_bindings(aTHX_ given);
 
     cx = cx_pushblock(CXt_WHEN, gimme, PL_stack_sp, PL_savestack_ix);
@@ -7980,9 +7973,8 @@ PP(pp_leavewhen)
     }
     else {
         PERL_ASYNC_CHECK();
-        assert(cx->blk_givwhen.leave_op->op_type == OP_LEAVEGIVEN
-            || cx->blk_givwhen.leave_op->op_type == OP_LEAVECASE);
-        return cx->blk_givwhen.leave_op;
+        assert(cx->blk_case.leave_op->op_type == OP_LEAVECASE);
+        return cx->blk_case.leave_op;
     }
 }
 
@@ -8031,7 +8023,8 @@ PP(pp_break)
     cx = CX_CUR();
     rpp_popfree_to_NN(PL_stack_base + cx->blk_oldsp);
 
-    return cx->blk_givwhen.leave_op;
+    return CxTYPE(cx) == CXt_CASE
+        ? cx->blk_case.leave_op : cx->blk_givwhen.leave_op;
 }
 
 static void

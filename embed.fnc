@@ -5306,7 +5306,7 @@ S	|void	|move_proto_attr|NN OP **proto				\
 				|NN OP **attrs				\
 				|NN const GV *name			\
 				|bool curstash
-S	|OP *	|newGIVWHENOP	|NULLOK OP *cond			\
+S	|OP *	|newBLOCKOP	|NULLOK OP *cond			\
 				|NN OP *block				\
 				|I32 enter_opcode			\
 				|I32 leave_opcode			\
