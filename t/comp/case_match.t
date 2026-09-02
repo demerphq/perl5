@@ -5,7 +5,7 @@ BEGIN {
     unshift @INC, '../lib';
 }
 
-print "1..43\n";
+print "1..46\n";
 
 my $ran = 0;
 $_ = 'outside';
@@ -565,3 +565,62 @@ print !$@ && $label_control && $last_label == 1 && $next_label == 1
     && $redo_label == 2
     ? "ok 43 - labelled case control exits and redoes correctly\n"
     : "not ok 43 - labelled case control exits and redoes correctly\n";
+
+my ($captured_suffix, $unchanged_suffix, $empty_suffix) = ();
+my $concat_capture = eval q{
+    use feature 'case_match';
+    my $text = 'foo_bar';
+    case ($text) {
+        match ('foo_' . $captured_suffix) { 1 }
+    }
+    $text = 'foo_';
+    case ($text) {
+        match ('foo_' . $empty_suffix) { 1 }
+    }
+    $text = 'not_bar';
+    $unchanged_suffix = 'OLD';
+    case ($text) {
+        match ('foo_' . $unchanged_suffix) { 1 }
+    }
+    1;
+};
+print !$@ && $concat_capture && $captured_suffix eq 'bar'
+    && $empty_suffix eq '' && $unchanged_suffix eq 'OLD'
+    ? "ok 44 - concatenation captures an unpinned suffix\n"
+    : "not ok 44 - concatenation captures an unpinned suffix\n";
+
+my ($pinned_match, $pinned_miss) = (0, 0);
+my $concat_pin = eval q{
+    use feature 'case_match';
+    my $p = 'bar';
+    case ('foo_bar') with ($p) {
+        match ('foo_' . $p) { $pinned_match = $p eq 'bar' }
+    }
+    $p = 'baz';
+    case ('foo_bar') with ($p) {
+        match ('foo_' . $p) { $pinned_miss = 1 }
+    }
+    1;
+};
+print !$@ && $concat_pin && $pinned_match && !$pinned_miss
+    ? "ok 45 - pinned concatenation compares its complete value\n"
+    : "not ok 45 - pinned concatenation compares its complete value\n";
+
+my ($sandwich, $leading, $trailing) = ();
+my $concat_shapes = eval q{
+    use feature 'case_match';
+    case ('xmiddlez') {
+        match ('x' . $sandwich . 'z') { 1 }
+    }
+    case ('middlez') {
+        match ($leading . 'z') { 1 }
+    }
+    case ('xmiddle') {
+        match ('x' . $trailing) { 1 }
+    }
+    1;
+};
+print !$@ && $concat_shapes && $sandwich eq 'middle'
+    && $leading eq 'middle' && $trailing eq 'middle'
+    ? "ok 46 - concatenation supports prefix suffix and sandwich forms\n"
+    : "not ok 46 - concatenation supports prefix suffix and sandwich forms\n";

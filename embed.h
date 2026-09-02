@@ -332,6 +332,7 @@
 #   undef NETDB_R_OBSOLETE
 #   undef new_XPV
 #   undef new_XPVIV
+#   undef OPpCONCAT_PATTERN
 #   undef origin_is_conflicted
 #   undef origin_is_defined
 #   undef origin_is_required
@@ -1294,6 +1295,7 @@
 #   define case_dispatch_free(a)                Perl_case_dispatch_free(aTHX_ a)
 #   define case_pattern_compile(a)              Perl_case_pattern_compile(aTHX_ a)
 #   define case_pattern_free(a)                 Perl_case_pattern_free(aTHX_ a)
+#   define case_pattern_preserve_concat(a)      Perl_case_pattern_preserve_concat(aTHX_ a)
 #   define check_utf8_print(a,b)                Perl_check_utf8_print(aTHX_ a,b)
 #   define closest_cop(a,b,c,d)                 Perl_closest_cop(aTHX_ a,b,c,d)
 #   define cmpchain_extend(a,b,c)               Perl_cmpchain_extend(aTHX_ a,b,c)

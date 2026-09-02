@@ -896,6 +896,7 @@ addbits('concat',
     # so that the first concat's PADTMP (which holds the result of $a.$b)
     # can be reused. Set a flag in this case to help deparse and warn
     # distinguish the cases.
+    7 => qw(OPpCONCAT_PATTERN PATTERN),
     6 => qw(OPpCONCAT_NESTED NESTED),
 );
 

@@ -611,6 +611,14 @@ Perl_case_pattern_free(pTHX_ UNOP_AUX_item *aux)
 #define PERL_ARGS_ASSERT_CASE_PATTERN_FREE      \
         Perl_assert_aTHX
 
+PERL_CALLCONV void
+Perl_case_pattern_preserve_concat(pTHX_ OP *pattern)
+        Perl_attribute_nonnull_aTHX
+        Perl_attribute_nonnull(pTHX_1)
+        __attribute__visibility__("hidden");
+#define PERL_ARGS_ASSERT_CASE_PATTERN_PRESERVE_CONCAT \
+        Perl_assert_aTHX; assert(pattern)
+
 PERL_CALLCONV I32
 Perl_cast_i32(NV f)
         __attribute__warn_unused_result__;

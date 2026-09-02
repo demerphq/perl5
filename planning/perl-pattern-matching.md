@@ -148,7 +148,8 @@ is an ordinary Perl expression and is not yet that predicate.
 
 The implemented first version intentionally stops at scalar, array-reference,
 and hash-reference patterns, lexical captures and pins, guards, the wildcard,
-regex predicates, and explicit scalar subject coercions. Object/class
+regex predicates, explicit scalar subject coercions, and simple
+concatenation patterns. Object/class
 destructuring, regex named captures, alternatives, ranges, optional fields,
 user-defined pattern protocols, and signature dispatch remain follow-up work;
 they are not silently implied by the current implementation.
@@ -328,7 +329,8 @@ not scalar values that can be passed to the planned scalar `case` subject, so
 ### Composite scalar patterns
 
 Patterns may also combine literal scalar fragments with arm-local bindings.
-For strings, this makes common prefix, suffix, and sandwich matches concise:
+For strings, the implemented concatenation form makes common prefix, suffix,
+and sandwich matches concise:
 
 ```perl
 case ($text) {
@@ -346,14 +348,15 @@ text to `$suffix`. The second matches a string beginning with `x` and ending
 with `z`, binding the intervening text to `$inner`. These are pattern
 concatenations, not ordinary concatenations evaluated before matching: a
 literal fragment constrains the subject and an unpinned name captures the
-corresponding fragment. Empty captures should be allowed, so the first form
-also matches exactly `x` and the second also matches `xz`.
+corresponding fragment. Empty captures are allowed, so the first form also
+matches exactly `x` and the second also matches `xz`.
 
-The matching and binding rules for multiple adjacent captures, including how
-ambiguous splits are selected, must be specified before that generalisation
-is implemented. The initial implementation can restrict composite patterns
-to an unambiguous literal/capture arrangement while preserving these basic
-prefix, suffix, and sandwich forms.
+The first implementation supports one unpinned scalar capture surrounded by
+literal fragments. A pinned scalar contributes its existing value instead of
+capturing, so `case ($text) with ($p) { match("x" . $p) { ... } }` compares
+against the complete composed value. Multiple unpinned captures and more
+general expression operands remain follow-up work; they are not silently
+treated as ordinary Perl expressions by the concatenation matcher.
 
 ## Syntax options
 

@@ -407,6 +407,7 @@ bare_statement_match
 		mblock
 		{
 			OP *pattern = $mexpr;
+			case_pattern_preserve_concat(pattern);
 			OP *matchop = newUNOP_AUX(OP_CASEMATCH, 0, scalar(pattern),
 				case_pattern_compile(pattern));
 			OP *condition = matchop;

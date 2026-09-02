@@ -1087,6 +1087,9 @@ S_optimize_op(pTHX_ OP* o)
 
 
         case OP_CONCAT:
+            if (o->op_private & OPpCONCAT_PATTERN)
+                break;
+            /* FALLTHROUGH */
         case OP_SASSIGN:
         case OP_STRINGIFY:
         case OP_SPRINTF:
