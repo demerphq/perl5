@@ -438,8 +438,8 @@ These are a hotchpotch of opcodes still waiting to be considered
     entertrycatch poptry catch leavetrycatch -- similar
 
     entergiven leavegiven
-    enterwhen leavewhen
-    casematch casecoerce casewith
+    enterwhen leavewhen entercase leavecase
+    casematch casecoerce casewith casedispatch
     break continue
     smartmatch
 

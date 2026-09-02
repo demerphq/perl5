@@ -513,7 +513,6 @@ my %unresolved_visibility_overrides = map { $_ => 1 } qw(
     CX_PUSHSUB_GET_LVALUE_MASK
     CxREALEVAL
     cxstack_max
-    CXt_CASE
     CXt_DEFER
     CxTRY
     CxTRYBLOCK
@@ -2766,6 +2765,7 @@ my @pending_documentation_symbols = qw(
 # outside core.  This list exists just to document that decision, so you don't
 # have to go digging through commits.
 my @undocumented_always_hidden = qw(
+    CXt_CASE
 );
 
 # XXX This is a list of symbols that we think there is a good chance they
