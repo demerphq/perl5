@@ -11,8 +11,8 @@ git diff origin/blead..HEAD
 
 Comparison baseline: `origin/blead` at `a57c5954cbfde062678ff826818742f640b1cf60`.
 
-At the time of this update, the branch is 174 commits ahead of that baseline,
-with 622 changed paths, 43,106 additions, and 3,167 deletions. The changes
+At the time of this update, the branch is 156 commits ahead of that baseline,
+with 626 changed paths, 45,360 additions, and 3,191 deletions. The changes
 include generated files, tests, bundled distributions, documentation, and
 development tooling in addition to the runtime changes described below.
 
@@ -68,8 +68,12 @@ pinning, guard, and explicit scalar-conversion patterns.  Pattern bindings
 are tentative until the complete pattern and guard succeed.  The current
 implementation supports exact composite patterns and open array/hash
 patterns using edge ellipses; richer pattern protocols are not yet included.
+Pure constant cases without guards can use specialized constant dispatch,
+including linear-array, binary-search, and hash-based strategies.  These
+strategies preserve source-order semantics and default-arm behavior while
+avoiding a full arm walk for each subject.
 
-Related POD: [`pod/perlcasewhen.pod`](https://github.com/demerphq/perl5/blob/ai-perl/pod/perlcasewhen.pod) is the beginner-oriented feature guide; [`pod/perlsyn.pod`](https://github.com/demerphq/perl5/blob/ai-perl/pod/perlsyn.pod) documents the syntax and current semantics; [`pod/perldiag.pod`](https://github.com/demerphq/perl5/blob/ai-perl/pod/perldiag.pod) documents pattern diagnostics; [`pod/perlexperiment.pod`](https://github.com/demerphq/perl5/blob/ai-perl/pod/perlexperiment.pod) and [`pod/perldelta.pod`](https://github.com/demerphq/perl5/blob/ai-perl/pod/perldelta.pod) cover its experimental status and release notes.  The implementation is tested in [`t/comp/case_match.t`](https://github.com/demerphq/perl5/blob/ai-perl/t/comp/case_match.t), with further design status in [`planning/perl-pattern-matching.md`](https://github.com/demerphq/perl5/blob/ai-perl/planning/perl-pattern-matching.md).
+Related POD: [`pod/perlcasewhen.pod`](https://github.com/demerphq/perl5/blob/xperl/main/pod/perlcasewhen.pod) is the beginner-oriented feature guide; [`pod/perlsyn.pod`](https://github.com/demerphq/perl5/blob/xperl/main/pod/perlsyn.pod) documents the syntax and current semantics; [`pod/perldiag.pod`](https://github.com/demerphq/perl5/blob/xperl/main/pod/perldiag.pod) documents pattern diagnostics; [`pod/perlexperiment.pod`](https://github.com/demerphq/perl5/blob/xperl/main/pod/perlexperiment.pod) and [`pod/perldelta.pod`](https://github.com/demerphq/perl5/blob/xperl/main/pod/perldelta.pod) cover its experimental status and release notes.  The implementation is tested in [`t/comp/case_match.t`](https://github.com/demerphq/perl5/blob/xperl/main/t/comp/case_match.t), with further design status in [`planning/perl-pattern-matching.md`](https://github.com/demerphq/perl5/blob/xperl/main/planning/perl-pattern-matching.md). Dispatch behavior is measured by [`planning/scripts/case_dispatch_compare.pl`](https://github.com/demerphq/perl5/blob/xperl/main/planning/scripts/case_dispatch_compare.pl), [`planning/scripts/case_dispatch_weight.pl`](https://github.com/demerphq/perl5/blob/xperl/main/planning/scripts/case_dispatch_weight.pl), and [`planning/scripts/case_given_compare.pl`](https://github.com/demerphq/perl5/blob/xperl/main/planning/scripts/case_given_compare.pl).
 
 ### Lexical namespaces
 
