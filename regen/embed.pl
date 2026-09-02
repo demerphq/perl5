@@ -2765,7 +2765,6 @@ my @pending_documentation_symbols = qw(
 # outside core.  This list exists just to document that decision, so you don't
 # have to go digging through commits.
 my @undocumented_always_hidden = qw(
-    CXt_CASE
 );
 
 # XXX This is a list of symbols that we think there is a good chance they
@@ -2800,6 +2799,7 @@ my @undocumented_potentially_always_hidden = qw(
 # part have a trailing underscore, indicating the intent for this symbol to
 # not be directly usable by XS code
 my %undocumented_always_visible = map { $_ => 1 } qw(
+    CXt_CASE
     _
     COP_FEATURE_SIZE
     CVf_HasNAME_HEK
