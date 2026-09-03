@@ -251,7 +251,7 @@ struct case_pattern_aux {
     OP *pattern; /* retained pattern tree; it is not executed by CASEMATCH */
     struct case_pattern_node *root;
     struct case_dispatch_aux *dispatch;
-    U32 dispatch_arm;
+    U32 dispatch_clause;
 };
 
 #define CASE_PATTERN_AUX_MAGIC ((U32)0x43504154) /* "CPAT" */
@@ -265,7 +265,7 @@ enum {
 };
 
 #define CASE_DISPATCH_AUX_MAGIC ((U32)0x43444953) /* "CDIS" */
-#define CASE_DISPATCH_NO_ARM ((U32)-1)
+#define CASE_DISPATCH_NO_CLAUSE ((U32)-1)
 enum {
     CASE_DISPATCH_NONE,
     CASE_DISPATCH_ARRAY_LINEAR,
@@ -273,18 +273,18 @@ enum {
     CASE_DISPATCH_HV
 };
 
-/* The arrays are parallel: the value at an index selects the arm at the
+/* The arrays are parallel: the value at an index selects the clause at the
  * same index.  The arrays themselves are ordinary Perl AVs so their values
  * remain visible to the normal ownership and cloning machinery. */
 struct case_dispatch_aux {
     U32 magic;
     U32 refcnt;
     U8 strategy;
-    U32 undef_arm;
-    U32 bool_arm[2];
-    U32 default_arm;
-    U32 arm_count;
-    OP **arm_targets;
+    U32 undef_clause;
+    U32 bool_clause[2];
+    U32 default_clause;
+    U32 clause_count;
+    OP **clause_targets;
     OP *miss_target;
     bool default_noop;
     bool iv_has_bounds;
@@ -298,11 +298,11 @@ struct case_dispatch_aux {
     NV nv_min;
     NV nv_max;
     AV *iv_values;
-    AV *iv_arms;
+    AV *iv_clauses;
     AV *nv_values;
-    AV *nv_arms;
+    AV *nv_clauses;
     AV *pv_values;
-    AV *pv_arms;
+    AV *pv_clauses;
     HV *iv_table;
     HV *nv_table;
     HV *pv_table;

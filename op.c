@@ -10190,7 +10190,7 @@ Perl_newCONDOP(pTHX_ I32 flags, OP *first, OP *trueop, OP *falseop)
     }
 
     if ((cstop = search_const(first))) {
-        /* Left or right arm of the conditional?  */
+        /* Left or right clause of the conditional?  */
         const bool left = SvTRUE(cSVOPx(cstop)->op_sv);
         OP *live = left ? trueop : falseop;
         OP *const dead = left ? falseop : trueop;
@@ -11130,7 +11130,7 @@ S_newBLOCKOP(pTHX_ OP *cond, OP *block,
     return o;
 }
 
-/* Construct a case/match arm without routing its construction through the
+/* Construct a case/match clause without routing its construction through the
  * legacy given/when block builder.  Keep this mechanically similar to the
  * generic builder above, but deliberately independent: case/match owns its
  * optree shape and can evolve without changing switch semantics. */
@@ -11309,10 +11309,10 @@ Perl_newCASEOP(pTHX_ OP *cond, OP *block)
 /*
 =for apidoc newCASEMATCHOP
 
-Constructs and returns an op tree expressing a C<case> match arm.  C<cond>
-supplies the already-compiled data-shape test and C<block> supplies the arm
+Constructs and returns an op tree expressing a C<case> match clause.  C<cond>
+supplies the already-compiled data-shape test and C<block> supplies the clause
 body; both are consumed by this function.  The resulting tree has dedicated
-case/match arm operations and does not apply given/when semantics.
+case/match clause operations and does not apply given/when semantics.
 
 =cut
 */

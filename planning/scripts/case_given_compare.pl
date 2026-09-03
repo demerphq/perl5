@@ -26,14 +26,14 @@ sub if_sub {
 
 sub given_sub {
     my ($n) = @_;
-    my $arms = join '', map {
+    my $clauses = join '', map {
         my $value = 2 * ($_ + 1);
         "when ($value) { \$sink++ }\n"
     } 0 .. $n - 1;
     my $sub = eval qq{
         use feature 'switch';
         no warnings 'experimental::smartmatch';
-        sub { my (\$x) = \@_; for (1 .. 100) { given (\$x) { $arms default { \$sink++ } } } }
+        sub { my (\$x) = \@_; for (1 .. 100) { given (\$x) { $clauses default { \$sink++ } } } }
     };
     die "$@\n" unless $sub;
     return $sub;
@@ -41,21 +41,21 @@ sub given_sub {
 
 sub case_sub {
     my ($mode, $n) = @_;
-    my $arms = join '', map {
+    my $clauses = join '', map {
         my $value = 2 * ($_ + 1);
         "match ($value) { \$sink++ }\n"
     } 0 .. $n - 1;
     local $ENV{PERL_CASE_DISPATCH} = $mode;
     my $sub = eval qq{
         use feature 'case_match';
-        sub { my (\$x) = \@_; for (1 .. 100) { case (\$x) { $arms match (_) { \$sink++ } } } }
+        sub { my (\$x) = \@_; for (1 .. 100) { case (\$x) { $clauses match (_) { \$sink++ } } } }
     };
     die "$@\n" unless $sub;
     return $sub;
 }
 
 printf "%-16s %10s %12s %13s %13s %10s\n",
-    'arms/probes', 'if/else', 'given/when', 'case-none',
+    'clauses/probes', 'if/else', 'given/when', 'case-none',
     'case-binary', 'case-hv';
 my %duration_for = (
     256  => -2,

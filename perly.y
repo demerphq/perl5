@@ -409,7 +409,7 @@ bare_statement_match
 		mblock
 		{
 			if (!parser->in_case_match_stmtseq) {
-				yyerror("match arms are only allowed directly in a case");
+				yyerror("match clauses are only allowed directly in a case");
 				YYERROR;
 			}
 			OP *pattern = $mexpr;
@@ -491,7 +491,7 @@ case_mblock
 				}
 			}
 			if (invalid) {
-				yyerror("only match arms are allowed directly in a case");
+				yyerror("only match clauses are allowed directly in a case");
 				YYERROR;
 			}
 		}

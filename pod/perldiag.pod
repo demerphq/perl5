@@ -1071,9 +1071,9 @@ but then $foo no longer contains a glob.
 (F) You called C<continue>, but you're not inside a C<when>
 or C<default> block.
 
-=item case/match arm outside a case
+=item case/match clause outside a case
 
-(F) A case/match arm was executed without an enclosing C<case> block.
+(F) A case/match clause was executed without an enclosing C<case> block.
 
 
 =item can't convert empty path
@@ -1693,11 +1693,11 @@ end.
 (P) The case matcher was executed without the compiled pattern representation
 created by the compiler.  This indicates an internal error.
 
-=item only match arms are allowed directly in a case
+=item only match clauses are allowed directly in a case
 
 (F) A C<case> body contained a statement other than a direct C<match>
-arm.  Ordinary Perl statements are allowed inside the body of a match
-arm, but not directly in the case body.
+clause.  Ordinary Perl statements are allowed inside the body of a match
+clause, but not directly in the case body.
 
 =item Can't return %s to lvalue scalar context
 

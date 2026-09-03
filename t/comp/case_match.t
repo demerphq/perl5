@@ -25,13 +25,13 @@ print $@ ? "ok 2 - feature gated\n" : "not ok 2 - feature gated\n";
 my $nested = eval q{
     use feature 'case_match';
     case (2) {
-        match (1) { die 'wrong arm'; }
+        match (1) { die 'wrong clause'; }
         match (2) { $ran = 2; }
     }
     1;
 };
-print !$@ && $nested && $ran == 2 ? "ok 3 - multiple arms\n"
-                                  : "not ok 3 - multiple arms\n";
+print !$@ && $nested && $ran == 2 ? "ok 3 - multiple clauses\n"
+                                  : "not ok 3 - multiple clauses\n";
 print $_ eq 'outside' ? "ok 4 - does not leak $_\n"
                       : "not ok 4 - does not leak $_\n";
 
@@ -205,10 +205,10 @@ my $snapshot = eval q{
 print !$@ && $snapshot && $changed && $CaseMatch::Tie::fetches == 1
     ? "ok 17 - subject fetched once\n"
     : "not ok 17 - subject fetched once\n";
-print $subject == 7 ? "ok 18 - arm can write subject\n"
-                    : "not ok 18 - arm can write subject\n";
+print $subject == 7 ? "ok 18 - clause can write subject\n"
+                    : "not ok 18 - clause can write subject\n";
 
-my $arm_result = eval q{
+my $clause_result = eval q{
     use feature 'case_match';
     do {
         case (1) {
@@ -216,11 +216,11 @@ my $arm_result = eval q{
         }
     }
 };
-print !$@ && defined($arm_result) && $arm_result == 42
-    ? "ok 19 - case returns the arm's last expression\n"
-    : "not ok 19 - case returns the arm's last expression\n";
+print !$@ && defined($clause_result) && $clause_result == 42
+    ? "ok 19 - case returns the clause's last expression\n"
+    : "not ok 19 - case returns the clause's last expression\n";
 
-my @arm_result = eval q{
+my @clause_result = eval q{
     use feature 'case_match';
     do {
         case (1) {
@@ -228,7 +228,7 @@ my @arm_result = eval q{
         }
     }
 };
-print !$@ && @arm_result == 2 && $arm_result[0] == 7 && $arm_result[1] == 42
+print !$@ && @clause_result == 2 && $clause_result[0] == 7 && $clause_result[1] == 42
     ? "ok 20 - case preserves list context\n"
     : "not ok 20 - case preserves list context\n";
 
@@ -256,14 +256,14 @@ my $default = eval q{
     use feature 'case_match';
     do {
         case ('other') {
-            match ('expected') { die 'wrong arm'; }
+            match ('expected') { die 'wrong clause'; }
             match (_) { 99 }
         }
     }
 };
 print !$@ && defined($default) && $default == 99
-    ? "ok 22 - wildcard arm is the default\n"
-    : "not ok 22 - wildcard arm is the default\n";
+    ? "ok 22 - wildcard clause is the default\n"
+    : "not ok 22 - wildcard clause is the default\n";
 
 my $named_subject = eval q{
     use feature qw(case_match namespaces);
@@ -295,7 +295,7 @@ my $guard_fallback = eval q{
     use feature 'case_match';
     do {
         case ([1]) {
-            match ([$guard_capture] if $guard_capture == 2) { die 'wrong arm'; }
+            match ([$guard_capture] if $guard_capture == 2) { die 'wrong clause'; }
             match (_) { 88 }
         }
     }
@@ -355,11 +355,11 @@ my $ordinary_case_statement = eval q{
         match (1) { 2 }
     }
 };
-print $@ =~ /only match arms are allowed directly in a case/
+print $@ =~ /only match clauses are allowed directly in a case/
     ? "ok 30 - case body rejects ordinary statements\n"
     : "not ok 30 - case body rejects ordinary statements\n";
 
-my $ordinary_arm_block = eval q{
+my $ordinary_clause_block = eval q{
     use feature 'case_match';
     case (1) {
         match (1) {
@@ -371,11 +371,11 @@ my $ordinary_arm_block = eval q{
         }
     }
 };
-print !$@ && defined($ordinary_arm_block) && $ordinary_arm_block == 3
-    ? "ok 31 - match arm retains ordinary block syntax\n"
-    : "not ok 31 - match arm retains ordinary block syntax\n";
+print !$@ && defined($ordinary_clause_block) && $ordinary_clause_block == 3
+    ? "ok 31 - match clause retains ordinary block syntax\n"
+    : "not ok 31 - match clause retains ordinary block syntax\n";
 
-my $nested_case_in_arm = eval q{
+my $nested_case_in_clause = eval q{
     use feature 'case_match';
     my $value;
     case (1) {
@@ -387,19 +387,19 @@ my $nested_case_in_arm = eval q{
     }
     $value;
 };
-print !$@ && defined($nested_case_in_arm) && $nested_case_in_arm == 7
-    ? "ok 32 - nested case is valid inside an arm\n"
-    : "not ok 32 - nested case is valid inside an arm\n";
+print !$@ && defined($nested_case_in_clause) && $nested_case_in_clause == 7
+    ? "ok 32 - nested case is valid inside a clause\n"
+    : "not ok 32 - nested case is valid inside a clause\n";
 
-my $nested_case_as_arm = eval q{
+my $nested_case_as_clause = eval q{
     use feature 'case_match';
     case (1) {
         case (1) { match (1) { 7 } }
     }
 };
-print $@ =~ /only match arms are allowed directly in a case/
-    ? "ok 33 - nested case is not an arm\n"
-    : "not ok 33 - nested case is not an arm\n";
+print $@ =~ /only match clauses are allowed directly in a case/
+    ? "ok 33 - nested case is not a clause\n"
+    : "not ok 33 - nested case is not a clause\n";
 
 my ($coerced_int, $coerced_float, $coerced_string) = (0, 0, 0);
 my ($coerced_undef, $coerced_ref) = (0, 0);
@@ -677,8 +677,8 @@ my $implicit_bindings;
 }
 print !$@ && $implicit_bindings && !@pattern_warnings
     && $scope_label eq 'whatzit' && $scope_p == 1 && $scope_q == 2
-    ? "ok 48 - pattern names are implicit arm-local bindings\n"
-    : "not ok 48 - pattern names are implicit arm-local bindings\n";
+    ? "ok 48 - pattern names are implicit clause-local bindings\n"
+    : "not ok 48 - pattern names are implicit clause-local bindings\n";
 
 my $match_outside_case = eval q{
     use feature 'case_match';

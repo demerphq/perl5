@@ -882,9 +882,9 @@ alternative to the older C<given>/C<when> construct.  It is enabled with
 
     use feature 'case_match';
 
-A C<case> evaluates its subject once and tries its C<match> arms in source
-order.  The first matching arm runs; there is no fall-through.  The wildcard
-data shape C<_> matches any value and is useful as a final arm:
+A C<case> evaluates its subject once and tries its C<match> clauses in source
+order.  The first matching clause runs; there is no fall-through.  The wildcard
+data shape C<_> matches any value and is useful as a final clause:
 
     case ($value) {
         match ([$first, $second]) { use_pair($first, $second) }
@@ -899,7 +899,7 @@ C<FloatVal>, or C<StrVal>:
     }
 
 These forms apply integer, floating-point, or string conversion to the
-subject once, before any arm is tested.  The type word is part of the case
+subject once, before any clause is tested.  The type word is part of the case
 syntax, not a call to a user-defined function.  It applies to the complete
 subject expression, so these two forms are equivalent:
 

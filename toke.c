@@ -10752,10 +10752,10 @@ S_pending_ident(pTHX)
     assert(tokenbuf_len >= 2);
 
     /* A scalar name in a case pattern is a pattern binding, not an access to
-     * an ordinary Perl lexical.  The surrounding match arm already supplies
+     * an ordinary Perl lexical.  The surrounding match clause already supplies
      * the lexical scope.  Keep a small parser-local name map so repeated
      * occurrences of a binding refer to the same pad entry, while using
-     * padadd_NO_DUP_CHECK to make an arm-local binding quiet when it shadows
+     * padadd_NO_DUP_CHECK to make a clause-local binding quiet when it shadows
      * a lexical in the surrounding scope. */
     if (PL_parser->in_case_pattern
         && !has_colon

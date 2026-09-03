@@ -1025,7 +1025,7 @@ struct block_givwhen {
         SV *defsv_save; /* the original $_ */
         bool is_case;
         bool case_dispatch_active;
-        U32 case_dispatch_arm;
+        U32 case_dispatch_clause;
         AV *case_bindings; /* old pad values for tentative bindings */
         AV *case_pins;     /* pad indexes and values pinned by with */
 };
@@ -1036,14 +1036,14 @@ struct block_case {
         OP *leave_op;
         SV *defsv_save;
         bool case_dispatch_active;
-        U32 case_dispatch_arm;
+        U32 case_dispatch_clause;
         AV *case_bindings;
         AV *case_pins;
         OP *redo_op;
 };
 
-/* case/match arm context.  This is deliberately separate from the
- * given/when arm context. */
+/* case/match clause context.  This is deliberately separate from the
+ * given/when clause context. */
 struct block_casematch {
         OP *leave_op;
 };

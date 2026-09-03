@@ -30,7 +30,7 @@
 #   undef blk_case
 #   undef blk_casematch
 #   undef CASE_DISPATCH_AUX_MAGIC
-#   undef CASE_DISPATCH_NO_ARM
+#   undef CASE_DISPATCH_NO_CLAUSE
 #   undef CASE_PATTERN_AUX_MAGIC
 #   undef CC_MAGICAL_
 #   undef CC_UNDERSCORE_

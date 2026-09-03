@@ -23,7 +23,7 @@ The branch currently provides:
 - simple string concatenation patterns with one scalar capture, including
   prefix, suffix, sandwich, pinned, and empty captures;
 - unrestricted ordinary Perl guards inside `match (...)`;
-- labels and ordinary block control flow in arm bodies;
+- labels and ordinary block control flow in clause bodies;
 - constant-only dispatch using linear arrays, binary search, or an HV lookup,
   with development selection through `PERL_CASE_DISPATCH`;
 - domain metadata and min/max rejection for string lengths, integer values,
@@ -52,20 +52,20 @@ The preferred target is a case-specific structure equivalent to:
 
 ```text
 entercase
-    casedispatch or ordered arm tests
-        arm body
+    casedispatch or ordered clause tests
+        clause body
 leavecase
 ```
 
 Requirements:
 
 - no implicit fall-through;
-- exactly one arm runs;
+- exactly one clause runs;
 - the case behaves as a labelled block;
 - `last LABEL` exits the case;
 - `next LABEL` leaves the current case execution and enters the next labelled
   iteration when the surrounding construct gives it loop semantics;
-- `redo LABEL` restarts the labelled case subject evaluation and arm search;
+- `redo LABEL` restarts the labelled case subject evaluation and clause search;
 - nested cases do not corrupt the outer case context;
 - legacy `given`/`when` behavior remains unchanged.
 
@@ -85,7 +85,7 @@ The pattern auxiliary tree must have clear ownership rules for every retained
 - threaded cloning must duplicate or share each retained value correctly;
 - destruction must release every owned binding and auxiliary value exactly
   once;
-- temporary values created while matching must not leak on failed arms,
+- temporary values created while matching must not leak on failed clauses,
   failed guards, exceptions, or nested backtracking.
 
 The simple concatenation implementation currently marks concat operations so
@@ -95,16 +95,16 @@ ownership/regression test.
 
 ### 3. Clarify and enforce duplicate rules
 
-For pure constant cases, duplicate values cannot select different arms: only
-the earliest source arm is reachable.  The implementation currently retains
-the earliest arm for dispatch purposes.  Decide and implement the user-facing
+For pure constant cases, duplicate values cannot select different clauses: only
+the earliest source clause is reachable.  The implementation currently retains
+the earliest clause for dispatch purposes.  Decide and implement the user-facing
 rule:
 
-- either reject duplicate constant arms at compile time;
-- or emit an experimental warning while preserving first-arm semantics;
-- or document silent first-arm deduplication as intentional.
+- either reject duplicate constant clauses at compile time;
+- or emit an experimental warning while preserving first-clause semantics;
+- or document silent first-clause deduplication as intentional.
 
-Guarded and dynamic arms must not be deduplicated because their evaluation may
+Guarded and dynamic clauses must not be deduplicated because their evaluation may
 have side effects and their guards can distinguish otherwise equal patterns.
 The diagnostic should identify the duplicate pattern and, where practical,
 both source locations.
@@ -115,7 +115,7 @@ both source locations.
 
 Keep the array and HV strategies distinct:
 
-- array strategy: typed value arrays plus parallel arm-index arrays;
+- array strategy: typed value arrays plus parallel clause-index arrays;
 - HV strategy: canonical typed key construction followed by HV lookup;
 - neither strategy should construct data structures belonging to the other;
 - all retained values should use normal Perl-owned `AV`/`SV` structures where
@@ -136,11 +136,11 @@ Absent domains must not be represented by ambiguous zero values.  IV and UV
 
 ### 5. Improve dispatch selection
 
-The current automatic policy is provisional: linear probing below 16 arms and
-binary search at 16 arms or above.  Benchmark and tune the crossover by:
+The current automatic policy is provisional: linear probing below 16 clauses and
+binary search at 16 clauses or above.  Benchmark and tune the crossover by:
 
 - scalar domain;
-- arm count, including 2 through at least 2048;
+- clause count, including 2 through at least 2048;
 - first, middle, and last hits;
 - misses below the minimum, above the maximum, and inside the range;
 - short and long strings;
@@ -169,7 +169,7 @@ optree when it is faster than the generic case machinery.  The generated
 structure must preserve:
 
 - typed constant semantics;
-- first-arm behavior after duplicate handling;
+- first-clause behavior after duplicate handling;
 - wildcard/default placement, including a default in the middle;
 - miss behavior;
 - case result context;
@@ -178,7 +178,7 @@ structure must preserve:
 
 The generated tree should be visible to `B::Deparse` as the corresponding
 conditional structure when deparsing at the relevant level.  Choose a subject
-temporary that cannot collide with names used by the case or arm bodies, and
+temporary that cannot collide with names used by the case or clause bodies, and
 ensure its lifetime covers the complete generated conditional.
 
 Do not lower cases containing dynamic patterns, captures, pins, guards, or
@@ -245,7 +245,7 @@ These remain deliberately deferred until the current foundation is stable:
 - richer array slurps and multiple variable-length captures;
 - user-defined pattern protocols;
 - signature and function-head dispatch;
-- expression-valued or arrow-form arms.
+- expression-valued or arrow-form clauses.
 
 Each form needs grammar, binding, rollback, context, error, and optimizer
 rules before implementation.
@@ -254,21 +254,21 @@ rules before implementation.
 
 ### 11. Context and result behavior
 
-Test every supported pattern and arm form in scalar, list, and void context.
+Test every supported pattern and clause form in scalar, list, and void context.
 Confirm that:
 
-- the selected arm supplies the `case` result;
+- the selected clause supplies the `case` result;
 - scalar/list behavior is ordinary Perl behavior;
 - no-match returns `undef` in scalar context and an empty list in list
   context;
-- an empty result from a matched arm is distinguishable from no match only by
+- an empty result from a matched clause is distinguishable from no match only by
   the documented result/context rules;
 - subject evaluation and pattern evaluation do not accidentally change
   context.
 
 ### 12. Exception and cleanup behavior
 
-Verify nested and outer `eval`, `die` in subjects, patterns, guards, and arm
+Verify nested and outer `eval`, `die` in subjects, patterns, guards, and clause
 bodies, plus exceptions during cleanup and destruction.  Confirm:
 
 - tentative bindings roll back on every failure path;
@@ -284,12 +284,12 @@ Expand tests for:
 - tied scalar, array, and hash subjects;
 - overloaded values;
 - read callbacks occurring only as specified;
-- writes from an arm to the original subject;
+- writes from a clause to the original subject;
 - aliases and references preserving identity;
 - localization and destruction of bound values;
-- mutation of the subject from the arm and its effect on later code.
+- mutation of the subject from the clause and its effect on later code.
 
-The case subject should be fetched once for matching, while the arm body must
+The case subject should be fetched once for matching, while the clause body must
 still be able to modify the original lvalue.
 
 ### 14. Threaded and cloning support

@@ -350,8 +350,8 @@ entergiven	given()			ck_null		d|
 leavegiven	leave given block	ck_null		1
 entercase	case()			ck_null		d|
 leavecase	leave case block	ck_null		1
-entercasematch	case/match arm()		ck_null		d|
-leavecasematch	leave case/match arm	ck_null		1
+entercasematch	case/match clause()		ck_null		d|
+leavecasematch	leave case/match clause	ck_null		1
 enterwhen	when()			ck_null		d|
 leavewhen	leave when block	ck_null		1
 casematch	case pattern match	ck_null		+
