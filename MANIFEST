@@ -6362,7 +6362,7 @@ pod/perldebug.pod			Perl debugging
 pod/perldelta.pod			Perl changes since previous version
 pod/perldeprecation.pod			Perl deprecations
 pod/perldiag.pod			Perl diagnostic messages
-pod/perldispatch.pod			Experimental dispatch and data-shape matching syntax
+pod/perldispatch.pod			Experimental dispatch and data-shape syntax
 pod/perldocstyle.pod			Perl style guide for core docs
 pod/perldsc.pod				Perl data structures intro
 pod/perldtrace.pod			Perl's support for DTrace
