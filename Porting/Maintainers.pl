@@ -129,7 +129,7 @@ our @IGNORABLE = qw(
 our %Modules = (
 
     'XPerl generators' => {
-        'FILES'      => q[lib/generator.pm],
+        'FILES'      => q[lib/generator.pm lib/iterator.pm],
         'MAINTAINER' => 'XPERL',
         'UPSTREAM'   => 'blead',
     },
