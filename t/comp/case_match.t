@@ -5,7 +5,7 @@ BEGIN {
     unshift @INC, '../lib';
 }
 
-print "1..47\n";
+print "1..48\n";
 
 my $ran = 0;
 $_ = 'outside';
@@ -65,25 +65,27 @@ my $wildcard = eval q{
 };
 print !$@ && $wildcard ? "ok 6 - wildcard\n" : "not ok 6 - wildcard\n";
 
-my ($first, $second);
+my ($first, $second, $nested_first, $nested_second);
 my $nested = eval q{
     use feature 'case_match';
     case ([ { foo => 1 }, { foo => 2 } ]) {
-        match ([ { foo => $first }, { foo => $second } ]) { 1; }
+        match ([ { foo => $first }, { foo => $second } ]) {
+            $nested_first = $first;
+            $nested_second = $second;
+            1;
+        }
     }
 };
-print !$@ && $nested && $first == 1 && $second == 2
+print !$@ && $nested && $nested_first == 1 && $nested_second == 2
     ? "ok 7 - nested captures\n" : "not ok 7 - nested captures\n";
 
 my $rollback = eval q{
     use feature 'case_match';
-    undef $first;
-    undef $second;
     case ([ { foo => 1 }, { bar => 2 } ]) {
         match ([ { foo => $first }, { foo => $second } ]) { 1; }
     }
 };
-print !$@ && !defined($first) && !defined($second)
+print !$@ && !defined($rollback)
     ? "ok 8 - failed match rolls back\n"
     : "not ok 8 - failed match rolls back\n";
 
@@ -118,27 +120,35 @@ print !$@ && $open_prefix ? "ok 11 - open prefix pattern\n"
                           : "not ok 11 - open prefix pattern\n";
 
 my $subsequence;
+my $subsequence_result;
 my $open_both = eval q{
     use feature 'case_match';
     case ([ 0, 'foo', 10, 'bar', 20, 'foo', 30, 'bar' ]) {
-        match ([ ..., 'foo', $subsequence, 'bar', ... ]) { 1; }
+        match ([ ..., 'foo', $subsequence, 'bar', ... ]) {
+            $subsequence_result = $subsequence;
+            1;
+        }
     }
     1;
 };
-print !$@ && $open_both && $subsequence == 10
+print !$@ && $open_both && $subsequence_result == 10
     ? "ok 12 - leftmost subsequence pattern\n"
     : "not ok 12 - leftmost subsequence pattern\n";
 
 my $nested_open;
 my $nested_value;
+my $nested_value_result;
 my $nested_open_ok = eval q{
     use feature 'case_match';
     case ([ { foo => 1 }, { foo => 2 }, { foo => 3 } ]) {
-        match ([ { foo => $nested_value }, ... ]) { $nested_open = 1; }
+        match ([ { foo => $nested_value }, ... ]) {
+            $nested_open = 1;
+            $nested_value_result = $nested_value;
+        }
     }
     1;
 };
-print !$@ && $nested_open_ok && $nested_open && $nested_value == 1
+print !$@ && $nested_open_ok && $nested_open && $nested_value_result == 1
     ? "ok 13 - nested open pattern\n"
     : "not ok 13 - nested open pattern\n";
 
@@ -567,15 +577,20 @@ print !$@ && $label_control && $last_label == 1 && $next_label == 1
     : "not ok 43 - labelled case control exits and redoes correctly\n";
 
 my ($captured_suffix, $unchanged_suffix, $empty_suffix) = ();
+my ($captured_suffix_result, $empty_suffix_result);
 my $concat_capture = eval q{
     use feature 'case_match';
     my $text = 'foo_bar';
     case ($text) {
-        match ('foo_' . $captured_suffix) { 1 }
+        match ('foo_' . $captured_suffix) {
+            $captured_suffix_result = $captured_suffix;
+        }
     }
     $text = 'foo_';
     case ($text) {
-        match ('foo_' . $empty_suffix) { 1 }
+        match ('foo_' . $empty_suffix) {
+            $empty_suffix_result = $empty_suffix;
+        }
     }
     $text = 'not_bar';
     $unchanged_suffix = 'OLD';
@@ -584,8 +599,8 @@ my $concat_capture = eval q{
     }
     1;
 };
-print !$@ && $concat_capture && $captured_suffix eq 'bar'
-    && $empty_suffix eq '' && $unchanged_suffix eq 'OLD'
+print !$@ && $concat_capture && $captured_suffix_result eq 'bar'
+    && $empty_suffix_result eq '' && $unchanged_suffix eq 'OLD'
     ? "ok 44 - concatenation captures an unpinned suffix\n"
     : "not ok 44 - concatenation captures an unpinned suffix\n";
 
@@ -607,21 +622,22 @@ print !$@ && $concat_pin && $pinned_match && !$pinned_miss
     : "not ok 45 - pinned concatenation compares its complete value\n";
 
 my ($sandwich, $leading, $trailing) = ();
+my ($sandwich_result, $leading_result, $trailing_result);
 my $concat_shapes = eval q{
     use feature 'case_match';
     case ('xmiddlez') {
-        match ('x' . $sandwich . 'z') { 1 }
+        match ('x' . $sandwich . 'z') { $sandwich_result = $sandwich }
     }
     case ('middlez') {
-        match ($leading . 'z') { 1 }
+        match ($leading . 'z') { $leading_result = $leading }
     }
     case ('xmiddle') {
-        match ('x' . $trailing) { 1 }
+        match ('x' . $trailing) { $trailing_result = $trailing }
     }
     1;
 };
-print !$@ && $concat_shapes && $sandwich eq 'middle'
-    && $leading eq 'middle' && $trailing eq 'middle'
+print !$@ && $concat_shapes && $sandwich_result eq 'middle'
+    && $leading_result eq 'middle' && $trailing_result eq 'middle'
     ? "ok 46 - concatenation supports prefix suffix and sandwich forms\n"
     : "not ok 46 - concatenation supports prefix suffix and sandwich forms\n";
 
@@ -635,3 +651,31 @@ my $strict_wildcard = eval q{
 print !$@ && $strict_wildcard
     ? "ok 47 - wildcard works with strict subs\n"
     : "not ok 47 - wildcard works with strict subs\n";
+
+my ($scope_label, $scope_p, $scope_q) = ('outer', 'outer', 'outer');
+my @pattern_warnings;
+my $implicit_bindings;
+{
+    local $SIG{__WARN__} = sub { push @pattern_warnings, @_ };
+    $implicit_bindings = eval q{
+        use strict;
+        use warnings;
+        use feature 'case_match';
+        case ('pfx_whatzit_thing') {
+            match ('pfx_' . $label . '_thing' if $label eq 'whatzit') {
+                $scope_label = $label;
+            }
+        }
+        case (['a', 1, 2]) {
+            match (['a', $p, $q] if $p == 1) {
+                $scope_p = $p;
+                $scope_q = $q;
+            }
+        }
+        1;
+    };
+}
+print !$@ && $implicit_bindings && !@pattern_warnings
+    && $scope_label eq 'whatzit' && $scope_p == 1 && $scope_q == 2
+    ? "ok 48 - pattern names are implicit arm-local bindings\n"
+    : "not ok 48 - pattern names are implicit arm-local bindings\n";

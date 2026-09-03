@@ -40,8 +40,9 @@ and an empty list in list context.
 
 =head1 BINDING VALUES
 
-A scalar variable in a pattern is a name to be filled in when the pattern
-matches:
+A scalar variable in a pattern is an implicit lexical name to be filled in
+when the pattern matches.  You do not write a separate C<my> declaration for
+it:
 
     case ($message) {
         match ({ name => $name, age => $age, ... }) {
@@ -54,8 +55,17 @@ deciding whether the complete pattern matches.  If a later part fails,
 earlier bindings are discarded.  The names become available only after the
 complete pattern, and its guard if any, succeeds.
 
-Pattern variables are lexical to the case arm and do not unexpectedly become
-variables in the surrounding scope.
+Pattern variables are lexical to the block attached to that C<match>.  They
+are not accesses to a same-named variable in the surrounding scope, and they
+do not become variables there.  A name listed by the case's C<with> clause is
+the exception: it is pinned and is looked up as the existing lexical.
+
+The part inside C<match (...)> is a pattern description, not an ordinary Perl
+expression.  It has Perl-like punctuation and names, but its job is to
+describe the shape of the subject and introduce bindings.  It is not executed
+to produce a temporary pattern value.  The optional part after C<if> is
+different: it is an ordinary Perl expression, evaluated as a guard after the
+pattern has matched and its bindings have been tentatively established.
 
 =head1 SCALAR PATTERNS
 

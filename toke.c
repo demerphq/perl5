@@ -1014,6 +1014,8 @@ Perl_parser_free(pTHX_  const yy_parser *parser)
     SvREFCNT_dec(parser->rsfp_filters);
     SvREFCNT_dec(parser->lex_stuff);
     SvREFCNT_dec(parser->lex_sub_repl);
+    SvREFCNT_dec(parser->case_pattern_vars);
+    SvREFCNT_dec(parser->case_pattern_pins);
 
     Safefree(parser->lex_brackstack);
     Safefree(parser->lex_casestack);
@@ -10728,6 +10730,41 @@ S_pending_ident(pTHX)
           "### Pending identifier '%s'\n", PL_tokenbuf); });
     assert(tokenbuf_len >= 2);
 
+    /* A scalar name in a case pattern is a pattern binding, not an access to
+     * an ordinary Perl lexical.  The surrounding match arm already supplies
+     * the lexical scope.  Keep a small parser-local name map so repeated
+     * occurrences of a binding refer to the same pad entry, while using
+     * padadd_NO_DUP_CHECK to make an arm-local binding quiet when it shadows
+     * a lexical in the surrounding scope. */
+    if (PL_parser->in_case_pattern
+        && !has_colon
+        && PL_tokenbuf[0] == '$')
+    {
+        const PADOFFSET existing = pad_findmy_pvn(PL_tokenbuf,
+                                                  tokenbuf_len, 0);
+        SV **const found = hv_fetch(PL_parser->case_pattern_vars,
+                                    PL_tokenbuf, tokenbuf_len, FALSE);
+        PADOFFSET off;
+
+        if (!(existing != NOT_IN_PAD
+              && PL_parser->case_pattern_pins
+              && hv_exists(PL_parser->case_pattern_pins,
+                           (const char *)&existing, sizeof(existing)))) {
+            if (found)
+                off = (PADOFFSET)SvUV(*found);
+            else {
+                off = pad_add_name_pvn(PL_tokenbuf, tokenbuf_len,
+                                       padadd_NO_DUP_CHECK, NULL, NULL);
+                (void)hv_store(PL_parser->case_pattern_vars,
+                               PL_tokenbuf, tokenbuf_len, newSVuv((UV)off), 0);
+            }
+
+            pl_yylval.opval = newOP(OP_PADANY, 0);
+            pl_yylval.opval->op_targ = off;
+            return PRIVATEREF;
+        }
+    }
+
     /* if we're in a my(), we can't allow dynamics here.
        $foo'bar has already been turned into $foo::bar, so
        just check for colons.
@@ -10842,6 +10879,33 @@ S_pending_ident(pTHX)
                       : (PL_tokenbuf[0] == '@') ? SVt_PVAV
                       : SVt_PVHV));
     return BAREWORD;
+}
+
+static void
+S_case_pattern_note_pin_ops(pTHX_ const OP *op)
+{
+    const OP *kid;
+
+    if (!op)
+        return;
+    if (op->op_type == OP_PADSV || op->op_type == OP_PADSV_STORE) {
+        const PADOFFSET off = op->op_targ;
+        if (!PL_parser->case_pattern_pins)
+            PL_parser->case_pattern_pins = newHV();
+        (void)hv_store(PL_parser->case_pattern_pins,
+                       (const char *)&off, sizeof(off), newSViv(1), 0);
+        return;
+    }
+    if (op->op_flags & OPf_KIDS)
+        for (kid = cUNOPx(op)->op_first; kid; kid = OpSIBLING(kid))
+            S_case_pattern_note_pin_ops(aTHX_ kid);
+}
+
+void
+Perl_case_pattern_note_pins(pTHX_ const OP *pins)
+{
+    PERL_ARGS_ASSERT_CASE_PATTERN_NOTE_PINS;
+    S_case_pattern_note_pin_ops(aTHX_ pins);
 }
 
 static void

@@ -364,7 +364,8 @@ case_subject_pins
 		PERLY_PAREN_OPEN
 		case_subject_pin_expr
 		PERLY_PAREN_CLOSE
-		{ $$ = $case_subject_pin_expr; }
+		{ case_pattern_note_pins($case_subject_pin_expr);
+		  $$ = $case_subject_pin_expr; }
 	;
 
 case_subject_pin_expr
@@ -408,8 +409,12 @@ bare_statement_match
 		{
 			OP *pattern = $mexpr;
 			case_pattern_preserve_concat(pattern);
-			OP *matchop = newUNOP_AUX(OP_CASEMATCH, 0, scalar(pattern),
-				case_pattern_compile(pattern));
+			UNOP_AUX_item *pattern_aux = case_pattern_compile(pattern);
+			/* The pattern is a data-shape description.  Keep its optree in
+			 * the auxiliary representation, but execute only an undef
+			 * placeholder so no part of the pattern is evaluated as Perl. */
+			OP *matchop = newUNOP_AUX(OP_CASEMATCH, 0, newOP(OP_UNDEF, 0),
+				pattern_aux);
 			OP *condition = matchop;
 			if ($case_match_guard)
 				condition = newLOGOP(OP_AND, 0, matchop,
@@ -430,12 +435,20 @@ bare_statement_match
 
 case_pattern_start
 	: %empty
-		{ parser->in_case_pattern = TRUE; $$ = 0; }
+		{ parser->in_case_pattern = TRUE;
+		  parser->case_pattern_vars = newHV();
+		  $$ = 0; }
 	;
 
 case_pattern_end
 	: %empty
-		{ parser->in_case_pattern = FALSE; $$ = 0; }
+		{ parser->in_case_pattern = FALSE;
+		  intro_my();
+		  SvREFCNT_dec(parser->case_pattern_vars);
+		  parser->case_pattern_vars = NULL;
+		  SvREFCNT_dec(parser->case_pattern_pins);
+		  parser->case_pattern_pins = NULL;
+		  $$ = 0; }
 	;
 
 case_match_guard

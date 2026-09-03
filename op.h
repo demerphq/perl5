@@ -248,6 +248,7 @@ struct case_dispatch_aux;
 struct case_pattern_aux {
     U32 magic;
     U8 kind;
+    OP *pattern; /* retained pattern tree; it is not executed by CASEMATCH */
     struct case_pattern_node *root;
     struct case_dispatch_aux *dispatch;
     U32 dispatch_arm;

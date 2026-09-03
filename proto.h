@@ -612,6 +612,14 @@ Perl_case_pattern_free(pTHX_ UNOP_AUX_item *aux)
         Perl_assert_aTHX
 
 PERL_CALLCONV void
+Perl_case_pattern_note_pins(pTHX_ const OP *pins)
+        Perl_attribute_nonnull_aTHX
+        Perl_attribute_nonnull(pTHX_1)
+        __attribute__visibility__("hidden");
+#define PERL_ARGS_ASSERT_CASE_PATTERN_NOTE_PINS \
+        Perl_assert_aTHX; assert(pins)
+
+PERL_CALLCONV void
 Perl_case_pattern_preserve_concat(pTHX_ OP *pattern)
         Perl_attribute_nonnull_aTHX
         Perl_attribute_nonnull(pTHX_1)

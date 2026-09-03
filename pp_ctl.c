@@ -6522,6 +6522,7 @@ Perl_case_pattern_compile(pTHX_ const OP *pattern)
     aux = (struct case_pattern_aux *)PerlMemShared_calloc(
         1, sizeof(struct case_pattern_aux));
     aux->magic = CASE_PATTERN_AUX_MAGIC;
+    aux->pattern = (OP *)pattern;
     aux->root = S_case_pattern_compile_node(aTHX_ pattern);
     aux->kind = CASE_PATTERN_COMPLEX;
     if (pattern->op_type == OP_UNDEF)
@@ -6548,6 +6549,7 @@ Perl_case_pattern_free(pTHX_ UNOP_AUX_item *items)
 
     if (aux && aux->magic == CASE_PATTERN_AUX_MAGIC) {
         S_case_pattern_free_node(aux->root);
+        op_free(aux->pattern);
         if (aux->dispatch)
             Perl_case_dispatch_free(aTHX_ (UNOP_AUX_item *)aux->dispatch);
         PerlMemShared_free(aux);
@@ -7243,9 +7245,9 @@ PP(pp_casematch)
         matched = (SvTRUE(DEFSV) == SvTRUE(cSVOPx_sv(pattern->op)));
     else if (aux->kind == CASE_PATTERN_SIMPLE_NUM)
         matched = (SvIOK(DEFSV) || SvNOK(DEFSV))
-            && do_ncmp(DEFSV, *PL_stack_sp) == 0;
+            && do_ncmp(DEFSV, cSVOPx_sv(pattern->op)) == 0;
     else if (aux->kind == CASE_PATTERN_SIMPLE_STR)
-        matched = SvPOK(DEFSV) && sv_eq(DEFSV, *PL_stack_sp);
+        matched = SvPOK(DEFSV) && sv_eq(DEFSV, cSVOPx_sv(pattern->op));
     else
         matched = S_case_pattern_match(aTHX_
             pattern, DEFSV, *PL_stack_sp,
