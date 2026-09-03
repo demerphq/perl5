@@ -1075,6 +1075,11 @@ or C<default> block.
 
 (F) A case/match clause was executed without an enclosing C<case> block.
 
+=item match clauses are only allowed directly in a case
+
+(F) A C<match> clause appeared outside the direct contents of a C<case>
+block.
+
 
 =item can't convert empty path
 

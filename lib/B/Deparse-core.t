@@ -379,6 +379,9 @@ my %not_tested = map { $_ => 1} qw(
     FloatVal
     gen
     IntVal
+    ObjectVal
+    RefVal
+    ScalarVal
     implements
     finally
     for
