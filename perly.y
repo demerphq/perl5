@@ -407,6 +407,10 @@ bare_statement_match
 		PERLY_PAREN_CLOSE
 		mblock
 		{
+			if (!parser->in_case_match_stmtseq) {
+				yyerror("match arms are only allowed directly in a case");
+				YYERROR;
+			}
 			OP *pattern = $mexpr;
 			case_pattern_preserve_concat(pattern);
 			UNOP_AUX_item *pattern_aux = case_pattern_compile(pattern);
@@ -459,7 +463,16 @@ case_match_guard
 ;
 
 case_mblock
-	: PERLY_BRACE_OPEN mremember case_match_stmtseq PERLY_BRACE_CLOSE
+	: PERLY_BRACE_OPEN mremember
+		{
+			$<ival>$ = parser->in_case_match_stmtseq;
+			parser->in_case_match_stmtseq = TRUE;
+		}
+		case_match_stmtseq
+		{
+			parser->in_case_match_stmtseq = $<ival>3;
+		}
+		PERLY_BRACE_CLOSE
 		{
 			bool invalid = FALSE;
 			OP *kid;

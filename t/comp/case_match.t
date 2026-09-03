@@ -5,7 +5,7 @@ BEGIN {
     unshift @INC, '../lib';
 }
 
-print "1..48\n";
+print "1..49\n";
 
 my $ran = 0;
 $_ = 'outside';
@@ -679,3 +679,11 @@ print !$@ && $implicit_bindings && !@pattern_warnings
     && $scope_label eq 'whatzit' && $scope_p == 1 && $scope_q == 2
     ? "ok 48 - pattern names are implicit arm-local bindings\n"
     : "not ok 48 - pattern names are implicit arm-local bindings\n";
+
+my $match_outside_case = eval q{
+    use feature 'case_match';
+    match (1) { 1 }
+};
+print $match_outside_case eq '' && $@ =~ /only allowed directly in a case/
+    ? "ok 49 - match is forbidden outside case\n"
+    : "not ok 49 - match is forbidden outside case\n";

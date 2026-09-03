@@ -1071,6 +1071,11 @@ but then $foo no longer contains a glob.
 (F) You called C<continue>, but you're not inside a C<when>
 or C<default> block.
 
+=item case/match arm outside a case
+
+(F) A case/match arm was executed without an enclosing C<case> block.
+
+
 =item can't convert empty path
 
 (F) On Cygwin, you called a path conversion function with an empty path.
