@@ -2146,7 +2146,7 @@ Perl_scalar(pTHX_ OP *o)
                     goto do_next;
                 }
                 else if (kid->op_type == OP_LEAVEWHEN
-                         || kid->op_type == OP_LEAVEON)
+                         || kid->op_type == OP_LEAVECASEMATCH)
                     scalar(kid);
                 else
                     scalarvoid(kid);
@@ -2238,7 +2238,7 @@ Perl_scalarvoid(pTHX_ OP *arg)
             || (PL_parser && PL_parser->error_count)
             || o->op_type == OP_RETURN || o->op_type == OP_REQUIRE
             || o->op_type == OP_LEAVEWHEN
-            || o->op_type == OP_LEAVEON)
+            || o->op_type == OP_LEAVECASEMATCH)
         {
             goto get_next_op;
         }
@@ -2519,7 +2519,7 @@ Perl_scalarvoid(pTHX_ OP *arg)
         case OP_COND_EXPR:
         case OP_ENTERGIVEN:
         case OP_ENTERWHEN:
-        case OP_ENTERON:
+        case OP_ENTERCASEMATCH:
             next_kid = OpSIBLING(cUNOPo->op_first);
         break;
 
@@ -2541,7 +2541,7 @@ Perl_scalarvoid(pTHX_ OP *arg)
         case OP_LINESEQ:
         case OP_LEAVEGIVEN:
         case OP_LEAVEWHEN:
-        case OP_LEAVEON:
+        case OP_LEAVECASEMATCH:
         case OP_ONCE:
         kids:
             next_kid = cLISTOPo->op_first;
@@ -2736,7 +2736,7 @@ Perl_list(pTHX_ OP *o)
                     goto do_next;
                 }
                 else if (kid->op_type == OP_LEAVEWHEN
-                         || kid->op_type == OP_LEAVEON)
+                         || kid->op_type == OP_LEAVECASEMATCH)
                     list(kid);
                 else
                     scalarvoid(kid);
@@ -9799,9 +9799,9 @@ Perl_newSTATEOP(pTHX_ I32 flags, char *label, OP *o)
         }
     }
 
-    if (o && o->op_type == OP_LEAVEDISPATCH && (o->op_flags & OPf_KIDS)) {
+    if (o && o->op_type == OP_LEAVECASE && (o->op_flags & OPf_KIDS)) {
         OP * const enterop = cUNOPx(o)->op_first;
-        if (enterop && enterop->op_type == OP_ENTERDISPATCH)
+        if (enterop && enterop->op_type == OP_ENTERCASE)
             cLOGOPx(enterop)->op_redoop = (OP *)cop;
     }
 
@@ -11130,22 +11130,22 @@ S_newBLOCKOP(pTHX_ OP *cond, OP *block,
     return o;
 }
 
-/* Construct an on clause without routing its construction through the
+/* Construct a case/match arm without routing its construction through the
  * legacy given/when block builder.  Keep this mechanically similar to the
  * generic builder above, but deliberately independent: case/match owns its
  * optree shape and can evolve without changing switch semantics. */
 static OP *
-S_newONBLOCKOP(pTHX_ OP *cond, OP *block)
+S_newCASEMATCHBLOCKOP(pTHX_ OP *cond, OP *block)
 {
     LOGOP *enterop;
     OP *o;
 
-    enterop = alloc_LOGOP(OP_ENTERON, block, NULL);
+    enterop = alloc_LOGOP(OP_ENTERCASEMATCH, block, NULL);
     enterop->op_targ = 0;
     enterop->op_private = 0;
     enterop->op_redoop = NULL;
 
-    o = newUNOP(OP_LEAVEON, 0, (OP *) enterop);
+    o = newUNOP(OP_LEAVECASEMATCH, 0, (OP *) enterop);
 
     if (cond) {
         op_sibling_splice((OP *)enterop, NULL, 0, scalar(cond));
@@ -11158,7 +11158,7 @@ S_newONBLOCKOP(pTHX_ OP *cond, OP *block)
         o->op_next = (OP *)enterop;
     }
 
-    CHECKOP(OP_ENTERON, enterop);
+    CHECKOP(OP_ENTERCASEMATCH, enterop);
 
     enterop->op_next = LINKLIST(block);
     block->op_next = enterop->op_other = o;
@@ -11287,7 +11287,7 @@ Perl_newGIVENOP(pTHX_ OP *cond, OP *block, PADOFFSET defsv_off)
 }
 
 /*
-=for apidoc newDISPATCHOP
+=for apidoc newCASEOP
 
 Constructs and returns an op tree expressing an experimental C<case>
 statement.  C<cond> supplies the subject expression and C<block> supplies
@@ -11299,30 +11299,30 @@ context and has no given/when fall-through semantics.
 */
 
 OP *
-Perl_newDISPATCHOP(pTHX_ OP *cond, OP *block)
+Perl_newCASEOP(pTHX_ OP *cond, OP *block)
 {
-    PERL_ARGS_ASSERT_NEWDISPATCHOP;
+    PERL_ARGS_ASSERT_NEWCASEOP;
 
-    return S_newBLOCKOP(aTHX_ cond, block, OP_ENTERDISPATCH, OP_LEAVEDISPATCH, 0);
+    return S_newBLOCKOP(aTHX_ cond, block, OP_ENTERCASE, OP_LEAVECASE, 0);
 }
 
 /*
-=for apidoc newONOP
+=for apidoc newCASEMATCHOP
 
 Constructs and returns an op tree expressing a C<case> match arm.  C<cond>
 supplies the already-compiled data-shape test and C<block> supplies the arm
 body; both are consumed by this function.  The resulting tree has dedicated
-on-clause operations and does not apply given/when semantics.
+case/match arm operations and does not apply given/when semantics.
 
 =cut
 */
 
 OP *
-Perl_newONOP(pTHX_ OP *cond, OP *block)
+Perl_newCASEMATCHOP(pTHX_ OP *cond, OP *block)
 {
-    PERL_ARGS_ASSERT_NEWONOP;
+    PERL_ARGS_ASSERT_NEWCASEMATCHOP;
 
-    return S_newONBLOCKOP(aTHX_ cond, block);
+    return S_newCASEMATCHBLOCKOP(aTHX_ cond, block);
 }
 
 /*

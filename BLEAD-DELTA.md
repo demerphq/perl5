@@ -72,7 +72,7 @@ Related POD: [`pod/perlrun.pod`](https://github.com/demerphq/perl5/blob/xperl/ma
 
 ### Pattern matching
 
-The experimental `dispatch` feature adds ordered `dispatch`/`on` clauses with
+The experimental `case_match` feature adds ordered `case`/`match` arms with
 scalar, nested array, nested hash, wildcard, regular-expression, binding,
 pinning, guard, and explicit scalar-conversion patterns.  Pattern bindings
 are tentative until the complete pattern and guard succeed.  The current
@@ -88,10 +88,10 @@ captures.  Multiple captures and general expression operands remain outside
 the current implementation.
 Pure constant cases without guards can use specialized constant dispatch,
 including linear-array, binary-search, and hash-based strategies.  These
-strategies preserve source-order semantics and default-clause behavior while
-avoiding a full clause walk for each subject.
+strategies preserve source-order semantics and default-arm behavior while
+avoiding a full arm walk for each subject.
 
-Related POD: [`pod/perldispatch.pod`](https://github.com/demerphq/perl5/blob/xperl/main/pod/perldispatch.pod) is the beginner-oriented feature guide; [`pod/perlsyn.pod`](https://github.com/demerphq/perl5/blob/xperl/main/pod/perlsyn.pod) documents the syntax and current semantics; [`pod/perldiag.pod`](https://github.com/demerphq/perl5/blob/xperl/main/pod/perldiag.pod) documents data-shape diagnostics; [`pod/perlexperiment.pod`](https://github.com/demerphq/perl5/blob/xperl/main/pod/perlexperiment.pod) and [`pod/perldelta.pod`](https://github.com/demerphq/perl5/blob/xperl/main/pod/perldelta.pod) cover its experimental status and release notes.  The implementation is tested in [`t/comp/dispatch_on.t`](https://github.com/demerphq/perl5/blob/xperl/main/t/comp/dispatch_on.t), with further design status in [`planning/perl-pattern-matching.md`](https://github.com/demerphq/perl5/blob/xperl/main/planning/perl-pattern-matching.md). Dispatch behavior is measured by [`planning/scripts/dispatch_on_compare.pl`](https://github.com/demerphq/perl5/blob/xperl/main/planning/scripts/dispatch_on_compare.pl), [`planning/scripts/dispatch_on_weight.pl`](https://github.com/demerphq/perl5/blob/xperl/main/planning/scripts/dispatch_on_weight.pl), and [`planning/scripts/dispatch_given_compare.pl`](https://github.com/demerphq/perl5/blob/xperl/main/planning/scripts/dispatch_given_compare.pl).
+Related POD: [`pod/perlcasematch.pod`](https://github.com/demerphq/perl5/blob/xperl/main/pod/perlcasematch.pod) is the beginner-oriented feature guide; [`pod/perlsyn.pod`](https://github.com/demerphq/perl5/blob/xperl/main/pod/perlsyn.pod) documents the syntax and current semantics; [`pod/perldiag.pod`](https://github.com/demerphq/perl5/blob/xperl/main/pod/perldiag.pod) documents data-shape diagnostics; [`pod/perlexperiment.pod`](https://github.com/demerphq/perl5/blob/xperl/main/pod/perlexperiment.pod) and [`pod/perldelta.pod`](https://github.com/demerphq/perl5/blob/xperl/main/pod/perldelta.pod) cover its experimental status and release notes.  The implementation is tested in [`t/comp/case_match.t`](https://github.com/demerphq/perl5/blob/xperl/main/t/comp/case_match.t), with further design status in [`planning/perl-pattern-matching.md`](https://github.com/demerphq/perl5/blob/xperl/main/planning/perl-pattern-matching.md). Dispatch behavior is measured by [`planning/scripts/case_dispatch_compare.pl`](https://github.com/demerphq/perl5/blob/xperl/main/planning/scripts/case_dispatch_compare.pl), [`planning/scripts/case_dispatch_weight.pl`](https://github.com/demerphq/perl5/blob/xperl/main/planning/scripts/case_dispatch_weight.pl), and [`planning/scripts/case_given_compare.pl`](https://github.com/demerphq/perl5/blob/xperl/main/planning/scripts/case_given_compare.pl).
 
 ### Lexical namespaces
 

@@ -2496,6 +2496,10 @@ ARdp	|OP *	|newBINOP	|I32 type				\
 dp	|OP *	|new_block_statement					\
 				|NN OP *block				\
 				|NULLOK OP *cont
+ARdp	|OP *	|newCASEMATCHOP |NN OP *cond				\
+				|NN OP *block
+ARdp	|OP *	|newCASEOP	|NN OP *cond				\
+				|NN OP *block
 ARdp	|OP *	|newCONDOP	|I32 flags				\
 				|NN OP *first				\
 				|NULLOK OP *trueop			\
@@ -2514,8 +2518,6 @@ ARdp	|OP *	|newCVREF	|I32 flags				\
 ARdpx	|OP *	|newDEFEROP	|I32 flags				\
 				|NN OP *block
 ARdp	|OP *	|newDEFSVOP
-ARdp	|OP *	|newDISPATCHOP	|NN OP *cond				\
-				|NN OP *block
 Cdp	|void	|newFORM	|I32 floor				\
 				|NULLOK OP *o				\
 				|NULLOK OP *block
@@ -2570,8 +2572,6 @@ Cdp	|CV *	|newMYSUB	|I32 floor				\
 				|NULLOK OP *attrs			\
 				|NULLOK OP *block
 ARdp	|OP *	|newNULLLIST
-ARdp	|OP *	|newONOP	|NN OP *cond				\
-				|NN OP *block
 ARdp	|OP *	|newOP		|I32 optype				\
 				|I32 flags
 ARdpx	|PADNAMELIST *|newPADNAMELIST					\
@@ -6685,12 +6685,12 @@ CTp	|Malloc_t|mem_log_realloc					\
 #endif
 #if !defined(PERL_NO_INLINE_FUNCTIONS)
 Cipx	|void	|cx_popblock	|NN PERL_CONTEXT *cx
-Cipx	|void	|cx_popdispatch |NN PERL_CONTEXT *cx
+Cipx	|void	|cx_popcase	|NN PERL_CONTEXT *cx
+Cipx	|void	|cx_popcasematch|NN PERL_CONTEXT *cx
 Cipx	|void	|cx_popeval	|NN PERL_CONTEXT *cx
 Cipx	|void	|cx_popformat	|NN PERL_CONTEXT *cx
 Cipx	|void	|cx_popgiven	|NN PERL_CONTEXT *cx
 Cipx	|void	|cx_poploop	|NN PERL_CONTEXT *cx
-Cipx	|void	|cx_popon	|NN PERL_CONTEXT *cx
 Cipx	|void	|cx_popsub	|NN PERL_CONTEXT *cx
 Cipx	|void	|cx_popsub_args |NN PERL_CONTEXT *cx
 Cipx	|void	|cx_popsub_common					\
@@ -6701,8 +6701,10 @@ Cipx	|PERL_CONTEXT *|cx_pushblock					\
 				|U8 gimme				\
 				|NN SV **sp				\
 				|I32 saveix
-Cipx	|void	|cx_pushdispatch|NN PERL_CONTEXT *cx			\
+Cipx	|void	|cx_pushcase	|NN PERL_CONTEXT *cx			\
 				|NULLOK SV *orig_defsv
+Cipx	|void	|cx_pushcasematch					\
+				|NN PERL_CONTEXT *cx
 Cipx	|void	|cx_pusheval	|NN PERL_CONTEXT *cx			\
 				|NULLOK OP *retop			\
 				|NULLOK SV *namesv
@@ -6717,7 +6719,6 @@ Cipx	|void	|cx_pushloop_for|NN PERL_CONTEXT *cx			\
 				|NULLOK SV *itersave
 Cipx	|void	|cx_pushloop_plain					\
 				|NN PERL_CONTEXT *cx
-Cipx	|void	|cx_pushon	|NN PERL_CONTEXT *cx
 Cipx	|void	|cx_pushsub	|NN PERL_CONTEXT *cx			\
 				|NN CV *cv				\
 				|NULLOK OP *retop			\

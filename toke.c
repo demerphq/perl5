@@ -8658,9 +8658,9 @@ yyl_word_or_keyword(pTHX_ char *s, STRLEN len, I32 key, I32 orig_keyword, struct
     case KEY_catch:
         PREBLOCK(KW_CATCH);
 
-    case KEY_dispatch:
+    case KEY_case:
         pl_yylval.ival = CopLINE(PL_curcop);
-        OPERATOR(KW_DISPATCH);
+        OPERATOR(KW_CASE);
 
     case KEY_FloatVal:
         PL_expect = XTERM;
@@ -9089,10 +9089,10 @@ yyl_word_or_keyword(pTHX_ char *s, STRLEN len, I32 key, I32 orig_keyword, struct
     case KEY_map:
         LOP(OP_MAPSTART, XREF);
 
-    case KEY_on:
+    case KEY_match:
         PL_expect = XTERM;
         PL_bufptr = s;
-        return REPORT(KW_ON);
+        return REPORT(KW_MATCH);
 
     case KEY_with:
         PL_expect = XTERM;

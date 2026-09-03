@@ -377,10 +377,10 @@ EXTCONST char* const PL_op_name[] INIT({
 	"method_redir_super",
 	"entergiven",
 	"leavegiven",
-	"enterdispatch",
-	"leavedispatch",
-	"enteron",
-	"leaveon",
+	"entercase",
+	"leavecase",
+	"entercasematch",
+	"leavecasematch",
 	"enterwhen",
 	"leavewhen",
 	"casematch",
@@ -827,10 +827,10 @@ EXTCONST char* const PL_op_desc[] INIT({
 	"redirect super method with known name",
 	"given()",
 	"leave given block",
-	"dispatch()",
-	"leave dispatch block",
-	"on clause()",
-	"leave on clause",
+	"case()",
+	"leave case block",
+	"case/match arm()",
+	"leave case/match arm",
 	"when()",
 	"leave when block",
 	"case pattern match",
@@ -1282,10 +1282,10 @@ INIT({
 	Perl_pp_method_redir_super,
 	Perl_pp_entergiven,
 	Perl_pp_leavegiven,
-	Perl_pp_enterdispatch,
-	Perl_pp_leavedispatch,
-	Perl_pp_enteron,
-	Perl_pp_leaveon,
+	Perl_pp_entercase,
+	Perl_pp_leavecase,
+	Perl_pp_entercasematch,
+	Perl_pp_leavecasematch,
 	Perl_pp_enterwhen,
 	Perl_pp_leavewhen,
 	Perl_pp_casematch,
@@ -1732,10 +1732,10 @@ INIT({
 	Perl_ck_null,		/* method_redir_super */
 	Perl_ck_null,		/* entergiven */
 	Perl_ck_null,		/* leavegiven */
-	Perl_ck_null,		/* enterdispatch */
-	Perl_ck_null,		/* leavedispatch */
-	Perl_ck_null,		/* enteron */
-	Perl_ck_null,		/* leaveon */
+	Perl_ck_null,		/* entercase */
+	Perl_ck_null,		/* leavecase */
+	Perl_ck_null,		/* entercasematch */
+	Perl_ck_null,		/* leavecasematch */
 	Perl_ck_null,		/* enterwhen */
 	Perl_ck_null,		/* leavewhen */
 	Perl_ck_null,		/* casematch */
@@ -2200,10 +2200,10 @@ EXTCONST U32 PL_opargs[] INIT({
 	0x00000e40,	/* method_redir_super */
 	0x00000340,	/* entergiven */
 	0x00000100,	/* leavegiven */
-	0x00000340,	/* enterdispatch */
-	0x00000100,	/* leavedispatch */
-	0x00000340,	/* enteron */
-	0x00000100,	/* leaveon */
+	0x00000340,	/* entercase */
+	0x00000100,	/* leavecase */
+	0x00000340,	/* entercasematch */
+	0x00000100,	/* leavecasematch */
 	0x00000340,	/* enterwhen */
 	0x00000100,	/* leavewhen */
 	0x00000f00,	/* casematch */
@@ -2999,10 +2999,10 @@ EXTCONST I16  PL_op_private_bitdef_ix[]  INIT( {
      231, /* method_redir_super */
        0, /* entergiven */
        0, /* leavegiven */
-       0, /* enterdispatch */
-       0, /* leavedispatch */
-       0, /* enteron */
-       0, /* leaveon */
+       0, /* entercase */
+       0, /* leavecase */
+       0, /* entercasematch */
+       0, /* leavecasematch */
        0, /* enterwhen */
        0, /* leavewhen */
        0, /* casematch */
@@ -3230,7 +3230,7 @@ EXTCONST I16  PL_op_private_bitdef_ix[]  INIT( {
  */
 
 EXTCONST U16  PL_op_private_bitdefs[] INIT( {
-    0x0003, /* scalar, prototype, refgen, srefgen, readline, regcmaybe, regcreset, regcomp, substcont, chop, schop, defined, study, preinc, i_preinc, predec, i_predec, postinc, i_postinc, postdec, i_postdec, not, ucfirst, lcfirst, uc, lc, quotemeta, aeach, avalues, each, pop, shift, grepstart, anywhile, mapstart, mapwhile, range, dor, andassign, orassign, dorassign, argcheck, entergiven, leavegiven, enterdispatch, leavedispatch, enteron, leaveon, enterwhen, leavewhen, casematch, casecoerce, casedispatch, untie, tied, dbmclose, getsockname, getpeername, lstat, stat, readlink, readdir, telldir, rewinddir, closedir, localtime, alarm, require, dofile, entertry, ghbyname, gnbyname, gpbyname, shostent, snetent, sprotoent, sservent, gpwnam, gpwuid, ggrnam, ggrgid, lock, once, fc, anonconst, cmpchain_and, cmpchain_dup, entertrycatch, catch, is_bool, is_weak, weaken, unweaken, is_tainted, multiparam, paramstore */
+    0x0003, /* scalar, prototype, refgen, srefgen, readline, regcmaybe, regcreset, regcomp, substcont, chop, schop, defined, study, preinc, i_preinc, predec, i_predec, postinc, i_postinc, postdec, i_postdec, not, ucfirst, lcfirst, uc, lc, quotemeta, aeach, avalues, each, pop, shift, grepstart, anywhile, mapstart, mapwhile, range, dor, andassign, orassign, dorassign, argcheck, entergiven, leavegiven, entercase, leavecase, entercasematch, leavecasematch, enterwhen, leavewhen, casematch, casecoerce, casedispatch, untie, tied, dbmclose, getsockname, getpeername, lstat, stat, readlink, readdir, telldir, rewinddir, closedir, localtime, alarm, require, dofile, entertry, ghbyname, gnbyname, gpbyname, shostent, snetent, sprotoent, sservent, gpwnam, gpwuid, ggrnam, ggrgid, lock, once, fc, anonconst, cmpchain_and, cmpchain_dup, entertrycatch, catch, is_bool, is_weak, weaken, unweaken, is_tainted, multiparam, paramstore */
     0x46bc, 0x66f9, /* pushmark */
     0x00bd, /* wantarray, runcv */
     0x0b9e, 0x0694, 0x1df0, 0x684c, 0x6208, 0x4c45, /* const */
@@ -3557,10 +3557,10 @@ EXTCONST U8 PL_op_private_valid[] INIT( {
     /* METHOD_REDIR_SUPER */ (OPpARG1_MASK|OPpMETH_NO_BAREWORD_IO),
     /* ENTERGIVEN */ (OPpARG1_MASK),
     /* LEAVEGIVEN */ (OPpARG1_MASK),
-    /* ENTERDISPATCH */ (OPpARG1_MASK),
-    /* LEAVEDISPATCH */ (OPpARG1_MASK),
-    /* ENTERON    */ (OPpARG1_MASK),
-    /* LEAVEON    */ (OPpARG1_MASK),
+    /* ENTERCASE  */ (OPpARG1_MASK),
+    /* LEAVECASE  */ (OPpARG1_MASK),
+    /* ENTERCASEMATCH */ (OPpARG1_MASK),
+    /* LEAVECASEMATCH */ (OPpARG1_MASK),
     /* ENTERWHEN  */ (OPpARG1_MASK),
     /* LEAVEWHEN  */ (OPpARG1_MASK),
     /* CASEMATCH  */ (OPpARG1_MASK),

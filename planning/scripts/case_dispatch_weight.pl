@@ -5,14 +5,14 @@ my $sink = 0;
 
 sub make_case {
     my ($mode, $n) = @_;
-    my $clauses = join '', map {
+    my $arms = join '', map {
         my $value = 2 * ($_ + 1);
-        "on ($value) { \$sink++ }\n"
+        "match ($value) { \$sink++ }\n"
     } 0 .. $n - 1;
     local $ENV{PERL_CASE_DISPATCH} = $mode;
     my $sub = eval qq{
-        use feature 'dispatch';
-        sub { my (\$x) = \@_; dispatch (\$x) { $arms } }
+        use feature 'case_match';
+        sub { my (\$x) = \@_; case (\$x) { $arms } }
     };
     die "$@\n" unless $sub;
     return $sub;
@@ -25,7 +25,7 @@ sub rate {
 }
 
 printf "%-5s %-16s %-16s %16s %16s\n",
-    'clauses', 'probes', 'implementation', 'probe_sets/sec', 'lookups/sec';
+    'arms', 'probes', 'implementation', 'probe_sets/sec', 'lookups/sec';
 printf "%s\n", '-' x 75;
 
 for my $n (2, 4, 8, 16, 32, 64, 128, 256) {
@@ -33,7 +33,7 @@ for my $n (2, 4, 8, 16, 32, 64, 128, 256) {
     my $max = 2 * $n;
     my $miss = $max + 1;
 
-    my $clauses = join '', map {
+    my $arms = join '', map {
         "elsif (\$x == $_) { \$sink++ }\n"
     } 2 .. $n - 1;
     my $if = eval qq{

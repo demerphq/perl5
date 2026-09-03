@@ -4348,6 +4348,24 @@ Perl_newBINOP(pTHX_ I32 type, I32 flags, OP *first, OP *last)
         Perl_assert_aTHX
 
 PERL_CALLCONV OP *
+Perl_newCASEMATCHOP(pTHX_ OP *cond, OP *block)
+        Perl_attribute_nonnull_aTHX
+        Perl_attribute_nonnull(pTHX_1)
+        Perl_attribute_nonnull(pTHX_2)
+        __attribute__warn_unused_result__;
+#define PERL_ARGS_ASSERT_NEWCASEMATCHOP         \
+        Perl_assert_aTHX; assert(cond); assert(block)
+
+PERL_CALLCONV OP *
+Perl_newCASEOP(pTHX_ OP *cond, OP *block)
+        Perl_attribute_nonnull_aTHX
+        Perl_attribute_nonnull(pTHX_1)
+        Perl_attribute_nonnull(pTHX_2)
+        __attribute__warn_unused_result__;
+#define PERL_ARGS_ASSERT_NEWCASEOP              \
+        Perl_assert_aTHX; assert(cond); assert(block)
+
+PERL_CALLCONV OP *
 Perl_newCONDOP(pTHX_ I32 flags, OP *first, OP *trueop, OP *falseop)
         Perl_attribute_nonnull_aTHX
         Perl_attribute_nonnull(pTHX_2)
@@ -4388,15 +4406,6 @@ Perl_newDEFSVOP(pTHX)
         __attribute__warn_unused_result__;
 #define PERL_ARGS_ASSERT_NEWDEFSVOP             \
         Perl_assert_aTHX
-
-PERL_CALLCONV OP *
-Perl_newDISPATCHOP(pTHX_ OP *cond, OP *block)
-        Perl_attribute_nonnull_aTHX
-        Perl_attribute_nonnull(pTHX_1)
-        Perl_attribute_nonnull(pTHX_2)
-        __attribute__warn_unused_result__;
-#define PERL_ARGS_ASSERT_NEWDISPATCHOP          \
-        Perl_assert_aTHX; assert(cond); assert(block)
 
 PERL_CALLCONV void
 Perl_newFORM(pTHX_ I32 floor, OP *o, OP *block)
@@ -4555,15 +4564,6 @@ Perl_newNULLLIST(pTHX)
         __attribute__warn_unused_result__;
 #define PERL_ARGS_ASSERT_NEWNULLLIST            \
         Perl_assert_aTHX
-
-PERL_CALLCONV OP *
-Perl_newONOP(pTHX_ OP *cond, OP *block)
-        Perl_attribute_nonnull_aTHX
-        Perl_attribute_nonnull(pTHX_1)
-        Perl_attribute_nonnull(pTHX_2)
-        __attribute__warn_unused_result__;
-#define PERL_ARGS_ASSERT_NEWONOP                \
-        Perl_assert_aTHX; assert(cond); assert(block)
 
 PERL_CALLCONV OP *
 Perl_newOP(pTHX_ I32 optype, I32 flags)
@@ -15546,10 +15546,17 @@ Perl_cx_popblock(pTHX_ PERL_CONTEXT *cx)
         Perl_assert_aTHX; assert(cx)
 
 PERL_STATIC_INLINE void
-Perl_cx_popdispatch(pTHX_ PERL_CONTEXT *cx)
+Perl_cx_popcase(pTHX_ PERL_CONTEXT *cx)
         Perl_attribute_nonnull_aTHX
         Perl_attribute_nonnull(pTHX_1);
-# define PERL_ARGS_ASSERT_CX_POPDISPATCH        \
+# define PERL_ARGS_ASSERT_CX_POPCASE            \
+        Perl_assert_aTHX; assert(cx)
+
+PERL_STATIC_INLINE void
+Perl_cx_popcasematch(pTHX_ PERL_CONTEXT *cx)
+        Perl_attribute_nonnull_aTHX
+        Perl_attribute_nonnull(pTHX_1);
+# define PERL_ARGS_ASSERT_CX_POPCASEMATCH       \
         Perl_assert_aTHX; assert(cx)
 
 PERL_STATIC_INLINE void
@@ -15578,13 +15585,6 @@ Perl_cx_poploop(pTHX_ PERL_CONTEXT *cx)
         Perl_attribute_nonnull_aTHX
         Perl_attribute_nonnull(pTHX_1);
 # define PERL_ARGS_ASSERT_CX_POPLOOP            \
-        Perl_assert_aTHX; assert(cx)
-
-PERL_STATIC_INLINE void
-Perl_cx_popon(pTHX_ PERL_CONTEXT *cx)
-        Perl_attribute_nonnull_aTHX
-        Perl_attribute_nonnull(pTHX_1);
-# define PERL_ARGS_ASSERT_CX_POPON              \
         Perl_assert_aTHX; assert(cx)
 
 PERL_STATIC_INLINE void
@@ -15623,10 +15623,17 @@ Perl_cx_pushblock(pTHX_ U8 type, U8 gimme, SV **sp, I32 saveix)
         Perl_assert_aTHX; assert(sp)
 
 PERL_STATIC_INLINE void
-Perl_cx_pushdispatch(pTHX_ PERL_CONTEXT *cx, SV *orig_defsv)
+Perl_cx_pushcase(pTHX_ PERL_CONTEXT *cx, SV *orig_defsv)
         Perl_attribute_nonnull_aTHX
         Perl_attribute_nonnull(pTHX_1);
-# define PERL_ARGS_ASSERT_CX_PUSHDISPATCH       \
+# define PERL_ARGS_ASSERT_CX_PUSHCASE           \
+        Perl_assert_aTHX; assert(cx)
+
+PERL_STATIC_INLINE void
+Perl_cx_pushcasematch(pTHX_ PERL_CONTEXT *cx)
+        Perl_attribute_nonnull_aTHX
+        Perl_attribute_nonnull(pTHX_1);
+# define PERL_ARGS_ASSERT_CX_PUSHCASEMATCH      \
         Perl_assert_aTHX; assert(cx)
 
 PERL_STATIC_INLINE void
@@ -15665,13 +15672,6 @@ Perl_cx_pushloop_plain(pTHX_ PERL_CONTEXT *cx)
         Perl_attribute_nonnull_aTHX
         Perl_attribute_nonnull(pTHX_1);
 # define PERL_ARGS_ASSERT_CX_PUSHLOOP_PLAIN     \
-        Perl_assert_aTHX; assert(cx)
-
-PERL_STATIC_INLINE void
-Perl_cx_pushon(pTHX_ PERL_CONTEXT *cx)
-        Perl_attribute_nonnull_aTHX
-        Perl_attribute_nonnull(pTHX_1);
-# define PERL_ARGS_ASSERT_CX_PUSHON             \
         Perl_assert_aTHX; assert(cx)
 
 PERL_STATIC_INLINE void

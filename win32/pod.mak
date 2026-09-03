@@ -111,6 +111,7 @@ POD = perl.pod	\
 	perlboot.pod	\
 	perlbot.pod	\
 	perlcall.pod	\
+	perlcasematch.pod	\
 	perlcheat.pod	\
 	perlclass.pod	\
 	perlclassguts.pod	\
@@ -124,7 +125,6 @@ POD = perl.pod	\
 	perldelta.pod	\
 	perldeprecation.pod	\
 	perldiag.pod	\
-	perldispatch.pod	\
 	perldocstyle.pod	\
 	perldsc.pod	\
 	perldtrace.pod	\
@@ -306,6 +306,7 @@ MAN = perl.man	\
 	perlboot.man	\
 	perlbot.man	\
 	perlcall.man	\
+	perlcasematch.man	\
 	perlcheat.man	\
 	perlclass.man	\
 	perlclassguts.man	\
@@ -319,7 +320,6 @@ MAN = perl.man	\
 	perldelta.man	\
 	perldeprecation.man	\
 	perldiag.man	\
-	perldispatch.man	\
 	perldocstyle.man	\
 	perldsc.man	\
 	perldtrace.man	\
@@ -501,6 +501,7 @@ HTML = perl.html	\
 	perlboot.html	\
 	perlbot.html	\
 	perlcall.html	\
+	perlcasematch.html	\
 	perlcheat.html	\
 	perlclass.html	\
 	perlclassguts.html	\
@@ -514,7 +515,6 @@ HTML = perl.html	\
 	perldelta.html	\
 	perldeprecation.html	\
 	perldiag.html	\
-	perldispatch.html	\
 	perldocstyle.html	\
 	perldsc.html	\
 	perldtrace.html	\
@@ -696,6 +696,7 @@ TEX = perl.tex	\
 	perlboot.tex	\
 	perlbot.tex	\
 	perlcall.tex	\
+	perlcasematch.tex	\
 	perlcheat.tex	\
 	perlclass.tex	\
 	perlclassguts.tex	\
@@ -709,7 +710,6 @@ TEX = perl.tex	\
 	perldelta.tex	\
 	perldeprecation.tex	\
 	perldiag.tex	\
-	perldispatch.tex	\
 	perldocstyle.tex	\
 	perldsc.tex	\
 	perldtrace.tex	\

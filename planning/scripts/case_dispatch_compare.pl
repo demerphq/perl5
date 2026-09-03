@@ -8,12 +8,12 @@ sub rate {
 }
 sub case_sub {
     my ($mode, $n, $default) = @_;
-    my $arms = join '', map { "on ($_ ) { \$sink++ }\n" } 0 .. $n - 1;
-    $arms .= "on (_) { () }\n" if $default;
+    my $arms = join '', map { "match ($_ ) { \$sink++ }\n" } 0 .. $n - 1;
+    $arms .= "match (_) { () }\n" if $default;
     local $ENV{PERL_CASE_DISPATCH} = $mode;
     my $sub = eval qq{
-        use feature 'dispatch';
-        sub { my (\$x) = \@_; for (1 .. 100) { dispatch (\$x) { $arms } } }
+        use feature 'case_match';
+        sub { my (\$x) = \@_; for (1 .. 100) { case (\$x) { $arms } } }
     };
     die "$@\n" unless $sub;
     return $sub;
@@ -32,7 +32,7 @@ sub if_sub {
 }
 
 printf "%-12s %10s %12s %13s %13s %10s %18s\n",
-    'clauses/probe', 'if/else', 'case-none', 'case-linear',
+    'arms/probe', 'if/else', 'case-none', 'case-linear',
     'case-binary', 'case-hv', 'hv+empty-default';
 for my $n (4, 32, 256) {
     my $if = if_sub($n);
