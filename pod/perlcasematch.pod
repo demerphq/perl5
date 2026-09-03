@@ -232,11 +232,27 @@ than filled in by the data shape:
         match ({ type => $wanted, ... }) { use_record($record) }
     }
 
+The C<with> clause can pin more than one value.  Separate the values with
+commas:
+
+    my ($wanted_type, $wanted_version) = ("ok", 3);
+    case ($record) with ($wanted_type, $wanted_version) {
+        match ({ type => $wanted_type, version => $wanted_version, ... }) {
+            use_record($record);
+        }
+    }
+
 An expression can be evaluated once and made into a case-local pin:
 
     case ($record) with (expected_type() as $wanted) {
         match ({ type => $wanted, ... }) { use_record($record) }
     }
+
+The C<as> spelling in a C<case> subject or C<with> clause belongs to this
+feature.  It is available whenever C<case_match> is enabled; it does not
+require the separate C<namespaces> feature.  The C<as> used by namespace
+declarations and C<use> statements remains a separate feature-gated syntax.
+Each value in a C<with> list may use C<as> independently.
 
 =head1 EXPLICIT SUBJECT CONVERSION
 

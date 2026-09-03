@@ -34,8 +34,10 @@ C<match> clauses.  Data shapes can match scalar values, nested array and hash
 references, regular expressions, wildcards, and pinned lexical values.  A
 case subject may also use the grammar-level C<IntVal>, C<FloatVal>, or
 C<StrVal> forms to request one explicit coercion before matching.  See
-L<perlsyn/Experimental Data-Shape Matching> for the current experimental design
-and limitations.
+L<perlcasematch> and L<perlsyn/Experimental Data-Shape Matching> for the
+current experimental design and limitations.  The C<with> clause accepts a
+comma-separated list of pins, and its case-local C<as> syntax does not require
+the separate C<namespaces> feature.
 
 =head2 Lexical namespaces
 

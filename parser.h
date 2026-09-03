@@ -102,6 +102,7 @@ typedef struct yy_parser {
     U16		in_my;		/* we're compiling a "my"/"our" declaration */
     bool        in_case_pattern; /* parsing a case pattern expression */
     bool        in_case_match_stmtseq; /* parsing direct case/match clauses */
+    bool        in_case_header; /* parsing a case subject or with clause */
     HV          *case_pattern_vars; /* implicit lexicals in the current pattern */
     HV          *case_pattern_pins; /* pad entries pinned by the case with clause */
     U8		lex_state;	/* next token is determined */

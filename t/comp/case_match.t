@@ -5,7 +5,7 @@ BEGIN {
     unshift @INC, '../lib';
 }
 
-print "1..57\n";
+print "1..59\n";
 
 my $ran = 0;
 $_ = 'outside';
@@ -768,3 +768,26 @@ print !$@ && $ordinary_functions
 print !$@ && $ordinary_functions && $ordinary_subject
     ? "ok 57 - criteria names remain ordinary in a case subject\n"
     : "not ok 57 - criteria names remain ordinary in a case subject\n";
+
+my ($pin_left, $pin_right);
+my $multiple_with_aliases = eval q{
+    use feature 'case_match';
+    case ([1, 2]) with (1 as $pin_left, 2 as $pin_right) {
+        match ([$pin_left, $pin_right]) { 1 }
+    }
+};
+print !$@ && $multiple_with_aliases
+    ? "ok 58 - with accepts multiple aliased pins\n"
+    : "not ok 58 - with accepts multiple aliased pins\n";
+
+my ($header_subject, $header_pin);
+my $case_as_without_namespaces = eval q{
+    use feature 'case_match';
+    my $value = 7;
+    case ($value as $header_subject) with (7 as $header_pin) {
+        match (7) { $header_subject == 7 && $header_pin == 7 }
+    }
+};
+print !$@ && $case_as_without_namespaces
+    ? "ok 59 - case and with as do not require namespaces\n"
+    : "not ok 59 - case and with as do not require namespaces\n";

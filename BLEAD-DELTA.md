@@ -85,7 +85,11 @@ description, the names retain ordinary Perl subroutine semantics.
 String patterns also support one unpinned scalar capture surrounded by literal
 concatenation fragments, including prefix, suffix, sandwich, pinned, and empty
 captures.  Multiple captures and general expression operands remain outside
-the current implementation.
+the current implementation.  A `with` clause can pin a comma-separated list
+of existing lexicals, and each list item can independently use `as` to turn a
+single expression into a case-local pin.  The case/match `as` syntax is
+available with `case_match`; it is separate from the namespace and `use`
+statement `as` syntax, which remains controlled by the `namespaces` feature.
 Pure constant cases without guards can use specialized constant dispatch,
 including linear-array, binary-search, and hash-based strategies.  These
 strategies preserve source-order semantics and default-clause behavior while

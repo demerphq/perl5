@@ -9837,7 +9837,8 @@ yyl_keylookup(pTHX_ char *s, GV *gv)
 
     /* Check for built-in keyword */
     key = keyword(PL_tokenbuf, len, 0);
-    if ((!key || key == -KEY_as) && FEATURE_NAMESPACES_IS_ENABLED
+    if ((!key || key == -KEY_as)
+        && (FEATURE_NAMESPACES_IS_ENABLED || PL_parser->in_case_header)
         && memEQs(PL_tokenbuf, len, "as"))
         key = KEY_as;
 

@@ -289,6 +289,7 @@ bare_statement_block
 
 bare_statement_case
 	: KW_CASE
+		{ parser->in_case_header = TRUE; }
 		PERLY_PAREN_OPEN
 		remember
 		case_subject_type
@@ -360,18 +361,29 @@ case_subject_type
 
 case_subject_pins
 	: %empty
-		{ $$ = NULL; }
+		{ parser->in_case_header = FALSE;
+		  $$ = NULL; }
 	| KW_WITH
 		PERLY_PAREN_OPEN
 		case_subject_pin_expr
 		PERLY_PAREN_CLOSE
-		{ case_pattern_note_pins($case_subject_pin_expr);
+		{ parser->in_case_header = FALSE;
+		  case_pattern_note_pins($case_subject_pin_expr);
 		  $$ = $case_subject_pin_expr; }
-	;
+;
 
 case_subject_pin_expr
 	: mexpr
 		{ $$ = $mexpr; }
+	| mexpr
+		case_local_scalar[alias]
+		PERLY_COMMA
+		case_subject_pin_expr[rest]
+		{
+			OP *pin = newASSIGNOP(0, scalar($alias), 0,
+				scalar($mexpr));
+			$$ = op_append_elem(OP_LIST, pin, $rest);
+		}
 	| mexpr
 		case_local_scalar
 		{
