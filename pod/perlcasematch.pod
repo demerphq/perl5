@@ -2,16 +2,19 @@
 
 =head1 NAME
 
-perlcasewhen - a gentle introduction to experimental case and match
+perlcasematch - a gentle introduction to experimental case and data-shape matching
 
 =head1 DESCRIPTION
 
-This document introduces Perl's experimental pattern-matching feature.  It
-assumes that you know a little Perl, but not that you have used pattern
+This document introduces Perl's experimental data-shape matching feature.  It
+assumes that you know a little Perl, but not that you have used this kind of
 matching in another language.
 
-Pattern matching asks two questions at once: does a value have the shape we
-want, and which parts of it should receive names?
+Data-shape matching asks two questions at once: does a value have the shape we
+want, and which parts of it should receive names?  It combines structural
+matching with destructuring.  We use the shorter term C<data-shape matching>
+to distinguish this feature from Perl's long-established regular-expression
+pattern matching.
 
 The feature is enabled with:
 
@@ -22,7 +25,11 @@ It is experimental, so its spelling and behaviour may change.
 =head1 THE BASIC IDEA
 
 A C<case> examines one subject and tries its C<match> arms from top to
-bottom.  The first matching arm runs.  Arms do not fall through.
+bottom.  The first matching arm runs.  Arms do not fall through.  The outer
+case block may contain only direct C<match> arms; an ordinary statement or a
+nested C<case> is not allowed there.  Each arm's attached block is an
+ordinary Perl block and may contain normal Perl statements, loops, and nested
+cases.
 
     use feature 'case_match';
 
@@ -36,13 +43,14 @@ The underscore is a wildcard.  It matches any value and does not create a
 binding, so it is useful as a final default arm.
 
 If no arm matches, the C<case> expression returns C<undef> in scalar context
-and an empty list in list context.
+and an empty list in list context.  A wildcard arm is the usual way to give
+the case a default action.
 
 =head1 BINDING VALUES
 
-A scalar variable in a pattern is an implicit lexical name to be filled in
-when the pattern matches.  You do not write a separate C<my> declaration for
-it:
+A scalar variable in a data-shape description is an implicit lexical name to
+be filled in when the data shape matches.  You do not write a separate C<my>
+declaration for it:
 
     case ($message) {
         match ({ name => $name, age => $age, ... }) {
@@ -51,33 +59,38 @@ it:
     }
 
 Bindings are tentative.  Perl does not change the variables while it is
-deciding whether the complete pattern matches.  If a later part fails,
+deciding whether the complete data shape matches.  If a later part fails,
 earlier bindings are discarded.  The names become available only after the
-complete pattern, and its guard if any, succeeds.
+complete data shape, and its guard if any, succeeds.
 
-Pattern variables are lexical to the block attached to that C<match>.  They
+Data-shape variables are lexical to the block attached to that C<match>.  They
 are not accesses to a same-named variable in the surrounding scope, and they
 do not become variables there.  A name listed by the case's C<with> clause is
 the exception: it is pinned and is looked up as the existing lexical.
 
-The part inside C<match (...)> is a pattern description, not an ordinary Perl
-expression.  It has Perl-like punctuation and names, but its job is to
+The part inside C<match (...)> is a data-shape description, not an ordinary
+Perl expression.  It has Perl-like punctuation and names, but its job is to
 describe the shape of the subject and introduce bindings.  It is not executed
-to produce a temporary pattern value.  The optional part after C<if> is
+to produce a temporary Perl value.  The optional part after C<if> is
 different: it is an ordinary Perl expression, evaluated as a guard after the
-pattern has matched and its bindings have been tentatively established.
+data shape has matched and its bindings have been tentatively established.
+
+Within the currently supported data shapes, repeating an unpinned scalar name
+refers to the same binding.  This both binds the value and requires later
+occurrences to have the same value.  Whole-array or whole-hash bindings such
+as C<@values> are not currently supported; bindings are scalar names.
 
 =head1 SCALAR PATTERNS
 
-Literal numbers and literal strings are different patterns:
+Literal numbers and literal strings are different data shapes:
 
     case ($value) {
         match (1)   { say "the number one" }
         match ("1") { say "the string one" }
     }
 
-The number pattern is intended for a numeric scalar and the string pattern for
-a string scalar.  This is deliberately more explicit than ordinary Perl
+The number data shape is intended for a numeric scalar and the string data
+shape for a string scalar.  This is deliberately more explicit than ordinary Perl
 comparison, where conversion may happen during the comparison.
 
 An undefined value can be matched directly:
@@ -87,16 +100,16 @@ An undefined value can be matched directly:
         match (_)     { say "some value" }
     }
 
-The boolean patterns C<true> and C<false> use Perl's ordinary truth-value
+The boolean data shapes C<true> and C<false> use Perl's ordinary truth-value
 rules.  They match the subject according to C<SvTRUE>, rather than requiring
 the subject to be one of the internal boolean scalar objects.  For example,
 C<match (true)> also matches the number C<1>, while C<match (false)> matches
 C<0>.  Use C<match (undef)> when the distinction between an undefined value
 and a defined false value matters.
 
-=head2 Concatenated string patterns
+=head2 Concatenated string data shapes
 
-A string pattern can combine literal text with one unpinned scalar name.  The
+A string data shape can combine literal text with one unpinned scalar name.  The
 name receives the part of the subject between the literal pieces:
 
     case ($text) {
@@ -110,7 +123,7 @@ appear on only one side as well, as in C<"x" . $suffix> or C<$prefix . "z">.
 An empty part is valid, so C<xz> matches the first example with an empty
 C<$middle>.
 
-The concatenation is interpreted as a pattern, not as an ordinary Perl
+The concatenation is interpreted as a data shape, not as an ordinary Perl
 expression.  A scalar named in a C<with> clause is pinned and contributes its
 existing value instead of capturing text:
 
@@ -119,18 +132,20 @@ existing value instead of capturing text:
     }
 
 Multiple unpinned names and more general expression operands are not part of
-the current implementation.
+the current data-shape language.  In particular, a function call or an
+arithmetic expression inside C<match (...)> is not a general way to compute a
+data shape.  Use the guard after C<if> for ordinary Perl computation.
 
 =head1 ARRAY AND HASH PATTERNS
 
-An array pattern matches an array reference.  Without an ellipsis, it must
+An array data shape matches an array reference.  Without an ellipsis, it must
 have exactly the listed number of elements:
 
     case ($point) {
         match ([ $x, $y ]) { say "point: $x, $y" }
     }
 
-A hash pattern lists keys which must be present.  A trailing C<...> allows
+A hash data shape lists keys which must be present.  A trailing C<...> allows
 additional keys:
 
     case ($record) {
@@ -146,21 +161,24 @@ For arrays, C<...> can be used at the beginning, at the end, or at both ends:
     match ([ ..., "start", $middle, "end", ... ])
 
 The last form searches from the left and binds the first matching subsequence.
-Array and hash patterns can be nested in one another.
+Array and hash data shapes can be nested in one another.  An ellipsis may be
+used only at the supported open-shape positions shown above; it is not a
+general wildcard for arbitrary positions.
 
 =head1 GUARDS
 
-A guard is an ordinary Perl expression checked after the pattern has matched
-structurally:
+A guard is an ordinary Perl expression checked after the data shape has
+matched structurally:
 
     case ($value) {
-        match ([ $number ] if $number > 0) {
+    match ([ $number ] if $number > 0) {
             say "positive: $number";
         }
         match (_) { say "not a positive one-element array" }
     }
 
-Guards are unrestricted Perl expressions.  They may have side effects or
+The C<if> and everything after it belong to ordinary Perl.  Guards are
+unrestricted Perl expressions.  They may have side effects or
 throw exceptions.  If a guard is false, that arm's tentative bindings are
 discarded and the next arm is considered.  If a guard throws, the exception
 is propagated in the usual way; the tentative bindings are still discarded.
@@ -176,7 +194,7 @@ The subject can be given a case-local name with C<as>:
 This evaluates the subject once and does not assign to an outer variable.
 
 A C<with> clause pins an existing value.  A pinned variable is checked rather
-than filled in by the pattern:
+than filled in by the data shape:
 
     my $wanted = "ok";
     case ($record) with ($wanted) {
@@ -216,10 +234,12 @@ This example classifies a small message represented by an array reference:
 
 =head1 WHAT WORKS NOW
 
-The current experimental implementation supports scalar patterns, lexical
-bindings and pins, wildcards, regular-expression predicate patterns, nested
-array and hash references, open composite patterns, guards, and explicit
-scalar subject conversion.
+The current experimental implementation supports scalar data shapes, lexical
+bindings and pins, wildcards, regular-expression predicate shapes, nested
+array and hash references, open composite shapes, guards, and explicit scalar
+subject conversion.  Constant-only cases without guards also have optimized
+dispatch paths.  The selected dispatch strategy is an implementation detail;
+the first matching arm in source order still wins.
 
 =head1 WHAT IS LEFT TO DO
 
@@ -234,30 +254,29 @@ Destructuring objects or class instances.
 
 =item *
 
-Alternatives, optional fields, ranges, and other richer pattern forms.
+Alternatives, optional fields, ranges, and other richer data-shape forms.
 
 =item *
 
 Capturing named values from regular expressions, or using regular expressions
-as part of a larger string pattern.
+as part of a larger string data shape.
 
 =item *
 
-A user-defined pattern protocol.
+A user-defined data-shape protocol.
 
 =item *
 
-When every arm is a simple constant and has no guard, the implementation may
-use a faster dispatch table instead of checking the arms one at a time.  This
-does not change the result: the first matching arm in source order still wins,
-and a default arm still has its normal meaning.  The choice of dispatch
-strategy is an implementation detail and may change while the feature is
-experimental.
+Richer data-shape forms, additional binding forms, and further dispatch
+optimizations remain under consideration.  Constant-only dispatch currently
+accepts duplicate clauses; the earliest matching clause wins, just as it does
+in the ordinary arm walk.  This behavior may be tightened in a future
+experimental version.
 
 =item *
 
 More precise diagnostics that identify the source location of a particular
-pattern or arm when compilation fails.
+data shape or arm when compilation fails.
 
 =back
 
@@ -267,6 +286,6 @@ may change before it is released.
 
 =head1 SEE ALSO
 
-L<perlsyn/Experimental Pattern Matching>, L<perlfunc>, L<perldelta>
+L<perlsyn/Experimental Data-Shape Matching>, L<perlfunc>, L<perldelta>
 
 =cut

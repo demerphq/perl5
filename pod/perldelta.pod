@@ -27,14 +27,14 @@ here, but most should go in the L</Performance Enhancements> section.
 
 [ List each enhancement as a =head2 entry ]
 
-=head2 Experimental pattern matching
+=head2 Experimental data-shape matching
 
 The experimental C<case_match> feature adds a C<case> statement with ordered
-C<match> arms.  Patterns can match scalar values, nested array and hash
+C<match> arms.  Data shapes can match scalar values, nested array and hash
 references, regular expressions, wildcards, and pinned lexical values.  A
 case subject may also use the grammar-level C<IntVal>, C<FloatVal>, or
 C<StrVal> forms to request one explicit coercion before matching.  See
-L<perlsyn/Experimental Pattern Matching> for the current experimental design
+L<perlsyn/Experimental Data-Shape Matching> for the current experimental design
 and limitations.
 
 =head2 Lexical namespaces

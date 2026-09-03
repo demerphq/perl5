@@ -6349,7 +6349,7 @@ pod/perlbook.pod			Perl book information
 pod/perlboot.pod
 pod/perlbot.pod
 pod/perlcall.pod			Perl calling conventions from C
-pod/perlcasewhen.pod			Experimental case and match syntax
+pod/perlcasematch.pod			Experimental case and data-shape matching syntax
 pod/perlcheat.pod			Perl cheat sheet
 pod/perlclass.pod			Perl class syntax
 pod/perlclassguts.pod			Internals of class syntax

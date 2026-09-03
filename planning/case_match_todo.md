@@ -28,7 +28,7 @@ The branch currently provides:
   with development selection through `PERL_CASE_DISPATCH`;
 - domain metadata and min/max rejection for string lengths, integer values,
   and floating-point values;
-- documentation in `pod/perlcasewhen.pod`, `pod/perlsyn.pod`, and
+- documentation in `pod/perlcasematch.pod`, `pod/perlsyn.pod`, and
   `BLEAD-DELTA.md`;
 - focused compiler/runtime coverage in `t/comp/case_match.t`.
 
@@ -39,12 +39,14 @@ long-term design.
 
 ## Priority 1: make the basic implementation correct and maintainable
 
-### 1. Separate case control flow from `given`/`when`
+### 1. Give case/match independent control-flow implementation
 
 The current optree contains case-specific entry/leave operations layered onto
-the older given/when machinery.  Audit whether this is merely code reuse or
-whether it imports unwanted semantics, save-stack behavior, or control-flow
-paths.
+the older `given`/`when` machinery.  This must be replaced: `case`/`match`
+and `given`/`when` are alternatives at the language level, but they must not
+share non-trivial implementation machinery.  In particular, removing one
+feature should not change the other, and case/match must not inherit switch
+fall-through, smartmatch, or other legacy control-flow behavior.
 
 The preferred target is a case-specific structure equivalent to:
 
@@ -67,9 +69,11 @@ Requirements:
 - nested cases do not corrupt the outer case context;
 - legacy `given`/`when` behavior remains unchanged.
 
-If the existing operations can safely provide these semantics without
-duplicating code, document that decision.  Otherwise introduce dedicated
-case operations and remove the unnecessary given/when layers.
+Introduce dedicated case operations and runtime context handling, and remove
+the unnecessary given/when layers from case/match.  Small, genuinely generic
+helpers may remain shared only when they have no feature-specific semantics;
+the case and given/when operation trees, context types, and dispatch paths
+must otherwise be independently maintainable.
 
 ### 2. Make pattern compilation ownership explicit
 
@@ -300,7 +304,7 @@ not valid LSan evidence.
 
 Update together whenever semantics change:
 
-- `pod/perlcasewhen.pod` in a beginner-friendly, CS-101 style;
+- `pod/perlcasematch.pod` in a beginner-friendly, CS-101 style;
 - `pod/perlsyn.pod` for syntax and precise semantics;
 - `pod/perlfunc.pod` if new pattern-related functions or keywords require
   entries;
