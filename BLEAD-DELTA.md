@@ -70,7 +70,7 @@ their normal experimental warnings.
 
 Related POD: [`pod/perlrun.pod`](https://github.com/demerphq/perl5/blob/xperl/main/pod/perlrun.pod) documents `-E`; [`lib/builtin.pm`](https://github.com/demerphq/perl5/blob/xperl/main/lib/builtin.pm) documents the `:all` builtin bundle; [`pod/perldelta.pod`](https://github.com/demerphq/perl5/blob/xperl/main/pod/perldelta.pod) records the release-note entry. The command-line regression is in [`t/run/switches.t`](https://github.com/demerphq/perl5/blob/xperl/main/t/run/switches.t).
 
-### Pattern matching
+### Case/match data-shape matching
 
 The experimental `case_match` feature adds ordered `case`/`match` arms with
 scalar, nested array, nested hash, wildcard, regular-expression, binding,
@@ -80,7 +80,7 @@ implementation supports exact composite patterns and open array/hash
 patterns using edge ellipses; richer pattern protocols are not yet included.
 Value-kind criteria include `RefVal()` for any reference, `ScalarVal()` for
 any non-reference scalar, and `ObjectVal()` for blessed references.  These
-criteria are data-shape syntax inside `on (...)`; outside a data-shape
+criteria are data-shape syntax inside `match (...)`; outside a data-shape
 description, the names retain ordinary Perl subroutine semantics.
 String patterns also support one unpinned scalar capture surrounded by literal
 concatenation fragments, including prefix, suffix, sandwich, pinned, and empty
@@ -91,7 +91,7 @@ including linear-array, binary-search, and hash-based strategies.  These
 strategies preserve source-order semantics and default-arm behavior while
 avoiding a full arm walk for each subject.
 
-Related POD: [`pod/perlcasematch.pod`](https://github.com/demerphq/perl5/blob/xperl/main/pod/perlcasematch.pod) is the beginner-oriented feature guide; [`pod/perlsyn.pod`](https://github.com/demerphq/perl5/blob/xperl/main/pod/perlsyn.pod) documents the syntax and current semantics; [`pod/perldiag.pod`](https://github.com/demerphq/perl5/blob/xperl/main/pod/perldiag.pod) documents data-shape diagnostics; [`pod/perlexperiment.pod`](https://github.com/demerphq/perl5/blob/xperl/main/pod/perlexperiment.pod) and [`pod/perldelta.pod`](https://github.com/demerphq/perl5/blob/xperl/main/pod/perldelta.pod) cover its experimental status and release notes.  The implementation is tested in [`t/comp/case_match.t`](https://github.com/demerphq/perl5/blob/xperl/main/t/comp/case_match.t), with further design status in [`planning/perl-pattern-matching.md`](https://github.com/demerphq/perl5/blob/xperl/main/planning/perl-pattern-matching.md). Dispatch behavior is measured by [`planning/scripts/case_dispatch_compare.pl`](https://github.com/demerphq/perl5/blob/xperl/main/planning/scripts/case_dispatch_compare.pl), [`planning/scripts/case_dispatch_weight.pl`](https://github.com/demerphq/perl5/blob/xperl/main/planning/scripts/case_dispatch_weight.pl), and [`planning/scripts/case_given_compare.pl`](https://github.com/demerphq/perl5/blob/xperl/main/planning/scripts/case_given_compare.pl).
+Related POD: [`pod/perlcasematch.pod`](https://github.com/demerphq/perl5/blob/xperl/main/pod/perlcasematch.pod) is the beginner-oriented feature guide; [`pod/perlsyn.pod`](https://github.com/demerphq/perl5/blob/xperl/main/pod/perlsyn.pod) documents the syntax and current semantics; [`pod/perldiag.pod`](https://github.com/demerphq/perl5/blob/xperl/main/pod/perldiag.pod) documents data-shape diagnostics; [`pod/perlexperiment.pod`](https://github.com/demerphq/perl5/blob/xperl/main/pod/perlexperiment.pod) and [`pod/perldelta.pod`](https://github.com/demerphq/perl5/blob/xperl/main/pod/perldelta.pod) cover its experimental status and release notes.  The implementation is tested in [`t/comp/case_match.t`](https://github.com/demerphq/perl5/blob/xperl/main/t/comp/case_match.t), with further design status in [`planning/perl-pattern-matching.md`](https://github.com/demerphq/perl5/blob/xperl/main/planning/perl-pattern-matching.md). Case dispatch behavior is measured by [`planning/scripts/case_dispatch_compare.pl`](https://github.com/demerphq/perl5/blob/xperl/main/planning/scripts/case_dispatch_compare.pl), [`planning/scripts/case_dispatch_weight.pl`](https://github.com/demerphq/perl5/blob/xperl/main/planning/scripts/case_dispatch_weight.pl), and [`planning/scripts/case_given_compare.pl`](https://github.com/demerphq/perl5/blob/xperl/main/planning/scripts/case_given_compare.pl).
 
 ### Lexical namespaces
 

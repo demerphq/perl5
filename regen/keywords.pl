@@ -69,6 +69,9 @@ my %feature_kw = (
     IntVal              => 'case_match',
     FloatVal            => 'case_match',
     StrVal              => 'case_match',
+    RefVal              => 'case_match',
+    ScalarVal           => 'case_match',
+    ObjectVal           => 'case_match',
     namespace           => 'namespaces',
     as                  => 'namespaces',
     __NAMESPACE__       => 'namespaces',
@@ -146,8 +149,11 @@ __END__
 +DESTROY
 +END
 -FloatVal
+-ObjectVal
 +INIT
 -IntVal
+-RefVal
+-ScalarVal
 -StrVal
 +UNITCHECK
 -abs

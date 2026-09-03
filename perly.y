@@ -70,6 +70,7 @@
 %token <ival> KW_FOR KW_UNTIL KW_WHILE KW_CONTINUE
 %token <ival> KW_GIVEN KW_WHEN KW_DEFAULT
 %token <ival> KW_CASE KW_MATCH KW_WITH KW_IntVal KW_FloatVal KW_StrVal
+%token <ival> KW_RefVal KW_ScalarVal KW_ObjectVal
 %token <ival> KW_TRY KW_CATCH KW_FINALLY KW_DEFER KW_GEN KW_YIELD
 %token <ival> KW_REQUIRE KW_DO
 
@@ -2082,6 +2083,12 @@ term[product]	:	termbinop
 			{ $$ = $FUNC0OP; }
 	|	FUNC0OP PERLY_PAREN_OPEN PERLY_PAREN_CLOSE
 			{ $$ = $FUNC0OP; }
+	|	KW_RefVal PERLY_PAREN_OPEN PERLY_PAREN_CLOSE
+			{ $$ = newUNOP(OP_CASECOERCE, 0, NULL); $$->op_targ = 4; }
+	|	KW_ScalarVal PERLY_PAREN_OPEN PERLY_PAREN_CLOSE
+			{ $$ = newUNOP(OP_CASECOERCE, 0, NULL); $$->op_targ = 5; }
+	|	KW_ObjectVal PERLY_PAREN_OPEN PERLY_PAREN_CLOSE
+			{ $$ = newUNOP(OP_CASECOERCE, 0, NULL); $$->op_targ = 6; }
 	|	FUNC0SUB                             /* Sub treated as nullop */
 			{ $$ = newUNOP(OP_ENTERSUB, OPf_STACKED, scalar($FUNC0SUB)); }
 	|	FUNC1 PERLY_PAREN_OPEN PERLY_PAREN_CLOSE                        /* not () */
