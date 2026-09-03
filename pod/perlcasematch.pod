@@ -237,7 +237,8 @@ commas:
 
     my ($wanted_type, $wanted_version) = ("ok", 3);
     case ($record) with ($wanted_type, $wanted_version) {
-        match ({ type => $wanted_type, version => $wanted_version, ... }) {
+        match ({ type => $wanted_type,
+                 version => $wanted_version, ... }) {
             use_record($record);
         }
     }
