@@ -5,7 +5,7 @@ BEGIN {
     unshift @INC, '../lib';
 }
 
-print "1..49\n";
+print "1..57\n";
 
 my $ran = 0;
 $_ = 'outside';
@@ -684,6 +684,87 @@ my $match_outside_case = eval q{
     use feature 'dispatch';
     on (1) { 1 }
 };
-print $match_outside_case eq '' && $@ =~ /on clause outside a dispatch/
+print $match_outside_case eq '' && $@ =~ /on clauses are only allowed directly in a dispatch/
     ? "ok 49 - on is forbidden outside dispatch\n"
     : "not ok 49 - on is forbidden outside dispatch\n";
+
+my ($ref_kind, $scalar_kind, $undef_kind, $object_kind, $plain_ref_kind);
+my $value_kinds = eval q{
+    use feature 'dispatch';
+    my $plain = [];
+    my $object = bless {}, 'DispatchTestObject';
+
+    dispatch ($plain) {
+        on (ObjectVal()) { $object_kind = 1 }
+        on (RefVal())    { $ref_kind = 1 }
+    }
+    dispatch (42) {
+        on (RefVal())    { $plain_ref_kind = 1 }
+        on (ScalarVal()) { $scalar_kind = 1 }
+    }
+    dispatch (undef) {
+        on (ScalarVal()) { $undef_kind = 1 }
+    }
+    dispatch ($object) {
+        on (ObjectVal()) { $object_kind = 2 }
+    }
+    1;
+};
+print !$@ && $value_kinds && $ref_kind == 1
+    ? "ok 50 - RefVal matches unblessed references\n"
+    : "not ok 50 - RefVal matches unblessed references\n";
+print !$@ && $value_kinds && $scalar_kind && !$plain_ref_kind
+    ? "ok 51 - ScalarVal matches non-references\n"
+    : "not ok 51 - ScalarVal matches non-references\n";
+print !$@ && $value_kinds && $undef_kind
+    ? "ok 52 - ScalarVal includes undef\n"
+    : "not ok 52 - ScalarVal includes undef\n";
+print !$@ && $value_kinds && $object_kind == 2
+    ? "ok 53 - ObjectVal matches blessed references\n"
+    : "not ok 53 - ObjectVal matches blessed references\n";
+
+my ($object_ref, $object_scalar);
+my $object_subset = eval q{
+    use feature 'dispatch';
+    my $plain = {};
+    dispatch ($plain) {
+        on (ObjectVal()) { $object_ref = 1 }
+        on (RefVal())    { $object_ref = 2 }
+    }
+    dispatch ('value') {
+        on (ObjectVal()) { $object_scalar = 1 }
+        on (ScalarVal()) { $object_scalar = 2 }
+    }
+    1;
+};
+print !$@ && $object_subset && $object_ref == 2
+    ? "ok 54 - ObjectVal is a subset of RefVal\n"
+    : "not ok 54 - ObjectVal is a subset of RefVal\n";
+print !$@ && $object_subset && $object_scalar == 2
+    ? "ok 55 - ObjectVal rejects non-references\n"
+    : "not ok 55 - ObjectVal rejects non-references\n";
+
+my ($ordinary_ref, $ordinary_scalar, $ordinary_object, $ordinary_subject);
+my $ordinary_functions = eval q{
+    use feature 'dispatch';
+    sub RefVal    { 'ordinary ref function' }
+    sub ScalarVal { 'ordinary scalar function' }
+    sub ObjectVal { 'ordinary object function' }
+    $ordinary_ref = RefVal();
+    $ordinary_scalar = ScalarVal();
+    $ordinary_object = ObjectVal();
+    dispatch (RefVal()) {
+        on ('ordinary ref function') { $ordinary_subject = 1 }
+    }
+    1;
+};
+print !$@ && $ordinary_functions
+    && $ordinary_ref eq 'ordinary ref function'
+    && $ordinary_scalar eq 'ordinary scalar function'
+    && $ordinary_object eq 'ordinary object function'
+    && $ordinary_subject
+    ? "ok 56 - criteria names remain ordinary functions outside patterns\n"
+    : "not ok 56 - criteria names remain ordinary functions outside patterns\n";
+print !$@ && $ordinary_functions && $ordinary_subject
+    ? "ok 57 - criteria names remain ordinary in a dispatch subject\n"
+    : "not ok 57 - criteria names remain ordinary in a dispatch subject\n";

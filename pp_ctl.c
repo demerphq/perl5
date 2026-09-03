@@ -7029,6 +7029,14 @@ S_case_pattern_match(pTHX_ const struct case_pattern_node *node, SV *value,
     if (pattern->op_type == OP_UNDEF)
         return !SvOK(value);
 
+    if (pattern->op_type == OP_CASECOERCE && pattern->op_targ >= 4) {
+        if (pattern->op_targ == 4)
+            return SvROK(value);
+        if (pattern->op_targ == 5)
+            return !SvROK(value);
+        return SvROK(value) && SvOBJECT(SvRV(value));
+    }
+
     if (pattern->op_type == OP_CONCAT
         || pattern->op_type == OP_MULTICONCAT) {
         return S_case_pattern_concat_match(aTHX_ node, value, pattern_value,

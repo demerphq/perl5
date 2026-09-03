@@ -78,6 +78,10 @@ pinning, guard, and explicit scalar-conversion patterns.  Pattern bindings
 are tentative until the complete pattern and guard succeed.  The current
 implementation supports exact composite patterns and open array/hash
 patterns using edge ellipses; richer pattern protocols are not yet included.
+Value-kind criteria include `RefVal()` for any reference, `ScalarVal()` for
+any non-reference scalar, and `ObjectVal()` for blessed references.  These
+criteria are data-shape syntax inside `on (...)`; outside a data-shape
+description, the names retain ordinary Perl subroutine semantics.
 String patterns also support one unpinned scalar capture surrounded by literal
 concatenation fragments, including prefix, suffix, sandwich, pinned, and empty
 captures.  Multiple captures and general expression operands remain outside

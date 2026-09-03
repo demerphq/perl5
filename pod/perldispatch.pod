@@ -107,6 +107,37 @@ C<on (true)> also matches the number C<1>, while C<on (false)> matches
 C<0>.  Use C<on (undef)> when the distinction between an undefined value
 and a defined false value matters.
 
+=head2 Value-kind criteria
+
+Sometimes the shape you want is about the kind of value, rather than its
+contents.  The following criteria are available inside C<on (...)>:
+
+=over
+
+=item C<RefVal()>
+
+Matches any reference, including an unblessed array or hash reference and a
+blessed object.
+
+=item C<ScalarVal()>
+
+Matches any non-reference scalar.  This includes C<undef>, numbers, strings,
+and scalar values with Perl's usual dual nature.
+
+=item C<ObjectVal()>
+
+Matches a blessed reference.  It is therefore a narrower test than
+C<RefVal()>: an unblessed reference matches C<RefVal()> but not
+C<ObjectVal()>.
+
+=back
+
+These criteria describe the subject's value kind.  They do not dereference a
+reference, call a method, or inspect an object's class.  Within an C<on>
+description these spellings are criteria, not ordinary function calls.  The
+names retain ordinary Perl subroutine semantics elsewhere, so a program may
+define or call a function named C<RefVal>, C<ScalarVal>, or C<ObjectVal>.
+
 =head2 Concatenated string data shapes
 
 A string data shape can combine literal text with one unpinned scalar name.  The

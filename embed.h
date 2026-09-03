@@ -207,6 +207,7 @@
 #   undef KEY_no
 #   undef KEY_not
 #   undef KEY_NULL
+#   undef KEY_ObjectVal
 #   undef KEY_oct
 #   undef KEY_on
 #   undef KEY_open
@@ -237,6 +238,7 @@
 #   undef KEY_recv
 #   undef KEY_redo
 #   undef KEY_ref
+#   undef KEY_RefVal
 #   undef KEY_rename
 #   undef KEY_require
 #   undef KEY_reset
@@ -249,6 +251,7 @@
 #   undef KEY_s
 #   undef KEY_say
 #   undef KEY_scalar
+#   undef KEY_ScalarVal
 #   undef KEY_seek
 #   undef KEY_seekdir
 #   undef KEY_select

@@ -9010,6 +9010,20 @@ yyl_word_or_keyword(pTHX_ char *s, STRLEN len, I32 key, I32 orig_keyword, struct
         PL_bufptr = s;
         return REPORT(KW_IntVal);
 
+    case KEY_RefVal:
+        if (!PL_parser->in_case_pattern)
+            return yyl_just_a_word(aTHX_ s, len, orig_keyword, c);
+        PL_expect = XTERM;
+        PL_bufptr = s;
+        return REPORT(KW_RefVal);
+
+    case KEY_ScalarVal:
+        if (!PL_parser->in_case_pattern)
+            return yyl_just_a_word(aTHX_ s, len, orig_keyword, c);
+        PL_expect = XTERM;
+        PL_bufptr = s;
+        return REPORT(KW_ScalarVal);
+
     case KEY_ioctl:
         LOP(OP_IOCTL,XTERM);
 
@@ -9422,6 +9436,13 @@ yyl_word_or_keyword(pTHX_ char *s, STRLEN len, I32 key, I32 orig_keyword, struct
         PL_expect = XTERM;
         PL_bufptr = s;
         return REPORT(KW_StrVal);
+
+    case KEY_ObjectVal:
+        if (!PL_parser->in_case_pattern)
+            return yyl_just_a_word(aTHX_ s, len, orig_keyword, c);
+        PL_expect = XTERM;
+        PL_bufptr = s;
+        return REPORT(KW_ObjectVal);
 
     case KEY_split:
         LOP(OP_SPLIT,XTERM);

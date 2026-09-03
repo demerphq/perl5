@@ -69,6 +69,9 @@ my %feature_kw = (
     IntVal              => 'dispatch',
     FloatVal            => 'dispatch',
     StrVal              => 'dispatch',
+    RefVal              => 'dispatch',
+    ScalarVal           => 'dispatch',
+    ObjectVal           => 'dispatch',
     namespace           => 'namespaces',
     as                  => 'namespaces',
     __NAMESPACE__       => 'namespaces',
@@ -146,8 +149,11 @@ __END__
 +DESTROY
 +END
 -FloatVal
+-ObjectVal
 +INIT
 -IntVal
+-RefVal
+-ScalarVal
 -StrVal
 +UNITCHECK
 -abs
