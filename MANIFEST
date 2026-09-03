@@ -6349,7 +6349,6 @@ pod/perlbook.pod			Perl book information
 pod/perlboot.pod
 pod/perlbot.pod
 pod/perlcall.pod			Perl calling conventions from C
-pod/perldispatch.pod			Experimental dispatch and data-shape matching syntax
 pod/perlcheat.pod			Perl cheat sheet
 pod/perlclass.pod			Perl class syntax
 pod/perlclassguts.pod			Internals of class syntax
@@ -6363,6 +6362,7 @@ pod/perldebug.pod			Perl debugging
 pod/perldelta.pod			Perl changes since previous version
 pod/perldeprecation.pod			Perl deprecations
 pod/perldiag.pod			Perl diagnostic messages
+pod/perldispatch.pod			Experimental dispatch and data-shape matching syntax
 pod/perldocstyle.pod			Perl style guide for core docs
 pod/perldsc.pod				Perl data structures intro
 pod/perldtrace.pod			Perl's support for DTrace
@@ -6597,10 +6597,10 @@ t/cmd/mod.t				See if statement modifiers work
 t/cmd/subval.t				See if subroutine values work
 t/cmd/switch.t				See if switch optimizations work
 t/comp/bproto.t				See if builtins conform to their prototypes
-t/comp/dispatch_on.t			See if dispatch/on syntax works
 t/comp/cmdopt.t				See if command optimization works
 t/comp/colon.t				See if colons are parsed correctly
 t/comp/decl.t				See if declarations work
+t/comp/dispatch_on.t			See if dispatch/on syntax works
 t/comp/filter_exception.t		See if $@ survives source filters
 t/comp/final_line_num.t			See if line numbers are correct at EOF
 t/comp/fold.t				See if constant folding works

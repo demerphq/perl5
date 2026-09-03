@@ -7581,7 +7581,7 @@ S_case_collect_pin_ops(pTHX_ const OP *op, AV *padixes)
     if (op->op_type == OP_PUSHMARK)
         return;
     if (!(op->op_flags & OPf_KIDS))
-        Perl_croak(aTHX_ "case with values must be scalar lexicals (got %s)",
+        Perl_croak(aTHX_ "dispatch with values must be scalar lexicals (got %s)",
                    PL_op_name[op->op_type]);
     for (kid = cUNOPx(op)->op_first; kid; kid = OpSIBLING(kid))
         S_case_collect_pin_ops(aTHX_ kid, padixes);

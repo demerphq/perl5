@@ -2084,23 +2084,11 @@ term[product]	:	termbinop
 	|	FUNC0OP PERLY_PAREN_OPEN PERLY_PAREN_CLOSE
 			{ $$ = $FUNC0OP; }
 	|	KW_RefVal PERLY_PAREN_OPEN PERLY_PAREN_CLOSE
-			{ if (!parser->in_case_pattern) {
-				yyerror("RefVal() is only allowed in a data-shape description");
-				YYERROR;
-			  }
-			  $$ = newUNOP(OP_CASECOERCE, 0, NULL); $$->op_targ = 4; }
+			{ $$ = newUNOP(OP_CASECOERCE, 0, NULL); $$->op_targ = 4; }
 	|	KW_ScalarVal PERLY_PAREN_OPEN PERLY_PAREN_CLOSE
-			{ if (!parser->in_case_pattern) {
-				yyerror("ScalarVal() is only allowed in a data-shape description");
-				YYERROR;
-			  }
-			  $$ = newUNOP(OP_CASECOERCE, 0, NULL); $$->op_targ = 5; }
+			{ $$ = newUNOP(OP_CASECOERCE, 0, NULL); $$->op_targ = 5; }
 	|	KW_ObjectVal PERLY_PAREN_OPEN PERLY_PAREN_CLOSE
-			{ if (!parser->in_case_pattern) {
-				yyerror("ObjectVal() is only allowed in a data-shape description");
-				YYERROR;
-			  }
-			  $$ = newUNOP(OP_CASECOERCE, 0, NULL); $$->op_targ = 6; }
+			{ $$ = newUNOP(OP_CASECOERCE, 0, NULL); $$->op_targ = 6; }
 	|	FUNC0SUB                             /* Sub treated as nullop */
 			{ $$ = newUNOP(OP_ENTERSUB, OPf_STACKED, scalar($FUNC0SUB)); }
 	|	FUNC1 PERLY_PAREN_OPEN PERLY_PAREN_CLOSE                        /* not () */
