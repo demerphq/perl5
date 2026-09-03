@@ -4518,6 +4518,24 @@ Perl_cx_popcase(pTHX_ PERL_CONTEXT *cx)
 }
 
 
+PERL_STATIC_INLINE void
+Perl_cx_pushcasematch(pTHX_ PERL_CONTEXT *cx)
+{
+    PERL_ARGS_ASSERT_CX_PUSHCASEMATCH;
+
+    cx->blk_casematch.leave_op = cLOGOP->op_other;
+}
+
+
+PERL_STATIC_INLINE void
+Perl_cx_popcasematch(pTHX_ PERL_CONTEXT *cx)
+{
+    PERL_ARGS_ASSERT_CX_POPCASEMATCH;
+    PERL_UNUSED_CONTEXT;
+    assert(CxTYPE(cx) == CXt_CASEMATCH);
+}
+
+
 /* Make @_ empty in-place in simple cases: a cheap av_clear().
  * See Perl_clear_defarray() for non-simple cases */
 

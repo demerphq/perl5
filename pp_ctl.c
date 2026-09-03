@@ -1571,6 +1571,7 @@ static const char * const context_name[] = {
     "substitution",
     "defer block",
     "case",
+    "case/match arm",
 };
 
 static I32
@@ -1913,6 +1914,9 @@ Perl_dounwind(pTHX_ I32 cxix)
             break;
         case CXt_CASE:
             cx_popcase(cx);
+            break;
+        case CXt_CASEMATCH:
+            cx_popcasematch(cx);
             break;
         case CXt_BLOCK:
         case CXt_NULL:
@@ -3870,6 +3874,8 @@ PP(pp_goto)
             case CXt_LOOP_ARY:
             case CXt_GIVEN:
             case CXt_WHEN:
+            case CXt_CASE:
+            case CXt_CASEMATCH:
                 gotoprobe = OpSIBLING(cx->blk_oldcop);
                 break;
             case CXt_SUBST:
@@ -6573,17 +6579,17 @@ static bool
 S_case_dispatch_arm(pTHX_ const OP *op, struct case_pattern_aux **auxp,
                     OP **targetp)
 {
-    const OP *enterwhen;
+    const OP *entercasematch;
     const OP *condition;
     const struct case_pattern_aux *aux;
 
     PERL_UNUSED_CONTEXT;
-    if (op->op_type != OP_LEAVEWHEN)
+    if (op->op_type != OP_LEAVECASEMATCH)
         return FALSE;
-    enterwhen = cUNOPx(op)->op_first;
-    if (!enterwhen || enterwhen->op_type != OP_ENTERWHEN)
+    entercasematch = cUNOPx(op)->op_first;
+    if (!entercasematch || entercasematch->op_type != OP_ENTERCASEMATCH)
         return FALSE;
-    condition = cUNOPx(enterwhen)->op_first;
+    condition = cUNOPx(entercasematch)->op_first;
     if (!condition || condition->op_type != OP_CASEMATCH)
         return FALSE;
     aux = (const struct case_pattern_aux *)cUNOP_AUXx(condition)->op_aux;
@@ -6594,7 +6600,7 @@ S_case_dispatch_arm(pTHX_ const OP *op, struct case_pattern_aux **auxp,
         return FALSE;
     *auxp = (struct case_pattern_aux *)aux;
     if (targetp)
-        *targetp = (OP *)enterwhen;
+        *targetp = (OP *)entercasematch;
     return TRUE;
 }
 
@@ -6786,19 +6792,19 @@ S_case_dispatch_sort(pTHX_ AV *values, AV *arms, U8 kind)
 }
 
 static bool
-S_case_dispatch_default_is_noop(const OP *target, const OP *leavewhen)
+S_case_dispatch_default_is_noop(const OP *target, const OP *leavecasematch)
 {
     const OP *op = target ? target->op_next : NULL;
     U32 steps = 0;
 
-    while (op && op != leavewhen && steps++ < 8) {
+    while (op && op != leavecasematch && steps++ < 8) {
         if (op->op_type != OP_NEXTSTATE && op->op_type != OP_STUB
             && op->op_type != OP_NULL && op->op_type != OP_UNSTACK
             && op->op_type != OP_SCOPE)
             return FALSE;
         op = op->op_next;
     }
-    return op == leavewhen;
+    return op == leavecasematch;
 }
 
 UNOP_AUX_item *
@@ -8152,6 +8158,32 @@ PP(pp_enterwhen)
     return NORMAL;
 }
 
+PP(pp_entercasematch)
+{
+    PERL_CONTEXT *cx;
+    PERL_CONTEXT *casectx = S_case_context(aTHX);
+    const U8 gimme = GIMME_V;
+
+    if (!(PL_op->op_flags & OPf_SPECIAL)) {
+        bool matched = SvTRUEx(*PL_stack_sp);
+        rpp_popfree_1_NN();
+        if (!matched) {
+            if (casectx && CxTYPE(casectx) == CXt_CASE)
+                S_case_rollback_bindings(aTHX_ casectx);
+            if (gimme == G_SCALAR)
+                rpp_push_IMM(&PL_sv_undef);
+            return cLOGOP->op_other->op_next;
+        }
+    }
+
+    if (casectx && CxTYPE(casectx) == CXt_CASE)
+        S_case_commit_bindings(aTHX_ casectx);
+
+    cx = cx_pushblock(CXt_CASEMATCH, gimme, PL_stack_sp, PL_savestack_ix);
+    cx_pushcasematch(cx);
+    return NORMAL;
+}
+
 PP(pp_leavewhen)
 {
     I32 cxix;
@@ -8198,6 +8230,35 @@ PP(pp_leavewhen)
         assert(cx->blk_givwhen.leave_op->op_type == OP_LEAVEGIVEN);
         return cx->blk_givwhen.leave_op;
     }
+}
+
+PP(pp_leavecasematch)
+{
+    I32 cxix;
+    PERL_CONTEXT *cx;
+    U8 gimme;
+    SV **oldsp;
+
+    cx = CX_CUR();
+    assert(CxTYPE(cx) == CXt_CASEMATCH);
+    gimme = cx->blk_gimme;
+    oldsp = PL_stack_base + cx->blk_oldsp;
+
+    if (gimme == G_VOID)
+        rpp_popfree_to_NN(oldsp);
+    else
+        leave_adjust_stacks(oldsp, oldsp, gimme, 1);
+
+    for (cxix = cxstack_ix - 1; cxix >= 0; cxix--)
+        if (CxTYPE(&cxstack[cxix]) == CXt_CASE)
+            break;
+    if (cxix < 0)
+        DIE(aTHX_ "case/match arm outside a case");
+
+    dounwind(cxix);
+    cx = CX_CUR();
+    assert(CxTYPE(cx) == CXt_CASE);
+    return cx->blk_case.leave_op;
 }
 
 PP(pp_continue)

@@ -2800,6 +2800,7 @@ my @undocumented_potentially_always_hidden = qw(
 # not be directly usable by XS code
 my %undocumented_always_visible = map { $_ => 1 } qw(
     CXt_CASE
+    CXt_CASEMATCH
     OPpCONCAT_PATTERN
     _
     COP_FEATURE_SIZE

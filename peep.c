@@ -3732,6 +3732,10 @@ Perl_rpeep(pTHX_ OP *o)
             assert(cLOGOPo->op_other->op_type == OP_LEAVEWHEN);
             break;
 
+        case OP_ENTERCASEMATCH:
+            assert(cLOGOPo->op_other->op_type == OP_LEAVECASEMATCH);
+            break;
+
         /* general LOGOPs */
 
         case OP_MAPWHILE:

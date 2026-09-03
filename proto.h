@@ -4348,6 +4348,15 @@ Perl_newBINOP(pTHX_ I32 type, I32 flags, OP *first, OP *last)
         Perl_assert_aTHX
 
 PERL_CALLCONV OP *
+Perl_newCASEMATCHOP(pTHX_ OP *cond, OP *block)
+        Perl_attribute_nonnull_aTHX
+        Perl_attribute_nonnull(pTHX_1)
+        Perl_attribute_nonnull(pTHX_2)
+        __attribute__warn_unused_result__;
+#define PERL_ARGS_ASSERT_NEWCASEMATCHOP         \
+        Perl_assert_aTHX; assert(cond); assert(block)
+
+PERL_CALLCONV OP *
 Perl_newCASEOP(pTHX_ OP *cond, OP *block)
         Perl_attribute_nonnull_aTHX
         Perl_attribute_nonnull(pTHX_1)
@@ -15544,6 +15553,13 @@ Perl_cx_popcase(pTHX_ PERL_CONTEXT *cx)
         Perl_assert_aTHX; assert(cx)
 
 PERL_STATIC_INLINE void
+Perl_cx_popcasematch(pTHX_ PERL_CONTEXT *cx)
+        Perl_attribute_nonnull_aTHX
+        Perl_attribute_nonnull(pTHX_1);
+# define PERL_ARGS_ASSERT_CX_POPCASEMATCH       \
+        Perl_assert_aTHX; assert(cx)
+
+PERL_STATIC_INLINE void
 Perl_cx_popeval(pTHX_ PERL_CONTEXT *cx)
         Perl_attribute_nonnull_aTHX
         Perl_attribute_nonnull(pTHX_1);
@@ -15611,6 +15627,13 @@ Perl_cx_pushcase(pTHX_ PERL_CONTEXT *cx, SV *orig_defsv)
         Perl_attribute_nonnull_aTHX
         Perl_attribute_nonnull(pTHX_1);
 # define PERL_ARGS_ASSERT_CX_PUSHCASE           \
+        Perl_assert_aTHX; assert(cx)
+
+PERL_STATIC_INLINE void
+Perl_cx_pushcasematch(pTHX_ PERL_CONTEXT *cx)
+        Perl_attribute_nonnull_aTHX
+        Perl_attribute_nonnull(pTHX_1);
+# define PERL_ARGS_ASSERT_CX_PUSHCASEMATCH      \
         Perl_assert_aTHX; assert(cx)
 
 PERL_STATIC_INLINE void

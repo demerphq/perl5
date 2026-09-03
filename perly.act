@@ -304,7 +304,7 @@ case 2: /* @1: %empty  */
 				&& SvIOK(cSVOPx_sv(pattern)))
 				pattern->op_flags |= OPf_SPECIAL;
 			(yyval.opval) = block_end((ps[-5].val.ival),
-				newWHENOP(condition,
+				newCASEMATCHOP(condition,
 					op_scope((ps[0].val.opval))));
 		}
 
@@ -354,7 +354,7 @@ case 2: /* @1: %empty  */
 				for (kid = cLISTOPx((yyval.opval))->op_first; kid;
 					kid = OpSIBLING(kid)) {
 					if (!OP_TYPE_IS_COP_NN(kid)
-						&& kid->op_type != OP_LEAVEWHEN) {
+						&& kid->op_type != OP_LEAVECASEMATCH) {
 						invalid = TRUE;
 						break;
 					}
@@ -2731,6 +2731,6 @@ case 2: /* @1: %empty  */
     
 
 /* Generated from:
- * bc17d94eaa9c71da207b3819651a0d04f4c161aaa5ff97715dce26a1914a4a98 perly.y
+ * a1954a4116586c684e257ed72a5fe00dabfd7a9513388ab2f49dc548b6b96d70 perly.y
  * 1a4cfc5b32006b09aba17cc80cd31ade3503ab1e829681adfe337d9c26e19fe0 regen_perly.pl
  * ex: set ro ft=c: */

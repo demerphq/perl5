@@ -28,6 +28,7 @@
 #   undef ALIGNED_TYPE_NAME
 #   undef AMGf_no_GETMAGIC
 #   undef blk_case
+#   undef blk_casematch
 #   undef CASE_DISPATCH_AUX_MAGIC
 #   undef CASE_DISPATCH_NO_ARM
 #   undef CASE_PATTERN_AUX_MAGIC
@@ -702,6 +703,7 @@
 # define newAVav(a)                             Perl_newAVav(aTHX_ a)
 # define newAVhv(a)                             Perl_newAVhv(aTHX_ a)
 # define newBINOP(a,b,c,d)                      Perl_newBINOP(aTHX_ a,b,c,d)
+# define newCASEMATCHOP(a,b)                    Perl_newCASEMATCHOP(aTHX_ a,b)
 # define newCASEOP(a,b)                         Perl_newCASEOP(aTHX_ a,b)
 # define newCONDOP(a,b,c,d)                     Perl_newCONDOP(aTHX_ a,b,c,d)
 # define newCONSTSUB(a,b,c)                     Perl_newCONSTSUB(aTHX_ a,b,c)
@@ -2568,6 +2570,7 @@
 # if !defined(PERL_NO_INLINE_FUNCTIONS)
 #   define cx_popblock(a)                       Perl_cx_popblock(aTHX_ a)
 #   define cx_popcase(a)                        Perl_cx_popcase(aTHX_ a)
+#   define cx_popcasematch(a)                   Perl_cx_popcasematch(aTHX_ a)
 #   define cx_popeval(a)                        Perl_cx_popeval(aTHX_ a)
 #   define cx_popformat(a)                      Perl_cx_popformat(aTHX_ a)
 #   define cx_popgiven(a)                       Perl_cx_popgiven(aTHX_ a)
@@ -2578,6 +2581,7 @@
 #   define cx_popwhen(a)                        Perl_cx_popwhen(aTHX_ a)
 #   define cx_pushblock(a,b,c,d)                Perl_cx_pushblock(aTHX_ a,b,c,d)
 #   define cx_pushcase(a,b)                     Perl_cx_pushcase(aTHX_ a,b)
+#   define cx_pushcasematch(a)                  Perl_cx_pushcasematch(aTHX_ a)
 #   define cx_pusheval(a,b,c)                   Perl_cx_pusheval(aTHX_ a,b,c)
 #   define cx_pushformat(a,b,c,d)               Perl_cx_pushformat(aTHX_ a,b,c,d)
 #   define cx_pushgiven(a,b)                    Perl_cx_pushgiven(aTHX_ a,b)

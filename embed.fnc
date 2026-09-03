@@ -2496,6 +2496,8 @@ ARdp	|OP *	|newBINOP	|I32 type				\
 dp	|OP *	|new_block_statement					\
 				|NN OP *block				\
 				|NULLOK OP *cont
+ARdp	|OP *	|newCASEMATCHOP |NN OP *cond				\
+				|NN OP *block
 ARdp	|OP *	|newCASEOP	|NN OP *cond				\
 				|NN OP *block
 ARdp	|OP *	|newCONDOP	|I32 flags				\
@@ -6684,6 +6686,7 @@ CTp	|Malloc_t|mem_log_realloc					\
 #if !defined(PERL_NO_INLINE_FUNCTIONS)
 Cipx	|void	|cx_popblock	|NN PERL_CONTEXT *cx
 Cipx	|void	|cx_popcase	|NN PERL_CONTEXT *cx
+Cipx	|void	|cx_popcasematch|NN PERL_CONTEXT *cx
 Cipx	|void	|cx_popeval	|NN PERL_CONTEXT *cx
 Cipx	|void	|cx_popformat	|NN PERL_CONTEXT *cx
 Cipx	|void	|cx_popgiven	|NN PERL_CONTEXT *cx
@@ -6700,6 +6703,8 @@ Cipx	|PERL_CONTEXT *|cx_pushblock					\
 				|I32 saveix
 Cipx	|void	|cx_pushcase	|NN PERL_CONTEXT *cx			\
 				|NULLOK SV *orig_defsv
+Cipx	|void	|cx_pushcasematch					\
+				|NN PERL_CONTEXT *cx
 Cipx	|void	|cx_pusheval	|NN PERL_CONTEXT *cx			\
 				|NULLOK OP *retop			\
 				|NULLOK SV *namesv

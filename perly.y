@@ -428,7 +428,7 @@ bare_statement_match
 				&& SvIOK(cSVOPx_sv(pattern)))
 				pattern->op_flags |= OPf_SPECIAL;
 			$$ = block_end($remember,
-				newWHENOP(condition,
+				newCASEMATCHOP(condition,
 					op_scope($mblock)));
 		}
 ;
@@ -470,7 +470,7 @@ case_mblock
 				for (kid = cLISTOPx($$)->op_first; kid;
 					kid = OpSIBLING(kid)) {
 					if (!OP_TYPE_IS_COP_NN(kid)
-						&& kid->op_type != OP_LEAVEWHEN) {
+						&& kid->op_type != OP_LEAVECASEMATCH) {
 						invalid = TRUE;
 						break;
 					}
