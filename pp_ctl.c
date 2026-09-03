@@ -6197,6 +6197,7 @@ struct case_binding {
     PADOFFSET padix;
     SV *value;
     bool owned;
+    bool is_array;
 };
 
 static PERL_CONTEXT *S_case_context(pTHX);
@@ -6383,6 +6384,7 @@ S_case_pattern_concat_match(pTHX_ const struct case_pattern_node *node,
         bindings[*nbindings].padix = padix;
         bindings[*nbindings].value = middle;
         bindings[*nbindings].owned = TRUE;
+        bindings[*nbindings].is_array = FALSE;
         (*nbindings)++;
         matched = TRUE;
     }
@@ -6432,6 +6434,14 @@ S_case_pattern_is_ellipsis(pTHX_ const OP *op)
         && strEQ(SvPV_nolen_const(cSVOPx_sv(op)), "...");
 }
 
+static bool
+S_case_pattern_is_slurp(const OP *op)
+{
+    return op->op_type == OP_CASECOERCE
+        && cUNOPx(op)->op_first
+        && cUNOPx(op)->op_first->op_type == OP_PADAV;
+}
+
 static void
 S_case_pattern_validate(pTHX_ const OP *op)
 {
@@ -6446,6 +6456,7 @@ S_case_pattern_validate(pTHX_ const OP *op)
     if (op->op_type == OP_ANONLIST) {
         U32 logical_ix = 0;
         U32 ellipses = 0;
+        U32 slurps = 0;
         U32 nchild = 0;
         for (kid = cLISTOPx(op)->op_first; kid; kid = OpSIBLING(kid)) {
             if (kid->op_type == OP_PUSHMARK)
@@ -6453,15 +6464,25 @@ S_case_pattern_validate(pTHX_ const OP *op)
             nchild++;
             if (S_case_pattern_is_ellipsis(aTHX_ kid))
                 ellipses++;
+            else if (S_case_pattern_is_slurp(kid))
+                slurps++;
         }
         if (ellipses > 2 || (ellipses == 2 && nchild < 3))
             Perl_croak(aTHX_ "array pattern has invalid ellipsis placement");
+        if (slurps > 1)
+            Perl_croak(aTHX_ "array pattern may contain only one slurp");
         for (kid = cLISTOPx(op)->op_first; kid; kid = OpSIBLING(kid)) {
             if (kid->op_type == OP_PUSHMARK)
                 continue;
             if (S_case_pattern_is_ellipsis(aTHX_ kid)) {
                 if (logical_ix != 0 && logical_ix != nchild - 1)
                     Perl_croak(aTHX_ "array pattern ellipsis must be at an edge");
+                logical_ix++;
+                continue;
+            }
+            if (S_case_pattern_is_slurp(kid)) {
+                if (logical_ix != nchild - 1 || ellipses)
+                    Perl_croak(aTHX_ "array slurp must be the final pattern element and cannot use an ellipsis");
                 logical_ix++;
                 continue;
             }
@@ -6991,6 +7012,18 @@ S_case_discard_bindings(pTHX_ PERL_CONTEXT *cx)
 }
 
 static void
+S_case_set_array(pTHX_ SV *target, AV *source)
+{
+    SSize_t i;
+    av_clear(MUTABLE_AV(target));
+    for (i = 0; i <= av_len(source); i++) {
+        SV **svp = av_fetch(source, i, FALSE);
+        if (svp)
+            av_push(MUTABLE_AV(target), SvREFCNT_inc(*svp));
+    }
+}
+
+static void
 S_case_commit_bindings(pTHX_ PERL_CONTEXT *cx)
 {
     AV *bindings = cx->blk_case.case_bindings;
@@ -7008,11 +7041,17 @@ S_case_rollback_bindings(pTHX_ PERL_CONTEXT *cx)
 
     if (!bindings)
         return;
-    for (i = 0; i + 1 <= av_len(bindings); i += 2) {
+    for (i = 0; i + 2 <= av_len(bindings); i += 3) {
         SV **padix_sv = av_fetch(bindings, i, FALSE);
         SV **old_value_sv = av_fetch(bindings, i + 1, FALSE);
-        if (padix_sv && old_value_sv)
-            sv_setsv(PAD_SV((PADOFFSET)SvUV(*padix_sv)), *old_value_sv);
+        SV **is_array_sv = av_fetch(bindings, i + 2, FALSE);
+        if (padix_sv && old_value_sv && is_array_sv) {
+            SV *target = PAD_SV((PADOFFSET)SvUV(*padix_sv));
+            if (SvTRUE(*is_array_sv))
+                S_case_set_array(aTHX_ target, MUTABLE_AV(SvRV(*old_value_sv)));
+            else
+                sv_setsv(target, *old_value_sv);
+        }
     }
     S_case_discard_bindings(aTHX_ cx);
 }
@@ -7029,12 +7068,37 @@ S_case_pattern_match(pTHX_ const struct case_pattern_node *node, SV *value,
     if (pattern->op_type == OP_UNDEF)
         return !SvOK(value);
 
-    if (pattern->op_type == OP_CASECOERCE && pattern->op_targ >= 4) {
-        if (pattern->op_targ == 4)
-            return SvROK(value);
-        if (pattern->op_targ == 5)
-            return !SvROK(value);
-        return SvROK(value) && SvOBJECT(SvRV(value));
+    if (pattern->op_type == OP_CASECOERCE
+        && !S_case_pattern_is_slurp(pattern)
+        && pattern->op_private >= 4) {
+        bool matched;
+        const OP *target = (pattern->op_flags & OPf_KIDS)
+            ? cUNOPx(pattern)->op_first : NULL;
+        if (pattern->op_private == 4)
+            matched = SvROK(value);
+        else if (pattern->op_private == 5)
+            matched = !SvROK(value);
+        else
+            matched = SvROK(value) && SvOBJECT(SvRV(value));
+        if (!matched || !target)
+            return matched;
+        if (target->op_type != OP_PADSV)
+            return FALSE;
+        {
+            size_t i;
+            const PADOFFSET padix = target->op_targ;
+            for (i = 0; i < *nbindings; i++)
+                if (bindings[i].padix == padix)
+                    return sv_eq(bindings[i].value, value);
+            if (*nbindings >= 64)
+                return FALSE;
+            bindings[*nbindings].padix = padix;
+            bindings[*nbindings].value = value;
+            bindings[*nbindings].owned = FALSE;
+            bindings[*nbindings].is_array = FALSE;
+            (*nbindings)++;
+        }
+        return TRUE;
     }
 
     if (pattern->op_type == OP_CONCAT
@@ -7079,6 +7143,7 @@ S_case_pattern_match(pTHX_ const struct case_pattern_node *node, SV *value,
         bindings[*nbindings].padix = padix;
         bindings[*nbindings].value = value;
         bindings[*nbindings].owned = FALSE;
+        bindings[*nbindings].is_array = FALSE;
         (*nbindings)++;
         return TRUE;
     }
@@ -7092,6 +7157,7 @@ S_case_pattern_match(pTHX_ const struct case_pattern_node *node, SV *value,
         size_t nfixed = 0;
         bool leading_open = FALSE;
         bool trailing_open = FALSE;
+        const struct case_pattern_node *slurp = NULL;
         size_t i;
         U32 childix;
 
@@ -7118,6 +7184,13 @@ S_case_pattern_match(pTHX_ const struct case_pattern_node *node, SV *value,
                     trailing_open = TRUE;
                 continue;
             }
+            if (S_case_pattern_is_slurp(kid)) {
+                if (slurp || trailing_open || leading_open
+                    || childix + 1 != node->nchild)
+                    return FALSE;
+                slurp = child;
+                continue;
+            }
             if (trailing_open || nfixed == 64)
                 return FALSE;
             fixed[nfixed++] = child;
@@ -7133,8 +7206,12 @@ S_case_pattern_match(pTHX_ const struct case_pattern_node *node, SV *value,
 
             if (nvalues < (SSize_t)nfixed)
                 return FALSE;
-            if (!leading_open && !trailing_open && nvalues != (SSize_t)nfixed)
+            if (slurp && nvalues - (SSize_t)nfixed
+                    < (SSize_t)slurp->op->op_private)
                 return FALSE;
+            if (!leading_open && !trailing_open && nvalues != (SSize_t)nfixed)
+                if (!slurp)
+                    return FALSE;
             if (leading_open && trailing_open) {
                 /* Try candidates from left to right.  Bindings made by a
                  * rejected candidate must not affect the next candidate. */
@@ -7172,6 +7249,27 @@ S_case_pattern_match(pTHX_ const struct case_pattern_node *node, SV *value,
                                                    pattern_svp ? *pattern_svp : NULL,
                                                    bindings, nbindings))
                     return FALSE;
+            }
+            if (slurp) {
+                AV *rest = newAV();
+                SSize_t restix;
+                for (restix = (SSize_t)nfixed; restix < nvalues; restix++) {
+                    SV **svp = av_fetch(av, restix, FALSE);
+                    if (!svp) {
+                        SvREFCNT_dec_NN((SV *)rest);
+                        return FALSE;
+                    }
+                    av_push(rest, SvREFCNT_inc(*svp));
+                }
+                if (*nbindings >= 64) {
+                    SvREFCNT_dec_NN((SV *)rest);
+                    return FALSE;
+                }
+                bindings[*nbindings].padix = cUNOPx(slurp->op)->op_first->op_targ;
+                bindings[*nbindings].value = (SV *)rest;
+                bindings[*nbindings].owned = TRUE;
+                bindings[*nbindings].is_array = TRUE;
+                (*nbindings)++;
             }
             return TRUE;
         }
@@ -7274,15 +7372,32 @@ PP(pp_casematch)
             AV *pending = newAV();
             for (i = 0; i < nbindings; i++) {
                 av_push(pending, newSVuv((UV)bindings[i].padix));
-                av_push(pending, newSVsv(PAD_SV(bindings[i].padix)));
-                sv_setsv(PAD_SV(bindings[i].padix), bindings[i].value);
+                if (bindings[i].is_array) {
+                    AV *old = newAV();
+                    S_case_set_array(aTHX_ (SV *)old,
+                                     MUTABLE_AV(PAD_SV(bindings[i].padix)));
+                    av_push(pending, newRV_noinc((SV *)old));
+                    av_push(pending, newSViv(1));
+                    S_case_set_array(aTHX_ PAD_SV(bindings[i].padix),
+                                     MUTABLE_AV(bindings[i].value));
+                }
+                else {
+                    av_push(pending, newSVsv(PAD_SV(bindings[i].padix)));
+                    av_push(pending, newSViv(0));
+                    sv_setsv(PAD_SV(bindings[i].padix), bindings[i].value);
+                }
             }
             cx->blk_case.case_bindings = pending;
         }
     }
     else if (matched) {
-        for (i = 0; i < nbindings; i++)
-            sv_setsv(PAD_SV(bindings[i].padix), bindings[i].value);
+        for (i = 0; i < nbindings; i++) {
+            if (bindings[i].is_array)
+                S_case_set_array(aTHX_ PAD_SV(bindings[i].padix),
+                                 MUTABLE_AV(bindings[i].value));
+            else
+                sv_setsv(PAD_SV(bindings[i].padix), bindings[i].value);
+        }
     }
 
     rpp_popfree_1_NN();

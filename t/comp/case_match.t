@@ -5,7 +5,7 @@ BEGIN {
     unshift @INC, '../lib';
 }
 
-print "1..59\n";
+print "1..65\n";
 
 my $ran = 0;
 $_ = 'outside';
@@ -791,3 +791,83 @@ my $case_as_without_namespaces = eval q{
 print !$@ && $case_as_without_namespaces
     ? "ok 59 - case and with as do not require namespaces\n"
     : "not ok 59 - case and with as do not require namespaces\n";
+
+my ($slurp_result, $slurp_min_result, $slurp_min_miss);
+my $array_slurps = eval q{
+    use feature 'case_match';
+    case ([1, 2, 3, 4]) {
+        match ([1, @rest]) { $slurp_result = join(',', @rest) }
+    }
+    case ([1, 2, 3, 4]) {
+        match ([1, @rest:3]) { $slurp_min_result = join(',', @rest) }
+        match (_) { $slurp_min_result = 'miss' }
+    }
+    case ([1, 2, 3]) {
+        match ([1, @rest:3]) { $slurp_min_miss = 0 }
+        match (_) { $slurp_min_miss = 1 }
+    }
+    1;
+};
+print !$@ && $array_slurps && $slurp_result eq '2,3,4'
+    ? "ok 60 - array slurp captures the remaining elements\n"
+    : "not ok 60 - array slurp captures the remaining elements\n";
+print !$@ && $array_slurps && $slurp_min_result eq '2,3,4'
+    && $slurp_min_miss
+    ? "ok 61 - array slurp supports a minimum length\n"
+    : "not ok 61 - array slurp supports a minimum length\n";
+
+my ($ref_seen, $scalar_seen, $object_seen);
+my $typed_pattern_targets = eval q{
+    use feature 'case_match';
+    my $ref = [1];
+    my $object = bless {}, 'CaseMatch::Object';
+    case ($ref) {
+        match (RefVal($ref_target)) { $ref_seen = $ref_target->[0] }
+    }
+    case ('value') {
+        match (ScalarVal($scalar_target)) { $scalar_seen = $scalar_target }
+    }
+    case ($object) {
+        match (ObjectVal($object_target)) { $object_seen = ref($object_target) }
+    }
+    1;
+};
+print !$@ && $typed_pattern_targets
+    && $ref_seen == 1
+    && $scalar_seen eq 'value'
+    && $object_seen eq 'CaseMatch::Object'
+    ? "ok 62 - typed patterns bind their targets\n"
+    : "not ok 62 - typed patterns bind their targets\n";
+
+my $typed_pattern_pin_error = eval q{
+    use feature 'case_match';
+    my $ref = [];
+    case ($ref) with ($ref) {
+        match (RefVal($ref)) { 1 }
+    }
+    1;
+};
+print $@ =~ /typed pattern target cannot be pinned/
+    ? "ok 63 - typed pattern targets reject pins\n"
+    : "not ok 63 - typed pattern targets reject pins\n";
+
+my $typed_pattern_wrong_target = eval q{
+    use feature 'case_match';
+    case ({}) {
+        match (RefVal(1)) { 1 }
+    }
+    1;
+};
+print $@ ? "ok 64 - typed patterns require scalar targets\n"
+         : "not ok 64 - typed patterns require scalar targets\n";
+
+my $typed_pattern_empty = eval q{
+    use feature 'case_match';
+    case ([]) {
+        match ([RefVal()]) { 1 }
+    }
+    1;
+};
+print !$@ && $typed_pattern_empty
+    ? "ok 65 - typed criteria remain usable without targets\n"
+    : "not ok 65 - typed criteria remain usable without targets\n";

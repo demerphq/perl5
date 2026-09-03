@@ -100,7 +100,7 @@
 %type <opval> bare_statement_block
 %type <opval> bare_statement_case bare_statement_match case_subject_alias
 %type <opval> case_subject_pins case_subject_pin_expr case_local_scalar
-%type <opval> case_mblock case_match_stmtseq case_match_guard
+%type <opval> case_mblock case_match_stmtseq case_match_guard case_pattern_target
 %type <ival> case_pattern_start case_pattern_end case_subject_type
 %type <opval> bare_statement_class_declaration
 %type <opval> bare_statement_class_definition
@@ -408,7 +408,6 @@ case_local_scalar
 		{ $$ = my($scalar); intro_my(); }
 ;
 
-
 bare_statement_match
 	: KW_MATCH
 		PERLY_PAREN_OPEN
@@ -466,6 +465,19 @@ case_pattern_end
 		  SvREFCNT_dec(parser->case_pattern_pins);
 		  parser->case_pattern_pins = NULL;
 		  $$ = 0; }
+	;
+
+case_pattern_target
+	: scalar
+		{
+		    if (parser->case_pattern_pins
+			&& hv_exists(parser->case_pattern_pins,
+			    (const char *)&$scalar->op_targ,
+			    sizeof($scalar->op_targ)))
+			    Perl_croak(aTHX_
+				"typed pattern target cannot be pinned with a case with clause");
+		    $$ = $scalar;
+		}
 	;
 
 case_match_guard
@@ -2096,11 +2108,17 @@ term[product]	:	termbinop
 	|	FUNC0OP PERLY_PAREN_OPEN PERLY_PAREN_CLOSE
 			{ $$ = $FUNC0OP; }
 	|	KW_RefVal PERLY_PAREN_OPEN PERLY_PAREN_CLOSE
-			{ $$ = newUNOP(OP_CASECOERCE, 0, NULL); $$->op_targ = 4; }
+			{ $$ = newUNOP(OP_CASECOERCE, 0, NULL); cUNOPx($$)->op_first = NULL; $$->op_flags &= ~OPf_KIDS; $$->op_private = 4; }
+	|	KW_RefVal PERLY_PAREN_OPEN case_pattern_target PERLY_PAREN_CLOSE
+			{ $$ = newUNOP(OP_CASECOERCE, 0, $case_pattern_target); $$->op_private = 4; }
 	|	KW_ScalarVal PERLY_PAREN_OPEN PERLY_PAREN_CLOSE
-			{ $$ = newUNOP(OP_CASECOERCE, 0, NULL); $$->op_targ = 5; }
+			{ $$ = newUNOP(OP_CASECOERCE, 0, NULL); cUNOPx($$)->op_first = NULL; $$->op_flags &= ~OPf_KIDS; $$->op_private = 5; }
+	|	KW_ScalarVal PERLY_PAREN_OPEN case_pattern_target PERLY_PAREN_CLOSE
+			{ $$ = newUNOP(OP_CASECOERCE, 0, $case_pattern_target); $$->op_private = 5; }
 	|	KW_ObjectVal PERLY_PAREN_OPEN PERLY_PAREN_CLOSE
-			{ $$ = newUNOP(OP_CASECOERCE, 0, NULL); $$->op_targ = 6; }
+			{ $$ = newUNOP(OP_CASECOERCE, 0, NULL); cUNOPx($$)->op_first = NULL; $$->op_flags &= ~OPf_KIDS; $$->op_private = 6; }
+	|	KW_ObjectVal PERLY_PAREN_OPEN case_pattern_target PERLY_PAREN_CLOSE
+			{ $$ = newUNOP(OP_CASECOERCE, 0, $case_pattern_target); $$->op_private = 6; }
 	|	FUNC0SUB                             /* Sub treated as nullop */
 			{ $$ = newUNOP(OP_ENTERSUB, OPf_STACKED, scalar($FUNC0SUB)); }
 	|	FUNC1 PERLY_PAREN_OPEN PERLY_PAREN_CLOSE                        /* not () */
@@ -2262,7 +2280,15 @@ scalar	:	PERLY_DOLLAR indirob
 
 ary	:	PERLY_SNAIL indirob
 			{ $$ = newAVREF($indirob);
-			  if ($$) $$->op_private |= $PERLY_SNAIL;
+			  if ($$) {
+			      $$->op_private |= $PERLY_SNAIL;
+			      if (parser->in_case_pattern) {
+				  OP *slurp = newUNOP(OP_CASECOERCE, 0, $$);
+				  slurp->op_private = (U8)parser->case_slurp_min;
+				  $$ = slurp;
+				  parser->case_slurp_min = 0;
+			      }
+			  }
 			}
 	;
 

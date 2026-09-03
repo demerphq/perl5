@@ -264,6 +264,7 @@ enum {
     CASE_PATTERN_COMPLEX
 };
 
+
 #define CASE_DISPATCH_AUX_MAGIC ((U32)0x43444953) /* "CDIS" */
 #define CASE_DISPATCH_NO_CLAUSE ((U32)-1)
 enum {

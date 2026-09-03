@@ -82,6 +82,8 @@ Value-kind criteria include `RefVal()` for any reference, `ScalarVal()` for
 any non-reference scalar, and `ObjectVal()` for blessed references.  These
 criteria are data-shape syntax inside `match (...)`; outside a data-shape
 description, the names retain ordinary Perl subroutine semantics.
+Each criterion may take one scalar target, such as `RefVal($r)`, to bind the
+checked value within the clause; a target may not also be pinned by `with`.
 String patterns also support one unpinned scalar capture surrounded by literal
 concatenation fragments, including prefix, suffix, sandwich, pinned, and empty
 captures.  Multiple captures and general expression operands remain outside
@@ -90,6 +92,9 @@ of existing lexicals, and each list item can independently use `as` to turn a
 single expression into a case-local pin.  The case/match `as` syntax is
 available with `case_match`; it is separate from the namespace and `use`
 statement `as` syntax, which remains controlled by the `namespaces` feature.
+Array data shapes can also capture a final tail with `@name`, or require a
+minimum tail length with `@name:N`; the initial form allows one slurp and does
+not combine it with an ellipsis.
 Pure constant cases without guards can use specialized constant dispatch,
 including linear-array, binary-search, and hash-based strategies.  These
 strategies preserve source-order semantics and default-clause behavior while

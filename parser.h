@@ -103,6 +103,7 @@ typedef struct yy_parser {
     bool        in_case_pattern; /* parsing a case pattern expression */
     bool        in_case_match_stmtseq; /* parsing direct case/match clauses */
     bool        in_case_header; /* parsing a case subject or with clause */
+    U32         case_slurp_min; /* minimum for the pending array slurp */
     HV          *case_pattern_vars; /* implicit lexicals in the current pattern */
     HV          *case_pattern_pins; /* pad entries pinned by the case with clause */
     U8		lex_state;	/* next token is determined */

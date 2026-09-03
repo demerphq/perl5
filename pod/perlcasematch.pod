@@ -138,6 +138,20 @@ description these spellings are criteria, not ordinary function calls.  The
 names retain ordinary Perl subroutine semantics elsewhere, so a program may
 define or call a function named C<RefVal>, C<ScalarVal>, or C<ObjectVal>.
 
+Each criterion may also take one scalar pattern target.  The target is bound
+to the value after the type check succeeds:
+
+        case ($value) {
+            match (RefVal($reference)) { use_reference($reference) }
+            match (ObjectVal($object)) { use_object($object) }
+            match (ScalarVal($scalar)) { use_scalar($scalar) }
+        }
+
+The target is an implicit, clause-local binding, just like a scalar name used
+elsewhere in a data shape.  It must not be one of the values pinned by the
+C<with> clause.  A criterion without an argument performs the type check
+without binding a value.
+
 =head2 Concatenated string data shapes
 
 A string data shape can combine literal text with one unpinned scalar name.  The
@@ -195,6 +209,23 @@ The last form searches from the left and binds the first matching subsequence.
 Array and hash data shapes can be nested in one another.  An ellipsis may be
 used only at the supported open-shape positions shown above; it is not a
 general wildcard for arbitrary positions.
+
+An array data shape can capture its remaining tail with an array binding.  The
+binding is allowed to contain zero or more elements:
+
+    case ($values) {
+        match ([1, 2, @rest]) { say "the rest is @rest" }
+    }
+
+The binding must be the final pattern element.  Add C<:N> to require at least
+C<N> remaining elements while still capturing the complete tail:
+
+    match ([1, 2, @rest:3]) { say "three or more: @rest" }
+
+The initial implementation permits one final slurp and a minimum from 0
+through 255.  A slurp cannot be combined with an ellipsis or with another
+slurp.  Like scalar bindings, the array binding is tentative until the whole
+data shape and its guard have succeeded.
 
 =head1 GUARDS
 

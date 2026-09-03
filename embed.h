@@ -336,6 +336,7 @@
 #   undef NETDB_R_OBSOLETE
 #   undef new_XPV
 #   undef new_XPVIV
+#   undef OPpCASECOERCE_MASK
 #   undef origin_is_conflicted
 #   undef origin_is_defined
 #   undef origin_is_required

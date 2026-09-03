@@ -7280,6 +7280,21 @@ yyl_snail(pTHX_ char *s)
         POSTDEREF(PERLY_SNAIL);
     PL_tokenbuf[0] = '@';
     s = scan_ident(s, PL_tokenbuf + 1, C_ARRAY_END(PL_tokenbuf), 0);
+    PL_parser->case_slurp_min = 0;
+    if (PL_parser->in_case_pattern && PL_tokenbuf[1] && *s == ':') {
+        char *p = skipspace(s + 1);
+        if (isDIGIT(*p)) {
+            UV min = 0;
+            do {
+                min = min * 10 + (*p - '0');
+                if (min > 255)
+                    Perl_croak(aTHX_ "array slurp minimum must be between 0 and 255");
+                p++;
+            } while (isDIGIT(*p));
+            PL_parser->case_slurp_min = (U32)min;
+            s = p;
+        }
+    }
     S_warn_expect_operator(aTHX_ "Array", s, POP_OLDBUFPTR);
     pl_yylval.ival = 0;
     if (!PL_tokenbuf[1]) {
@@ -10752,7 +10767,7 @@ S_pending_ident(pTHX)
           "### Pending identifier '%s'\n", PL_tokenbuf); });
     assert(tokenbuf_len >= 2);
 
-    /* A scalar name in a case pattern is a pattern binding, not an access to
+    /* A scalar or array name in a case pattern is a pattern binding, not an access to
      * an ordinary Perl lexical.  The surrounding match clause already supplies
      * the lexical scope.  Keep a small parser-local name map so repeated
      * occurrences of a binding refer to the same pad entry, while using
@@ -10760,7 +10775,7 @@ S_pending_ident(pTHX)
      * a lexical in the surrounding scope. */
     if (PL_parser->in_case_pattern
         && !has_colon
-        && PL_tokenbuf[0] == '$')
+        && (PL_tokenbuf[0] == '$' || PL_tokenbuf[0] == '@'))
     {
         const PADOFFSET existing = pad_findmy_pvn(PL_tokenbuf,
                                                   tokenbuf_len, 0);
