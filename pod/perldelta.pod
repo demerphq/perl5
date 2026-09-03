@@ -29,8 +29,8 @@ here, but most should go in the L</Performance Enhancements> section.
 
 =head2 Experimental data-shape matching
 
-The experimental C<case_match> feature adds a C<case> statement with ordered
-C<match> arms.  Data shapes can match scalar values, nested array and hash
+The experimental C<dispatch> feature adds a C<dispatch> statement with ordered
+C<match> clauses.  Data shapes can match scalar values, nested array and hash
 references, regular expressions, wildcards, and pinned lexical values.  A
 case subject may also use the grammar-level C<IntVal>, C<FloatVal>, or
 C<StrVal> forms to request one explicit coercion before matching.  See

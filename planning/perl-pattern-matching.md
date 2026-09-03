@@ -6,9 +6,9 @@ change the language.
 
 ## Implementation status
 
-The `yves/pattern_match` branch currently has the experimental `case_match`
+The `yves/pattern_match` branch currently has the experimental `dispatch`
 feature plumbing, conflict-free lexer/parser support for the required
-`case (EXPR) { match (PATTERN) { ... } }` shape, a dedicated scalar matcher,
+`dispatch (EXPR) { on (PATTERN) { ... } }` shape, a dedicated scalar matcher,
 typed numeric/string literal matching, the wildcard pattern `_`, and recursive
 array/hash matching. Captures are committed only after a complete match, and
 fixed or open composites are supported with `...` boundary markers, including
@@ -16,7 +16,7 @@ leftmost subsequence matching when both boundaries are present, boolean regex
 leaf patterns, and one-time case-subject snapshots that preserve writes to the
 original lvalue. Numeric and string literals now require the subject to have
 the corresponding scalar kind rather than silently coercing between kinds. A
-case subject may also be named with `as $name`; that name is case-local and is
+dispatch subject may also be named with `as $name`; that name is case-local and is
 evaluated by the existing scalar assignment machinery.
 The `IntVal`, `FloatVal`, and `StrVal` subject forms explicitly coerce the
 subject once before matching. They apply to the complete subject expression
@@ -24,8 +24,8 @@ subject once before matching. They apply to the complete subject expression
 `undef`, and pass references through unchanged, including blessed references.
 Dynamic scalar expressions nested inside array and hash patterns are compared
 using their own evaluated values. The outer case body now accepts only direct
-match arms, while each arm retains a normal Perl block for its body. Focused
-compiler tests cover feature gating, multiple arms, `$_` restoration, typed
+on clauses, while each clause retains a normal Perl block for its body. Focused
+compiler tests cover feature gating, multiple clauses, `$_` restoration, typed
 literals, wildcard matching, nested captures, rollback after failure, and open
 composites. The current parser still uses the existing `given`/`when` optree
 for block control, with case-specific context state layered onto it. Patterns
@@ -42,10 +42,10 @@ pattern value.
 
 Simple scalar constant patterns now take a direct comparison fast path in the
 runtime matcher.  This covers `undef`, boolean, numeric, and string constants
-without changing the source-order arm selection rule.
+without changing the source-order clause selection rule.
 
 The next constant-case optimization will use separate, compile-time-selected
-lookup strategies.  A case is eligible only when every direct arm is an
+lookup strategies.  A case is eligible only when every direct clause is an
 unguarded simple constant.  Any guard, dynamic expression, capture, pin,
 composite pattern, regex, wildcard, or other non-constant form keeps the
 existing source-ordered dynamic matcher.
@@ -54,7 +54,7 @@ The optimized representation has one domain description for each of `undef`,
 boolean, IV, NV, and PV values.  The `undef` domain uses a presence flag; the
 boolean domain uses separate presence flags for false and true.  IV, NV, and
 PV domains use parallel arrays: one sorted array of constant values and one
-array of arm indexes.  The arrays should use ordinary Perl-owned `AV`/`SV`
+array of clause indexes.  The arrays should use ordinary Perl-owned `AV`/`SV`
 building blocks wherever practical, rather than introducing collections of
 custom tuple objects.  Arm indexes are ordinary integer SVs, while the value
 arrays own normal constant SV references.
@@ -63,7 +63,7 @@ The array and hash strategies are deliberately distinct.  The array strategy
 compares directly against the typed values, using a linear probe for small
 tables and binary search for larger tables.  The hash strategy constructs a
 canonical typed key only after the subject has passed the applicable domain
-checks, then performs an HV lookup whose value is an arm index.  It must not
+checks, then performs an HV lookup whose value is an clause index.  It must not
 fall back to array searching, and the array strategy must not construct hash
 keys.  Initial thresholds are provisional and must be benchmarked.
 
@@ -79,8 +79,8 @@ domains, with linear search for small tables and binary search for larger
 ones.  PV tables may switch to an HV at a smaller size because string
 comparison cost grows with string length.  The exact thresholds belong to
 benchmark-driven tuning, not the language semantics.  Duplicate simple
-constants must retain deterministic first-arm behavior; duplicate detection
-and diagnostics will be specified separately from guarded or dynamic arms,
+constants must retain deterministic first-clause behavior; duplicate detection
+and diagnostics will be specified separately from guarded or dynamic clauses,
 whose source-order evaluation and side effects must remain unchanged.
 
 #### Constant-dispatch benchmarking
@@ -88,17 +88,17 @@ whose source-order evaluation and side effects must remain unchanged.
 Before selecting thresholds, add a standalone benchmark which exercises the
 actual compiled case machinery rather than benchmarking abstract Perl hashes
 or searches.  It should generate cases with 1, 2, 4, 8, 16, 32, 64, and larger
-constant arms, and probe hits near the beginning, middle, and end as well as
+constant clauses, and probe hits near the beginning, middle, and end as well as
 misses.  Run the matrix separately for IV, NV, and PV domains, varying PV
 lengths as well.  The measurements must compare:
 
-* a direct linear probe over the sorted value/arm arrays;
+* a direct linear probe over the sorted value/clause arrays;
 * binary search over those same arrays; and
 * canonical typed-key construction followed by an HV lookup.
 
 The benchmark should include the cost of subject classification and the
 domain-bound check, since those are part of the real dispatch path.  It must
-also verify that all strategies select the same first arm and preserve the
+also verify that all strategies select the same first clause and preserve the
 existing distinction between typed numeric and string constants.  Thresholds
 are implementation tuning parameters: record the machine, compiler, build
 mode, and representative results, but do not make correctness depend on a
@@ -115,10 +115,10 @@ semantics.
 The first implementation slice now recognizes eligible complete cases and
 inserts a case-level dispatch opcode.  Its runtime supports a source-order
 array probe, binary search over sorted parallel arrays, and a separate HV
-strategy, with the selected arm recorded in the case context; the existing
-per-arm matcher remains responsible for binding and arm entry.  Automatic
-dispatch currently selects linear probing below 16 arms and binary search at
-16 arms or above; the threshold is provisional.  The HV strategy is retained
+strategy, with the selected clause recorded in the case context; the existing
+per-clause matcher remains responsible for binding and clause entry.  Automatic
+dispatch currently selects linear probing below 16 clauses and binary search at
+16 clauses or above; the threshold is provisional.  The HV strategy is retained
 as an explicit benchmarking mode because its typed-key construction and hash
 lookup were slower on the representative workloads measured so far.  Small
 pure-constant cases are expected to gain a later compiler lowering to an
@@ -126,23 +126,23 @@ ordinary conditional tree, with the crossover threshold tuned separately for
 the scalar domains rather than treated as a language-visible guarantee.
 `PERL_CASE_DISPATCH=none|array-linear|array-binary|hv|auto` can select the
 currently available modes for development comparisons.  The binary mode uses
-stable value ordering and scans equal values for the earliest source arm.
+stable value ordering and scans equal values for the earliest source clause.
 The dispatch metadata now also tracks exact signed/unsigned integer bounds,
 floating-point bounds, and string length bounds; checks reject only subjects
 which are provably outside the corresponding domain.  Automatic threshold
 selection and the benchmark driver remain to be added.  The focused regression suite includes mixed typed
 constants, duplicate constants, and misses to verify that this optimization
-preserves first-arm behavior.  A wildcard arm can serve as the dispatch
+preserves first-clause behavior.  A wildcard clause can serve as the dispatch
 fallback: constants before it remain eligible for lookup, while the wildcard
-and all arms after it are handled as the source-ordered fallback suffix.  A
+and all clauses after it are handled as the source-ordered fallback suffix.  A
 case containing only a wildcard does not receive a dispatch opcode because it
 has no useful lookup work to optimize.
 
-Boolean patterns use Perl truth-value semantics: `match(true)` compares the
-subject with `SvTRUE`, and `match(false)` compares it with the negation of
+Boolean patterns use Perl truth-value semantics: `on(true)` compares the
+subject with `SvTRUE`, and `on(false)` compares it with the negation of
 `SvTRUE`.  They therefore match defined true and false values as well as the
-internal boolean scalar values.  `match(undef)` remains the separate pattern
-for testing undefinedness.  A future `match(defined)` predicate should be
+internal boolean scalar values.  `on(undef)` remains the separate pattern
+for testing undefinedness.  A future `on(defined)` predicate should be
 introduced as a dedicated pattern form; the current bare `defined` expression
 is an ordinary Perl expression and is not yet that predicate.
 
@@ -207,75 +207,75 @@ path to eventually remove them.
 The intended long-term form is therefore conceptually:
 
 ```perl
-case ($message) {
-    match({ type => "ok", value => $value }) {
+dispatch ($message) {
+    on({ type => "ok", value => $value }) {
         process($value);
     }
-    match({ type => "error", error => $error }) {
+    on({ type => "error", error => $error }) {
         report($error);
     }
-    match(_) {
+    on(_) {
         ignore($message);
     }
 }
 ```
 
 Here `case` evaluates its subject once, each `match` tests a pattern, and the
-selected arm receives the pattern bindings. `match` never means an implicit
+selected clause receives the pattern bindings. `match` never means an implicit
 smartmatch. A separate expression form may still be useful later, but the
 statement-oriented `case` construct is the primary design target.
 
-When every arm consists only of simple constant patterns, a future
+When every clause consists only of simple constant patterns, a future
 implementation may compile the case into a larger lookup or dispatch
 structure. The current implementation keeps the observable source-order
 first-match rule and applies only the safe direct-comparison fast path. If any
-arm contains a dynamic expression or other non-constant pattern, the
-implementation must evaluate the arms in source order.
+clause contains a dynamic expression or other non-constant pattern, the
+implementation must evaluate the clauses in source order.
 
 The subject may optionally receive a case-local name or an explicit scalar
 coercion. The provisional coercion spellings are `IntVal`, `FloatVal`, and
 `StrVal`:
 
 ```perl
-case (fetch_message() as $message) {
-    match({ type => "ok", value => $value }) {
+dispatch (fetch_message() as $message) {
+    on({ type => "ok", value => $value }) {
         process($message, $value);
     }
 }
 
-case (IntVal $value) {
-    match(1) { print "integer one"; }
+dispatch (IntVal $value) {
+    on(1) { print "integer one"; }
 }
 
-case (StrVal $value) {
-    match("1") { print "string one"; }
+dispatch (StrVal $value) {
+    on("1") { print "string one"; }
 }
 ```
 
-`case (EXPR as $name)` evaluates `EXPR` once and binds the result to a fresh
-case-local lexical. The unnamed `case (EXPR)` form remains available. This
+`dispatch (EXPR as $name)` evaluates `EXPR` once and binds the result to a fresh
+case-local lexical. The unnamed `dispatch (EXPR)` form remains available. This
 subject binding is distinct from a pin introduced by `with`: the former names
 the value being matched, while the latter supplies existing values that
 patterns must compare against.
 
-`case (TYPE EXPR)` evaluates `EXPR` once and coerces the resulting scalar to
-the requested representation before any arm is tested. `IntVal` requests an
+`dispatch (TYPE EXPR)` evaluates `EXPR` once and coerces the resulting scalar to
+the requested representation before any clause is tested. `IntVal` requests an
 integer value, `FloatVal` a floating-point value, and `StrVal` a string value.
 The exact keyword spellings remain provisional and must be checked against
 existing names and the keyword/feature machinery. The coercion is explicit:
 the matcher must not silently convert a pattern literal from one scalar kind
 to another merely because Perl's ordinary comparison operators would do so.
-This is what permits numeric and string arms to remain distinguishable, for
+This is what permits numeric and string clauses to remain distinguishable, for
 example:
 
 ```perl
-case ($value) {
-    match(1)   { print "1"; }
-    match("1") { print "one"; }
+dispatch ($value) {
+    on(1)   { print "1"; }
+    on("1") { print "one"; }
 }
 ```
 
-With strict typed-literal matching, a numeric subject selects the first arm
+With strict typed-literal matching, a numeric subject selects the first clause
 and a string subject selects the second. Dual-valued and magical scalars need
 explicit rules; those rules must not accidentally turn the construct back
 into coercive smartmatch.
@@ -328,16 +328,16 @@ not scalar values that can be passed to the planned scalar `case` subject, so
 
 ### Composite scalar patterns
 
-Patterns may also combine literal scalar fragments with arm-local bindings.
+Patterns may also combine literal scalar fragments with clause-local bindings.
 For strings, the implemented concatenation form makes common prefix, suffix,
 and sandwich matches concise:
 
 ```perl
-case ($text) {
-    match("x" . $suffix) {
+dispatch ($text) {
+    on("x" . $suffix) {
         do_something($suffix);
     }
-    match("x" . $inner . "z") {
+    on("x" . $inner . "z") {
         do_something_else($inner);
     }
 }
@@ -353,7 +353,7 @@ matches exactly `x` and the second also matches `xz`.
 
 The first implementation supports one unpinned scalar capture surrounded by
 literal fragments. A pinned scalar contributes its existing value instead of
-capturing, so `case ($text) with ($p) { match("x" . $p) { ... } }` compares
+capturing, so `dispatch ($text) with ($p) { on("x" . $p) { ... } }` compares
 against the complete composed value. Multiple unpinned captures and more
 general expression operands remain follow-up work; they are not silently
 treated as ordinary Perl expressions by the concatenation matcher.
@@ -363,14 +363,14 @@ treated as ordinary Perl expressions by the concatenation matcher.
 ### Option A: `case`/`match` (primary direction)
 
 ```perl
-case ($person) {
-    match({ name => $n, age => $a }) if $a >= 18 {
+dispatch ($person) {
+    on({ name => $n, age => $a }) if $a >= 18 {
         [ $n, $a ];
     }
-    match({ name => $n }) {
+    on({ name => $n }) {
         [ $n, undef ];
     }
-    match(_) {
+    on(_) {
         undef;
     }
 }
@@ -384,51 +384,51 @@ Advantages:
 * existing `given`/`when` control-flow implementation may be reusable
   internally without retaining its public semantics;
 * the block's final expression naturally supplies the `case` result without
-  requiring a second arm syntax.
+  requiring a second clause syntax.
 
 Costs:
 
 * requires new pattern grammar and likely new opcodes or match frames;
 * compatibility behavior must be selected explicitly;
-* binding scope inside each arm needs precise rules;
+* binding scope inside each clause needs precise rules;
 * expression-valued matching would need a separate extension.
 
-This is the initial arm form: every arm is a block. The block supplies a
+This is the initial clause form: every clause is a block. The block supplies a
 lexical boundary and may contain multiple statements, declarations, control
 flow, and a final expression whose value becomes the value of the `case`.
-Expression and arrow arms are deferred and are not part of the initial
+Expression and arrow clauses are deferred and are not part of the initial
 language design.
 
-### Deferred arm-body forms
+### Deferred clause-body forms
 
 The following forms are plausible and should be compared against the actual
 Perl grammar before syntax is fixed:
 
 ```perl
-# A block arm
-match("x" . $suffix) {
+# A block clause
+on("x" . $suffix) {
     do_something($suffix);
 }
 
 # An expression or block following an arrow
-match("x" . $suffix) => do_something($suffix);
-match("x" . $suffix) => {
+on("x" . $suffix) => do_something($suffix);
+on("x" . $suffix) => {
     do_something($suffix);
 }
 ```
 
 The block form fits Perl's existing statement and scope model particularly
-well: it gives every arm an unambiguous lexical boundary and leaves room for
+well: it gives every clause an unambiguous lexical boundary and leaves room for
 multiple statements, declarations, control flow, and a future value-producing
-form. An arrow form could make short arms more compact and could naturally
+form. An arrow form could make short clauses more compact and could naturally
 support expression-valued `case`, but `=>` already participates in hash
 constructors and fat-comma parsing. It would therefore need careful grammar
 and precedence rules, especially for nested patterns and blocks.
 
-The initial language deliberately supports only `match(PATTERN) BLOCK`.
-`match(PATTERN) => EXPR` and `match(PATTERN) => BLOCK` are deferred until
-there is a demonstrated need for shorter arms. Any later form must preserve
-arm-local lexical scope and must not make a pattern indistinguishable from an
+The initial language deliberately supports only `on(PATTERN) BLOCK`.
+`on(PATTERN) => EXPR` and `on(PATTERN) => BLOCK` are deferred until
+there is a demonstrated need for shorter clauses. Any later form must preserve
+clause-local lexical scope and must not make a pattern indistinguishable from an
 ordinary hash constructor.
 
 ### Other rejected alternatives
@@ -445,7 +445,7 @@ provide a good replacement for a clause-oriented match construct:
   separate feature with its own ambiguity and scope rules.
 * **A pure-Perl pattern object API:** useful for tiny exploratory experiments,
   but it cannot naturally express compiler-managed lexical bindings, rollback,
-  arm scope, or the required grammar. It is not a viable implementation or
+  clause scope, or the required grammar. It is not a viable implementation or
   public API for this feature.
 
 These may still inform implementation or future convenience APIs. They are not
@@ -461,13 +461,13 @@ The safest progression is:
 2. Define a transactional binding result: successful matches return bindings;
    failed matches do not modify lexical variables.
 3. Add experimental `case` and `match` keywords, reusing suitable subject
-   evaluation and arm-control machinery while replacing implicit smartmatch
+   evaluation and clause-control machinery while replacing implicit smartmatch
    with explicit patterns.
 4. Add `_`, literals, scalar bindings, array/hash destructuring, pinned values,
    and ordinary Perl guard expressions.
-5. Enable the new keywords with `use feature 'case_match'`; do not change the meaning of legacy
+5. Enable the new keywords with `use feature 'dispatch'`; do not change the meaning of legacy
    `given`/`when` under that feature.
-6. Use block-only arm bodies initially. The selected arm returns the value of
+6. Use block-only clause bodies initially. The selected clause returns the value of
    its last expression using ordinary Perl context rules; no-match returns
    `undef` in scalar context and an empty list in list context.
 7. Consider a compact operator only after precedence, rollback, and context
@@ -493,12 +493,12 @@ framework while using new keywords and new semantics:
 | Concern | Existing framework | Pattern-matching replacement |
 | --- | --- | --- |
 | Subject | `given` evaluates a subject | `case` evaluates the subject once and retains the matched value |
-| Clause test | `when` performs implicit smartmatch/boolean behavior | `match(PATTERN)` evaluates an explicit pattern, then an optional guard |
+| Clause test | `when` performs implicit smartmatch/boolean behavior | `on(PATTERN)` evaluates an explicit pattern, then an optional guard |
 | Binding | No general structural bindings | Tentative bindings committed only after pattern and guard success |
-| Fall-through | Existing `continue`/control-flow rules | No implicit fall-through; exactly one arm executes |
-| Default arm | Common idiom using `default` or a catch-all | `_` catch-all pattern, with a defined no-match policy |
-| Failure | Legacy behavior depends on smartmatch and context | Explicit no-arm-match behavior |
-| Feature gate | Existing `switch`/smartmatch controls | New experimental `case_match` feature |
+| Fall-through | Existing `continue`/control-flow rules | No implicit fall-through; exactly one clause executes |
+| Default clause | Common idiom using `default` or a catch-all | `_` catch-all pattern, with a defined no-match policy |
+| Failure | Legacy behavior depends on smartmatch and context | Explicit no-clause-match behavior |
+| Feature gate | Existing `switch`/smartmatch controls | New experimental `dispatch` feature |
 
 The project should avoid silently changing the behavior of old source. During
 the transition, legacy `given`/`when` can remain available under its existing
@@ -513,23 +513,23 @@ These rules need to be decided before grammar work:
 
 ### Lexical scope
 
-Each `match` arm should be its own lexical block. Pattern-bound names should
-always be new lexicals whose lifetime and visibility are limited to that arm
+Each `match` clause should be its own lexical block. Pattern-bound names should
+always be new lexicals whose lifetime and visibility are limited to that clause
 and to nested code it invokes, subject to normal closure rules. They should
 not implicitly assign to or rebind variables from the surrounding scope.
 
-The exact syntax for introducing an arm-local pattern binding remains a grammar
+The exact syntax for introducing an clause-local pattern binding remains a grammar
 decision. It is separate from ordinary variable declarations and should not
 make those declarations part of every pattern.
 
 ### Existing names and pinning
 
-An unpinned pattern name introduces an arm-local lexical. An existing value can
+An unpinned pattern name introduces an clause-local lexical. An existing value can
 instead be made a pinned value for the whole `case` with a `with` clause:
 
 ```perl
-case ($value as $subject) with ($x, $y, length($text) as $length) {
-    match({ $x => $result }) {
+dispatch ($value as $subject) with ($x, $y, length($text) as $length) {
+    on({ $x => $result }) {
         process($subject, $result);
     }
 }
@@ -540,10 +540,10 @@ pattern name. `with (EXPR as $x)` evaluates `EXPR` once and creates a case-local
 pin named `$x`; it does not assign to the surrounding `$x`. Pin expressions
 are evaluated from left to right before matching begins, and duplicate pin
 names should be a compile-time error. A pinned name is compared, never
-rebound, while all other names in the pattern remain arm-local bindings.
+rebound, while all other names in the pattern remain clause-local bindings.
 
 The `as` syntax in `case` and `with` therefore has parallel but different
-roles: `case (EXPR as $name)` names the subject with a fresh binding, whereas
+roles: `dispatch (EXPR as $name)` names the subject with a fresh binding, whereas
 `with (EXPR as $name)` names a value that is pinned for matching. A case-local
 subject or pin may shadow an outer variable with the same spelling, but it
 must not assign to that outer variable.
@@ -573,16 +573,16 @@ default should preserve references and avoid recursive copying.
 The matcher should have explicit scalar/list behavior. A successful match can
 return a true match object, a boolean, or bindings, but mixing these based on
 context would be hard to teach. A `case` expression should return the
-selected arm's last expression, using ordinary Perl scalar, list, or void
-context, while the arm's bindings remain lexical. If no arm matches, `case`
+selected clause's last expression, using ordinary Perl scalar, list, or void
+context, while the clause's bindings remain lexical. If no clause matches, `case`
 returns `undef` in scalar context and an empty list in list context.
 
 ### Failure behavior
 
 No-match is not an exception in the initial design: `case` returns `undef` in
-scalar context and an empty list in list context. A catch-all `match(_)` arm is
+scalar context and an empty list in list context. A catch-all `on(_)` clause is
 the normal way to make a case exhaustive, following the Elixir strategy. No
-arm falls through to another arm; exactly one matching arm executes. A
+clause falls through to another clause; exactly one matching clause executes. A
 dedicated exception class is not introduced for no-match in the first version.
 
 ## Data and object patterns
@@ -597,14 +597,14 @@ trailing `...` permits an arbitrary suffix, while a leading `...` permits an
 arbitrary prefix:
 
 ```perl
-case ($items) {
-    match([$a, $b, $c]) {
+dispatch ($items) {
+    on([$a, $b, $c]) {
         exactly_three($a, $b, $c);
     }
-    match([$a, $b, $c, ...]) {
+    on([$a, $b, $c, ...]) {
         starts_with_three($a, $b, $c);
     }
-    match([... , "foo", $value, "bar", ...]) {
+    on([... , "foo", $value, "bar", ...]) {
         contains_subsequence($value);
     }
 }
@@ -630,11 +630,11 @@ has exactly these keys”. A hash pattern without `...` is closed and requires
 exactly the listed keys:
 
 ```perl
-case ($record) {
-    match({ foo => $value }) {
+dispatch ($record) {
+    on({ foo => $value }) {
         one_key_only($value);
     }
-    match({ foo => $value, ... }) {
+    on({ foo => $value, ... }) {
         foo_with_other_keys($value);
     }
 }
@@ -667,20 +667,20 @@ unrelated modules should require an explicit adapter or pattern method.
 Regexes should be usable as explicit leaf patterns against the `case` subject:
 
 ```perl
-case ($text) {
-    match(/^\d+$/) {
+dispatch ($text) {
+    on(/^\d+$/) {
         process_number($text);
     }
-    match(/^x(?<inner>.*)z$/) {
+    on(/^x(?<inner>.*)z$/) {
         process_inner($inner);
     }
 }
 ```
 
 The first form is a predicate pattern. The second also captures the text
-between `x` and `z`. Named captures should become arm-local pattern bindings,
+between `x` and `z`. Named captures should become clause-local pattern bindings,
 committed only after the complete regex match succeeds, rather than exposing
-the arm through the ordinary global-ish `$1`, `$2`, or `%+` interfaces. A
+the clause through the ordinary global-ish `$1`, `$2`, or `%+` interfaces. A
 regex pattern must operate on the explicitly supplied subject, never an
 implicit `$_`, and the subject and regex should each be evaluated once.
 
@@ -701,7 +701,7 @@ An implementation will likely need:
 1. A feature gate and experimental warning category.
 2. Grammar productions for the chosen construct and pattern forms.
 3. A pattern AST or auxiliary op tree which preserves source locations.
-   **Implemented for the supported structural forms; arm-specific source
+   **Implemented for the supported structural forms; clause-specific source
    diagnostics remain a follow-up.**
 4. Compile-time validation of duplicate bindings, illegal slurps, and scope.
    **Ellipsis placement is implemented; duplicate-binding and scope rules
@@ -715,7 +715,7 @@ An implementation will likely need:
    must not pretend that those effects can be statically prevented.
 9. Diagnostics for invalid pattern forms. **Implemented for the supported
    ellipsis errors and missing compiled representation.** Diagnostics naming a
-   failed arm or exact pattern source location remain a follow-up.
+   failed clause or exact pattern source location remain a follow-up.
 10. `B::Deparse`, opcode tables, `regen` outputs, and syntax tooling updates.
 11. Threaded/unthreaded, taint, magic, tied-variable, and destructor tests.
 
@@ -735,7 +735,7 @@ scope. In particular:
 * do not make barewords or braces ambiguous in ordinary code;
 * do not invoke overloaded methods merely because a value appears in a
   pattern;
-* do not make pattern variables visible outside their arm unexpectedly.
+* do not make pattern variables visible outside their clause unexpectedly.
 
 The grammar should be regenerated with the system Perl, and conflict counts
 must be checked after every parser change. Syntax tests should run both from
@@ -753,7 +753,7 @@ Before implementation, tests should be written for the intended semantics:
 * failed matches leave no bindings behind;
 * duplicate and conflicting bindings;
 * guards and guard failure;
-* multiple arms and default behavior;
+* multiple clauses and default behavior;
 * scalar, list, and void contexts;
 * references, aliases, magic, tied values, and overloaded objects;
 * classes and declared fields;
@@ -767,7 +767,7 @@ Before implementation, tests should be written for the intended semantics:
 
 The project should settle these questions before committing to public syntax:
 
-1. What exact grammar introduces a new arm-local binding?
+1. What exact grammar introduces a new clause-local binding?
 2. What are the final spellings and semantics of `IntVal`, `FloatVal`, and
    `StrVal`?
 3. How are dual-valued and magical scalars classified for typed matching?
@@ -775,7 +775,7 @@ The project should settle these questions before committing to public syntax:
 5. Are patterns matching values, references, object fields, or all three?
 6. What evaluation order and context should unrestricted Perl guard
    expressions use, and how should their side effects interact with failed
-   arms?
+   clauses?
 7. How should tied, magical, overloaded, and blessed values participate?
 8. Should pattern matching integrate with signatures and function dispatch in
    the first version or remain separate?
@@ -800,7 +800,7 @@ meet all of these constraints:
 5. Bindings are tentative and rolled back on any failed subpattern or guard.
 6. No hidden assignment to `$_`, caller lexicals, or package variables occurs.
 7. The subject is evaluated once, with documented context and lifetime.
-8. Arms do not fall through; exactly one arm executes after a successful match.
+8. Arms do not fall through; exactly one clause executes after a successful match.
 9. A no-match result is specified independently of pattern truth: `undef` in
    scalar context and an empty list in list context.
 10. Legacy `given`/`when` and `~~` are not silently reinterpreted outside the
@@ -810,7 +810,7 @@ These safeguards also affect the implementation plan. Reusing the existing
 `given`/`when` control-flow skeleton internally may be reasonable; reusing its
 implicit smartmatch evaluator is not. The compiler should lower each pattern
 into a known matcher or a dedicated pattern op tree, with a match frame for
-temporary bindings and explicit arm dispatch.
+temporary bindings and explicit clause dispatch.
 
 ## What the literature says went wrong with `given`/`when`
 
@@ -895,8 +895,8 @@ were extracted?” Smartmatch itself returns a boolean and provides no coherent
 binding model. Users consequently combine it with ad hoc tests and assignments.
 
 **Protection for the new design:** matching and binding are one transactional
-operation. A successful arm creates explicitly scoped bindings; a failed arm
-creates none. The arm's result value is separate from the match decision, and
+operation. A successful clause creates explicitly scoped bindings; a failed clause
+creates none. The clause's result value is separate from the match decision, and
 there is no hidden assignment to `$_` or to caller variables.
 
 ### 6. Dynamic topic and control-flow behavior is too magical
@@ -922,7 +922,7 @@ the supported language described above.  The implementation has been checked
 with the built DEBUGGING interpreter, including the compiler-facing
 `coreamp`, `coresubs`, and `B::Deparse-core` tests after a clean rebuild.
 Simple scalar constants have a direct runtime comparison fast path; this is
-an intentionally conservative first optimization and does not reorder arms.
+an intentionally conservative first optimization and does not reorder clauses.
 
 Before expanding the pattern language, the next full validation should be a
 fresh `test_porting` run followed by `make_test`.  Any failure in generated

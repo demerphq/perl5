@@ -129,8 +129,8 @@
 #define KEY_getsockname		113
 #define KEY_getsockopt		114
 #define KEY_given		115
-#define KEY_case		116
-#define KEY_match		117
+#define KEY_dispatch		116
+#define KEY_on			117
 #define KEY_glob		118
 #define KEY_gmtime		119
 #define KEY_goto		120
@@ -297,5 +297,5 @@
 #define KEY_y			281
 
 /* Generated from:
- * aa67405670ad1206535928b34c7117af866e17a1685eb41baa9034e151c0d40a regen/keywords.pl
+ * cc40943fe6b589527b8aceaf595ad7d71163fb2a14ff4614e32ff124b6e97f55 regen/keywords.pl
  * ex: set ro ft=c: */

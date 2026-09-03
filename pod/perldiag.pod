@@ -1071,9 +1071,14 @@ but then $foo no longer contains a glob.
 (F) You called C<continue>, but you're not inside a C<when>
 or C<default> block.
 
-=item case/match arm outside a case
+=item on clauses are only allowed directly in a dispatch
 
-(F) A case/match arm was executed without an enclosing C<case> block.
+(F) An C<on> clause was used where the enclosing C<dispatch> body does not
+allow it.
+
+=item on clause outside a dispatch
+
+(F) An C<on> clause was used without an enclosing C<dispatch> block.
 
 
 =item can't convert empty path
@@ -1661,13 +1666,13 @@ is not allowed.
 (F) The return statement was executed in mainline code, that is, where
 there was no subroutine call to return out of.  See L<perlsub>.
 
-=item case with clause outside case
+=item dispatch with clause outside dispatch
 
-(F) A C<with> clause was encountered outside a C<case> statement.
+(F) A C<with> clause was encountered outside a C<dispatch> statement.
 
-=item case with values must be scalar lexicals (got %s)
+=item dispatch with values must be scalar lexicals (got %s)
 
-(F) A C<case> C<with> clause currently accepts only scalar lexical
+(F) A C<dispatch> C<with> clause currently accepts only scalar lexical
 variables, but received a value of the indicated kind.
 
 =item array pattern has invalid ellipsis placement
@@ -1693,7 +1698,7 @@ end.
 (P) The case matcher was executed without the compiled pattern representation
 created by the compiler.  This indicates an internal error.
 
-=item only match arms are allowed directly in a case
+=item only on clauses are allowed directly in a dispatch
 
 (F) A C<case> body contained a statement other than a direct C<match>
 arm.  Ordinary Perl statements are allowed inside the body of a match

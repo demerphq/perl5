@@ -16,11 +16,11 @@
 #define FEATURE_APOS_AS_NAME_SEP_BIT                0x00000001
 #define FEATURE_BAREWORD_FILEHANDLES_BIT            0x00000002
 #define FEATURE_BITWISE_BIT                         0x00000004
-#define FEATURE_CASE_MATCH_BIT                      0x00000008
-#define FEATURE_CLASS_BIT                           0x00000010
-#define FEATURE___SUB___BIT                         0x00000020
-#define FEATURE_MYREF_BIT                           0x00000040
-#define FEATURE_DEFER_BIT                           0x00000080
+#define FEATURE_CLASS_BIT                           0x00000008
+#define FEATURE___SUB___BIT                         0x00000010
+#define FEATURE_MYREF_BIT                           0x00000020
+#define FEATURE_DEFER_BIT                           0x00000040
+#define FEATURE_DISPATCH_BIT                        0x00000080
 #define FEATURE_ENHANCED_XX_BIT                     0x00000100
 #define FEATURE_EVALBYTES_BIT                       0x00000200
 #define FEATURE_MORE_DELIMS_BIT                     0x00000400
@@ -47,11 +47,11 @@
 #define FEATURE_APOS_AS_NAME_SEP_INDEX                0
 #define FEATURE_BAREWORD_FILEHANDLES_INDEX            0
 #define FEATURE_BITWISE_INDEX                         0
-#define FEATURE_CASE_MATCH_INDEX                      0
 #define FEATURE_CLASS_INDEX                           0
 #define FEATURE___SUB___INDEX                         0
 #define FEATURE_MYREF_INDEX                           0
 #define FEATURE_DEFER_INDEX                           0
+#define FEATURE_DISPATCH_INDEX                        0
 #define FEATURE_ENHANCED_XX_INDEX                     0
 #define FEATURE_EVALBYTES_INDEX                       0
 #define FEATURE_MORE_DELIMS_INDEX                     0
@@ -179,6 +179,12 @@
 	 FEATURE_IS_ENABLED_MASK(FEATURE_BITWISE_INDEX, FEATURE_BITWISE_BIT)) \
     )
 
+#define FEATURE_DISPATCH_IS_ENABLED \
+    ( \
+	CURRENT_FEATURE_BUNDLE == FEATURE_BUNDLE_CUSTOM && \
+	 FEATURE_IS_ENABLED_MASK(FEATURE_DISPATCH_INDEX, FEATURE_DISPATCH_BIT) \
+    )
+
 #define FEATURE_INDIRECT_IS_ENABLED \
     ( \
 	CURRENT_FEATURE_BUNDLE <= FEATURE_BUNDLE_527 \
@@ -198,12 +204,6 @@
     ( \
 	CURRENT_FEATURE_BUNDLE == FEATURE_BUNDLE_CUSTOM && \
 	 FEATURE_IS_ENABLED_MASK(FEATURE_GENERATOR_INDEX, FEATURE_GENERATOR_BIT) \
-    )
-
-#define FEATURE_CASE_MATCH_IS_ENABLED \
-    ( \
-	CURRENT_FEATURE_BUNDLE == FEATURE_BUNDLE_CUSTOM && \
-	 FEATURE_IS_ENABLED_MASK(FEATURE_CASE_MATCH_INDEX, FEATURE_CASE_MATCH_BIT) \
     )
 
 #define FEATURE_NAMESPACES_IS_ENABLED \
@@ -429,13 +429,7 @@ S_magic_sethint_feature(pTHX_ SV *keysv, const char *keypv, STRLEN keylen,
             return;
 
         case 'c':
-            if (keylen == sizeof("feature_case_match")-1
-                 && memcmp(subf+1, "ase_match", keylen - sizeof("feature_")) == 0) {
-                mask = FEATURE_CASE_MATCH_BIT;
-                index = FEATURE_CASE_MATCH_INDEX;
-                break;
-            }
-            else if (keylen == sizeof("feature_class")-1
+            if (keylen == sizeof("feature_class")-1
                  && memcmp(subf+1, "lass", keylen - sizeof("feature_")) == 0) {
                 mask = FEATURE_CLASS_BIT;
                 index = FEATURE_CLASS_INDEX;
@@ -448,6 +442,12 @@ S_magic_sethint_feature(pTHX_ SV *keysv, const char *keypv, STRLEN keylen,
                  && memcmp(subf+1, "efer", keylen - sizeof("feature_")) == 0) {
                 mask = FEATURE_DEFER_BIT;
                 index = FEATURE_DEFER_INDEX;
+                break;
+            }
+            else if (keylen == sizeof("feature_dispatch")-1
+                 && memcmp(subf+1, "ispatch", keylen - sizeof("feature_")) == 0) {
+                mask = FEATURE_DISPATCH_BIT;
+                index = FEATURE_DISPATCH_INDEX;
                 break;
             }
             return;
@@ -671,13 +671,6 @@ PL_feature_bits[] = {
         FEATURE_BITWISE_INDEX
     },
     {
-        /* feature case_match */
-        "feature_case_match",
-        STRLENs("feature_case_match"),
-        FEATURE_CASE_MATCH_BIT,
-        FEATURE_CASE_MATCH_INDEX
-    },
-    {
         /* feature class */
         "feature_class",
         STRLENs("feature_class"),
@@ -704,6 +697,13 @@ PL_feature_bits[] = {
         STRLENs("feature_defer"),
         FEATURE_DEFER_BIT,
         FEATURE_DEFER_INDEX
+    },
+    {
+        /* feature dispatch */
+        "feature_dispatch",
+        STRLENs("feature_dispatch"),
+        FEATURE_DISPATCH_BIT,
+        FEATURE_DISPATCH_INDEX
     },
     {
         /* feature enhanced_xx */

@@ -148,7 +148,7 @@ case 2: /* @1: %empty  */
 
     break;
 
-  case 17: /* bare_statement_case: KW_CASE PERLY_PAREN_OPEN remember case_subject_type mexpr case_subject_alias PERLY_PAREN_CLOSE case_subject_pins case_mblock  */
+  case 17: /* bare_statement_case: KW_DISPATCH PERLY_PAREN_OPEN remember case_subject_type mexpr case_subject_alias PERLY_PAREN_CLOSE case_subject_pins case_mblock  */
 #line 299 "perly.y"
                 {
 			OP *subject = (ps[-4].val.opval);
@@ -168,7 +168,7 @@ case 2: /* @1: %empty  */
 					newLISTOP(OP_CASEWITH, OPf_WANT_LIST,
 						(ps[-1].val.opval), NULL), body);
 			OP *scoped_body = op_scope(body);
-			OP *caseop = newCASEOP(subject, scoped_body);
+			OP *caseop = newDISPATCHOP(subject, scoped_body);
 			if (dispatch && (scoped_body->op_type == OP_LINESEQ
 			                 || scoped_body->op_type == OP_SCOPE)) {
 				OP *scope_kid;
@@ -280,11 +280,11 @@ case 2: /* @1: %empty  */
 
     break;
 
-  case 30: /* bare_statement_match: KW_MATCH PERLY_PAREN_OPEN case_pattern_start remember mexpr case_pattern_end case_match_guard PERLY_PAREN_CLOSE mblock  */
+  case 30: /* bare_statement_match: KW_ON PERLY_PAREN_OPEN case_pattern_start remember mexpr case_pattern_end case_match_guard PERLY_PAREN_CLOSE mblock  */
 #line 409 "perly.y"
                 {
 			if (!parser->in_case_match_stmtseq) {
-				yyerror("match arms are only allowed directly in a case");
+				yyerror("on clauses are only allowed directly in a dispatch");
 				YYERROR;
 			}
 			OP *pattern = (ps[-4].val.opval);
@@ -308,7 +308,7 @@ case 2: /* @1: %empty  */
 				&& SvIOK(cSVOPx_sv(pattern)))
 				pattern->op_flags |= OPf_SPECIAL;
 			(yyval.opval) = block_end((ps[-5].val.ival),
-				newCASEMATCHOP(condition,
+				newONOP(condition,
 					op_scope((ps[0].val.opval))));
 		}
 
@@ -375,14 +375,14 @@ case 2: /* @1: %empty  */
 				for (kid = cLISTOPx((yyval.opval))->op_first; kid;
 					kid = OpSIBLING(kid)) {
 					if (!OP_TYPE_IS_COP_NN(kid)
-						&& kid->op_type != OP_LEAVECASEMATCH) {
+						&& kid->op_type != OP_LEAVEON) {
 						invalid = TRUE;
 						break;
 					}
 				}
 			}
 			if (invalid) {
-				yyerror("only match arms are allowed directly in a case");
+				yyerror("only on clauses are allowed directly in a dispatch");
 				YYERROR;
 			}
 		}
@@ -2752,6 +2752,6 @@ case 2: /* @1: %empty  */
     
 
 /* Generated from:
- * 23668752b7f4da7cc3fa3fbd9884f0e2033d9963179a200c055957ae681e26b4 perly.y
+ * 94230ee964ae47b5968b02d2042e2e5548797518d5cbe4fbfc4909bb08dc632e perly.y
  * 1a4cfc5b32006b09aba17cc80cd31ade3503ab1e829681adfe337d9c26e19fe0 regen_perly.pl
  * ex: set ro ft=c: */

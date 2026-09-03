@@ -1570,8 +1570,8 @@ static const char * const context_name[] = {
     "eval",
     "substitution",
     "defer block",
-    "case",
-    "case/match arm",
+    "dispatch",
+    "on clause",
 };
 
 static I32
@@ -1603,7 +1603,7 @@ S_dopoptolabel(pTHX_ const char *label, STRLEN len, U32 flags)
         case CXt_LOOP_LAZYSV:
         case CXt_LOOP_LIST:
         case CXt_LOOP_ARY:
-        case CXt_CASE:
+        case CXt_DISPATCH:
           {
             STRLEN cx_label_len = 0;
             U32 cx_label_flags = 0;
@@ -1820,7 +1820,7 @@ S_dopoptogivenfor(pTHX_ I32 startingblock)
             DEBUG_l( deb("(dopoptogivenfor(): found given at cx=%ld)\n",
                          (long)i));
             return i;
-        case CXt_CASE:
+        case CXt_DISPATCH:
             DEBUG_l( deb("(dopoptogivenfor(): found case at cx=%ld)\n",
                          (long)i));
             return i;
@@ -1912,11 +1912,11 @@ Perl_dounwind(pTHX_ I32 cxix)
         case CXt_GIVEN:
             cx_popgiven(cx);
             break;
-        case CXt_CASE:
-            cx_popcase(cx);
+        case CXt_DISPATCH:
+            cx_popdispatch(cx);
             break;
-        case CXt_CASEMATCH:
-            cx_popcasematch(cx);
+        case CXt_ON:
+            cx_popon(cx);
             break;
         case CXt_BLOCK:
         case CXt_NULL:
@@ -3307,13 +3307,13 @@ PP(pp_last)
 
     cx = S_unwind_loop(aTHX);
 
-    if (CxTYPE(cx) == CXt_CASE) {
+    if (CxTYPE(cx) == CXt_DISPATCH) {
         rpp_popfree_to_NN(PL_stack_base + cx->blk_oldsp);
         TAINT_NOT;
         CX_LEAVE_SCOPE(cx);
-        cx_popcase(cx);
+        cx_popdispatch(cx);
         cx_popblock(cx);
-        nextop = cx->blk_case.leave_op->op_next;
+        nextop = cx->blk_dispatch.leave_op->op_next;
         CX_POP(cx);
         return nextop;
     }
@@ -3346,14 +3346,14 @@ PP(pp_next)
     if (!((PL_op->op_flags & OPf_SPECIAL) && CxTYPE_is_LOOP(cx)))
         cx = S_unwind_loop(aTHX);
 
-    if (CxTYPE(cx) == CXt_CASE) {
+    if (CxTYPE(cx) == CXt_DISPATCH) {
         rpp_popfree_to_NN(PL_stack_base + cx->blk_oldsp);
         TAINT_NOT;
         CX_LEAVE_SCOPE(cx);
-        cx_popcase(cx);
+        cx_popdispatch(cx);
         cx_popblock(cx);
         {
-            OP * const nextop = cx->blk_case.leave_op->op_next;
+            OP * const nextop = cx->blk_dispatch.leave_op->op_next;
             CX_POP(cx);
             return nextop;
         }
@@ -3369,12 +3369,12 @@ PP(pp_redo)
 {
     PERL_CONTEXT *cx = S_unwind_loop(aTHX);
 
-    if (CxTYPE(cx) == CXt_CASE) {
-        OP * const redo_op = cx->blk_case.redo_op;
+    if (CxTYPE(cx) == CXt_DISPATCH) {
+        OP * const redo_op = cx->blk_dispatch.redo_op;
         rpp_popfree_to_NN(PL_stack_base + cx->blk_oldsp);
         FREETMPS;
         CX_LEAVE_SCOPE(cx);
-        cx_popcase(cx);
+        cx_popdispatch(cx);
         cx_popblock(cx);
         CX_POP(cx);
         return redo_op;
@@ -3874,8 +3874,8 @@ PP(pp_goto)
             case CXt_LOOP_ARY:
             case CXt_GIVEN:
             case CXt_WHEN:
-            case CXt_CASE:
-            case CXt_CASEMATCH:
+            case CXt_DISPATCH:
+            case CXt_ON:
                 gotoprobe = OpSIBLING(cx->blk_oldcop);
                 break;
             case CXt_SUBST:
@@ -6125,7 +6125,7 @@ PP(pp_entergiven)
     return NORMAL;
 }
 
-PP(pp_entercase)
+PP(pp_enterdispatch)
 {
     PERL_CONTEXT *cx;
     const U8 gimme = GIMME_V;
@@ -6140,8 +6140,8 @@ PP(pp_entercase)
     }
     GvSV(PL_defgv) = subject;
 
-    cx = cx_pushblock(CXt_CASE, gimme, PL_stack_sp, PL_savestack_ix);
-    cx_pushcase(cx, origsv);
+    cx = cx_pushblock(CXt_DISPATCH, gimme, PL_stack_sp, PL_savestack_ix);
+    cx_pushdispatch(cx, origsv);
     return NORMAL;
 }
 
@@ -6170,14 +6170,14 @@ PP(pp_leavegiven)
     return NORMAL;
 }
 
-PP(pp_leavecase)
+PP(pp_leavedispatch)
 {
     PERL_CONTEXT *cx;
     U8 gimme;
     SV **oldsp;
 
     cx = CX_CUR();
-    assert(CxTYPE(cx) == CXt_CASE);
+    assert(CxTYPE(cx) == CXt_DISPATCH);
     oldsp = PL_stack_base + cx->blk_oldsp;
     gimme = cx->blk_gimme;
 
@@ -6187,7 +6187,7 @@ PP(pp_leavecase)
         leave_adjust_stacks(oldsp, oldsp, gimme, 1);
 
     CX_LEAVE_SCOPE(cx);
-    cx_popcase(cx);
+    cx_popdispatch(cx);
     cx_popblock(cx);
     CX_POP(cx);
     return NORMAL;
@@ -6214,8 +6214,8 @@ static bool
 S_case_pattern_pad_is_pinned(pTHX_ PADOFFSET padix)
 {
     PERL_CONTEXT *cx = S_case_context(aTHX);
-    if (cx && CxTYPE(cx) == CXt_CASE && cx->blk_case.case_pins) {
-        AV *pins = cx->blk_case.case_pins;
+    if (cx && CxTYPE(cx) == CXt_DISPATCH && cx->blk_dispatch.case_pins) {
+        AV *pins = cx->blk_dispatch.case_pins;
         SSize_t j;
         for (j = 0; j + 1 <= av_len(pins); j += 2) {
             SV **pinix = av_fetch(pins, j, FALSE);
@@ -6230,8 +6230,8 @@ static SV *
 S_case_pattern_pin_value(pTHX_ PADOFFSET padix)
 {
     PERL_CONTEXT *cx = S_case_context(aTHX);
-    if (cx && CxTYPE(cx) == CXt_CASE && cx->blk_case.case_pins) {
-        AV *pins = cx->blk_case.case_pins;
+    if (cx && CxTYPE(cx) == CXt_DISPATCH && cx->blk_dispatch.case_pins) {
+        AV *pins = cx->blk_dispatch.case_pins;
         SSize_t j;
         for (j = 0; j + 1 <= av_len(pins); j += 2) {
             SV **pinix = av_fetch(pins, j, FALSE);
@@ -6576,20 +6576,20 @@ S_case_pattern_is_wildcard(pTHX_ const struct case_pattern_aux *aux)
 }
 
 static bool
-S_case_dispatch_arm(pTHX_ const OP *op, struct case_pattern_aux **auxp,
+S_dispatch_clause(pTHX_ const OP *op, struct case_pattern_aux **auxp,
                     OP **targetp)
 {
-    const OP *entercasematch;
+    const OP *enteron;
     const OP *condition;
     const struct case_pattern_aux *aux;
 
     PERL_UNUSED_CONTEXT;
-    if (op->op_type != OP_LEAVECASEMATCH)
+    if (op->op_type != OP_LEAVEON)
         return FALSE;
-    entercasematch = cUNOPx(op)->op_first;
-    if (!entercasematch || entercasematch->op_type != OP_ENTERCASEMATCH)
+    enteron = cUNOPx(op)->op_first;
+    if (!enteron || enteron->op_type != OP_ENTERON)
         return FALSE;
-    condition = cUNOPx(entercasematch)->op_first;
+    condition = cUNOPx(enteron)->op_first;
     if (!condition || condition->op_type != OP_CASEMATCH)
         return FALSE;
     aux = (const struct case_pattern_aux *)cUNOP_AUXx(condition)->op_aux;
@@ -6600,7 +6600,7 @@ S_case_dispatch_arm(pTHX_ const OP *op, struct case_pattern_aux **auxp,
         return FALSE;
     *auxp = (struct case_pattern_aux *)aux;
     if (targetp)
-        *targetp = (OP *)entercasematch;
+        *targetp = (OP *)enteron;
     return TRUE;
 }
 
@@ -6792,19 +6792,19 @@ S_case_dispatch_sort(pTHX_ AV *values, AV *arms, U8 kind)
 }
 
 static bool
-S_case_dispatch_default_is_noop(const OP *target, const OP *leavecasematch)
+S_case_dispatch_default_is_noop(const OP *target, const OP *leaveon)
 {
     const OP *op = target ? target->op_next : NULL;
     U32 steps = 0;
 
-    while (op && op != leavecasematch && steps++ < 8) {
+    while (op && op != leaveon && steps++ < 8) {
         if (op->op_type != OP_NEXTSTATE && op->op_type != OP_STUB
             && op->op_type != OP_NULL && op->op_type != OP_UNSTACK
             && op->op_type != OP_SCOPE)
             return FALSE;
         op = op->op_next;
     }
-    return op == leavecasematch;
+    return op == leaveon;
 }
 
 UNOP_AUX_item *
@@ -6825,7 +6825,7 @@ Perl_case_dispatch_compile(pTHX_ OP *body)
         struct case_pattern_aux *pattern_aux;
         if (OP_TYPE_IS_COP_NN(kid))
             continue;
-        if (!S_case_dispatch_arm(aTHX_ kid, &pattern_aux, NULL)) {
+        if (!S_dispatch_clause(aTHX_ kid, &pattern_aux, NULL)) {
             eligible = FALSE;
             break;
         }
@@ -6865,7 +6865,7 @@ Perl_case_dispatch_compile(pTHX_ OP *body)
         if (OP_TYPE_IS_COP_NN(kid))
             continue;
         OP *target;
-        (void)S_case_dispatch_arm(aTHX_ kid, &pattern_aux, &target);
+        (void)S_dispatch_clause(aTHX_ kid, &pattern_aux, &target);
         pattern = pattern_aux->root->op;
         pattern_aux->dispatch = dispatch;
         pattern_aux->dispatch_arm = narm++;
@@ -6975,7 +6975,7 @@ S_case_context(pTHX)
     PERL_UNUSED_CONTEXT;
     for (i = cxstack_ix; i >= 0; i--) {
         PERL_CONTEXT *cx = &cxstack[i];
-        if (CxTYPE(cx) == CXt_CASE)
+        if (CxTYPE(cx) == CXt_DISPATCH)
             return cx;
     }
     return NULL;
@@ -6984,16 +6984,16 @@ S_case_context(pTHX)
 static void
 S_case_discard_bindings(pTHX_ PERL_CONTEXT *cx)
 {
-    if (cx->blk_case.case_bindings) {
-        SvREFCNT_dec((SV *)cx->blk_case.case_bindings);
-        cx->blk_case.case_bindings = NULL;
+    if (cx->blk_dispatch.case_bindings) {
+        SvREFCNT_dec((SV *)cx->blk_dispatch.case_bindings);
+        cx->blk_dispatch.case_bindings = NULL;
     }
 }
 
 static void
 S_case_commit_bindings(pTHX_ PERL_CONTEXT *cx)
 {
-    AV *bindings = cx->blk_case.case_bindings;
+    AV *bindings = cx->blk_dispatch.case_bindings;
 
     if (!bindings)
         return;
@@ -7003,7 +7003,7 @@ S_case_commit_bindings(pTHX_ PERL_CONTEXT *cx)
 static void
 S_case_rollback_bindings(pTHX_ PERL_CONTEXT *cx)
 {
-    AV *bindings = cx->blk_case.case_bindings;
+    AV *bindings = cx->blk_dispatch.case_bindings;
     SSize_t i;
 
     if (!bindings)
@@ -7052,8 +7052,8 @@ S_case_pattern_match(pTHX_ const struct case_pattern_node *node, SV *value,
         size_t i;
         const PADOFFSET padix = pattern->op_targ;
         PERL_CONTEXT *cx = S_case_context(aTHX);
-        if (cx && CxTYPE(cx) == CXt_CASE && cx->blk_case.case_pins) {
-            AV *pins = cx->blk_case.case_pins;
+        if (cx && CxTYPE(cx) == CXt_DISPATCH && cx->blk_dispatch.case_pins) {
+            AV *pins = cx->blk_dispatch.case_pins;
             SSize_t j;
             for (j = 0; j + 1 <= av_len(pins); j += 2) {
                 SV **pinix = av_fetch(pins, j, FALSE);
@@ -7243,8 +7243,8 @@ PP(pp_casematch)
     if (!pattern)
         Perl_croak(aTHX_ "missing compiled case pattern");
     bool matched;
-    if (cx && cx->blk_case.case_dispatch_active && aux->dispatch)
-        matched = aux->dispatch_arm == cx->blk_case.case_dispatch_arm;
+    if (cx && cx->blk_dispatch.dispatch_active && aux->dispatch)
+        matched = aux->dispatch_arm == cx->blk_dispatch.dispatch_clause;
     else if (aux->kind == CASE_PATTERN_SIMPLE_UNDEF)
         matched = !SvOK(DEFSV);
     else if (aux->kind == CASE_PATTERN_SIMPLE_BOOL)
@@ -7260,7 +7260,7 @@ PP(pp_casematch)
             bindings, &nbindings);
     size_t i;
 
-    if (cx && CxTYPE(cx) == CXt_CASE) {
+    if (cx && CxTYPE(cx) == CXt_DISPATCH) {
         S_case_discard_bindings(aTHX_ cx);
         if (matched && nbindings) {
             AV *pending = newAV();
@@ -7269,7 +7269,7 @@ PP(pp_casematch)
                 av_push(pending, newSVsv(PAD_SV(bindings[i].padix)));
                 sv_setsv(PAD_SV(bindings[i].padix), bindings[i].value);
             }
-            cx->blk_case.case_bindings = pending;
+            cx->blk_dispatch.case_bindings = pending;
         }
     }
     else if (matched) {
@@ -7420,7 +7420,7 @@ PP(pp_casedispatch)
         (struct case_dispatch_aux *)cUNOP_AUXx(PL_op)->op_aux;
     U32 best = CASE_DISPATCH_NO_ARM;
 
-    if (!cx || CxTYPE(cx) != CXt_CASE
+    if (!cx || CxTYPE(cx) != CXt_DISPATCH
         || !dispatch || dispatch->magic != CASE_DISPATCH_AUX_MAGIC)
         return NORMAL;
 
@@ -7485,8 +7485,8 @@ PP(pp_casedispatch)
         }
     }
 
-    cx->blk_case.case_dispatch_arm = best;
-    cx->blk_case.case_dispatch_active = TRUE;
+    cx->blk_dispatch.dispatch_clause = best;
+    cx->blk_dispatch.dispatch_active = TRUE;
     if (best == dispatch->default_arm && dispatch->default_noop
         && dispatch->miss_target)
     {
@@ -7587,8 +7587,8 @@ PP(pp_casewith)
     const OP *child = cUNOPx(PL_op)->op_first;
     SSize_t i;
 
-    if (!cx || CxTYPE(cx) != CXt_CASE)
-        Perl_croak(aTHX_ "case with clause outside case");
+    if (!cx || CxTYPE(cx) != CXt_DISPATCH)
+        Perl_croak(aTHX_ "dispatch with clause outside dispatch");
     S_case_collect_pin_ops(aTHX_ child, padixes);
     for (i = 0; i <= av_len(padixes); i++) {
         SV **padix = av_fetch(padixes, i, FALSE);
@@ -7598,9 +7598,9 @@ PP(pp_casewith)
         av_push(pins, newSVsv(pinvalue));
     }
     SvREFCNT_dec((SV *)padixes);
-    if (cx->blk_case.case_pins)
-        SvREFCNT_dec((SV *)cx->blk_case.case_pins);
-    cx->blk_case.case_pins = pins;
+    if (cx->blk_dispatch.case_pins)
+        SvREFCNT_dec((SV *)cx->blk_dispatch.case_pins);
+    cx->blk_dispatch.case_pins = pins;
     return NORMAL;
 }
 
@@ -8141,7 +8141,7 @@ PP(pp_enterwhen)
         bool tr = SvTRUEx(*PL_stack_sp);
         rpp_popfree_1_NN();
         if (!tr) {
-            if (given && CxTYPE(given) == CXt_CASE)
+            if (given && CxTYPE(given) == CXt_DISPATCH)
                 S_case_rollback_bindings(aTHX_ given);
             if (gimme == G_SCALAR)
                 rpp_push_IMM(&PL_sv_undef);
@@ -8149,7 +8149,7 @@ PP(pp_enterwhen)
         }
     }
 
-    if (given && CxTYPE(given) == CXt_CASE)
+    if (given && CxTYPE(given) == CXt_DISPATCH)
         S_case_commit_bindings(aTHX_ given);
 
     cx = cx_pushblock(CXt_WHEN, gimme, PL_stack_sp, PL_savestack_ix);
@@ -8158,7 +8158,7 @@ PP(pp_enterwhen)
     return NORMAL;
 }
 
-PP(pp_entercasematch)
+PP(pp_enteron)
 {
     PERL_CONTEXT *cx;
     PERL_CONTEXT *casectx = S_case_context(aTHX);
@@ -8168,7 +8168,7 @@ PP(pp_entercasematch)
         bool matched = SvTRUEx(*PL_stack_sp);
         rpp_popfree_1_NN();
         if (!matched) {
-            if (casectx && CxTYPE(casectx) == CXt_CASE)
+            if (casectx && CxTYPE(casectx) == CXt_DISPATCH)
                 S_case_rollback_bindings(aTHX_ casectx);
             if (gimme == G_SCALAR)
                 rpp_push_IMM(&PL_sv_undef);
@@ -8176,11 +8176,11 @@ PP(pp_entercasematch)
         }
     }
 
-    if (casectx && CxTYPE(casectx) == CXt_CASE)
+    if (casectx && CxTYPE(casectx) == CXt_DISPATCH)
         S_case_commit_bindings(aTHX_ casectx);
 
-    cx = cx_pushblock(CXt_CASEMATCH, gimme, PL_stack_sp, PL_savestack_ix);
-    cx_pushcasematch(cx);
+    cx = cx_pushblock(CXt_ON, gimme, PL_stack_sp, PL_savestack_ix);
+    cx_pushon(cx);
     return NORMAL;
 }
 
@@ -8223,16 +8223,16 @@ PP(pp_leavewhen)
     }
     else {
         PERL_ASYNC_CHECK();
-        if (CxTYPE(cx) == CXt_CASE) {
-            assert(cx->blk_case.leave_op->op_type == OP_LEAVECASE);
-            return cx->blk_case.leave_op;
+        if (CxTYPE(cx) == CXt_DISPATCH) {
+            assert(cx->blk_dispatch.leave_op->op_type == OP_LEAVEDISPATCH);
+            return cx->blk_dispatch.leave_op;
         }
         assert(cx->blk_givwhen.leave_op->op_type == OP_LEAVEGIVEN);
         return cx->blk_givwhen.leave_op;
     }
 }
 
-PP(pp_leavecasematch)
+PP(pp_leaveon)
 {
     I32 cxix;
     PERL_CONTEXT *cx;
@@ -8240,7 +8240,7 @@ PP(pp_leavecasematch)
     SV **oldsp;
 
     cx = CX_CUR();
-    assert(CxTYPE(cx) == CXt_CASEMATCH);
+    assert(CxTYPE(cx) == CXt_ON);
     gimme = cx->blk_gimme;
     oldsp = PL_stack_base + cx->blk_oldsp;
 
@@ -8250,15 +8250,15 @@ PP(pp_leavecasematch)
         leave_adjust_stacks(oldsp, oldsp, gimme, 1);
 
     for (cxix = cxstack_ix - 1; cxix >= 0; cxix--)
-        if (CxTYPE(&cxstack[cxix]) == CXt_CASE)
+        if (CxTYPE(&cxstack[cxix]) == CXt_DISPATCH)
             break;
     if (cxix < 0)
-        DIE(aTHX_ "case/match arm outside a case");
+        DIE(aTHX_ "on clause outside a dispatch");
 
     dounwind(cxix);
     cx = CX_CUR();
-    assert(CxTYPE(cx) == CXt_CASE);
-    return cx->blk_case.leave_op;
+    assert(CxTYPE(cx) == CXt_DISPATCH);
+    return cx->blk_dispatch.leave_op;
 }
 
 PP(pp_continue)
@@ -8306,8 +8306,8 @@ PP(pp_break)
     cx = CX_CUR();
     rpp_popfree_to_NN(PL_stack_base + cx->blk_oldsp);
 
-    return CxTYPE(cx) == CXt_CASE
-        ? cx->blk_case.leave_op : cx->blk_givwhen.leave_op;
+    return CxTYPE(cx) == CXt_DISPATCH
+        ? cx->blk_dispatch.leave_op : cx->blk_givwhen.leave_op;
 }
 
 static void

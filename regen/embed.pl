@@ -2799,8 +2799,8 @@ my @undocumented_potentially_always_hidden = qw(
 # part have a trailing underscore, indicating the intent for this symbol to
 # not be directly usable by XS code
 my %undocumented_always_visible = map { $_ => 1 } qw(
-    CXt_CASE
-    CXt_CASEMATCH
+    CXt_DISPATCH
+    CXt_ON
     OPpCONCAT_PATTERN
     _
     COP_FEATURE_SIZE

@@ -69,7 +69,7 @@
 %token <ival> KW_IF KW_ELSE KW_ELSIF KW_UNLESS
 %token <ival> KW_FOR KW_UNTIL KW_WHILE KW_CONTINUE
 %token <ival> KW_GIVEN KW_WHEN KW_DEFAULT
-%token <ival> KW_CASE KW_MATCH KW_WITH KW_IntVal KW_FloatVal KW_StrVal
+%token <ival> KW_DISPATCH KW_ON KW_WITH KW_IntVal KW_FloatVal KW_StrVal
 %token <ival> KW_TRY KW_CATCH KW_FINALLY KW_DEFER KW_GEN KW_YIELD
 %token <ival> KW_REQUIRE KW_DO
 
@@ -287,7 +287,7 @@ bare_statement_block
 	;
 
 bare_statement_case
-	: KW_CASE
+	: KW_DISPATCH
 		PERLY_PAREN_OPEN
 		remember
 		case_subject_type
@@ -314,7 +314,7 @@ bare_statement_case
 					newLISTOP(OP_CASEWITH, OPf_WANT_LIST,
 						$case_subject_pins, NULL), body);
 			OP *scoped_body = op_scope(body);
-			OP *caseop = newCASEOP(subject, scoped_body);
+			OP *caseop = newDISPATCHOP(subject, scoped_body);
 			if (dispatch && (scoped_body->op_type == OP_LINESEQ
 			                 || scoped_body->op_type == OP_SCOPE)) {
 				OP *scope_kid;
@@ -342,7 +342,7 @@ bare_statement_case
 			cUNOPx(caseop)->op_first->op_targ = 1;
 			$$ = block_end($remember,
 				caseop);
-			parser->copline = (line_t)$KW_CASE;
+			parser->copline = (line_t)$KW_DISPATCH;
 		}
 ;
 
@@ -397,7 +397,7 @@ case_local_scalar
 
 
 bare_statement_match
-	: KW_MATCH
+	: KW_ON
 		PERLY_PAREN_OPEN
 		case_pattern_start
 		remember
@@ -408,7 +408,7 @@ bare_statement_match
 		mblock
 		{
 			if (!parser->in_case_match_stmtseq) {
-				yyerror("match arms are only allowed directly in a case");
+				yyerror("on clauses are only allowed directly in a dispatch");
 				YYERROR;
 			}
 			OP *pattern = $mexpr;
@@ -432,7 +432,7 @@ bare_statement_match
 				&& SvIOK(cSVOPx_sv(pattern)))
 				pattern->op_flags |= OPf_SPECIAL;
 			$$ = block_end($remember,
-				newCASEMATCHOP(condition,
+				newONOP(condition,
 					op_scope($mblock)));
 		}
 ;
@@ -483,14 +483,14 @@ case_mblock
 				for (kid = cLISTOPx($$)->op_first; kid;
 					kid = OpSIBLING(kid)) {
 					if (!OP_TYPE_IS_COP_NN(kid)
-						&& kid->op_type != OP_LEAVECASEMATCH) {
+						&& kid->op_type != OP_LEAVEON) {
 						invalid = TRUE;
 						break;
 					}
 				}
 			}
 			if (invalid) {
-				yyerror("only match arms are allowed directly in a case");
+				yyerror("only on clauses are allowed directly in a dispatch");
 				YYERROR;
 			}
 		}

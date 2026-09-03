@@ -104,8 +104,8 @@ extern int yydebug;
     KW_GIVEN = 298,                /* KW_GIVEN  */
     KW_WHEN = 299,                 /* KW_WHEN  */
     KW_DEFAULT = 300,              /* KW_DEFAULT  */
-    KW_CASE = 301,                 /* KW_CASE  */
-    KW_MATCH = 302,                /* KW_MATCH  */
+    KW_DISPATCH = 301,             /* KW_DISPATCH  */
+    KW_ON = 302,                   /* KW_ON  */
     KW_WITH = 303,                 /* KW_WITH  */
     KW_IntVal = 304,               /* KW_IntVal  */
     KW_FloatVal = 305,             /* KW_FloatVal  */
@@ -260,6 +260,6 @@ int yyparse (void);
 
 
 /* Generated from:
- * 23668752b7f4da7cc3fa3fbd9884f0e2033d9963179a200c055957ae681e26b4 perly.y
+ * 94230ee964ae47b5968b02d2042e2e5548797518d5cbe4fbfc4909bb08dc632e perly.y
  * 1a4cfc5b32006b09aba17cc80cd31ade3503ab1e829681adfe337d9c26e19fe0 regen_perly.pl
  * ex: set ro ft=c: */

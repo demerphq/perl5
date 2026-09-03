@@ -10,23 +10,23 @@ print "1..49\n";
 my $ran = 0;
 $_ = 'outside';
 my $ok = eval q{
-    use feature 'case_match';
-    case (1) {
-        match (1) { $ran = 1; }
+    use feature 'dispatch';
+    dispatch (1) {
+        on (1) { $ran = 1; }
     }
     1;
 };
 print !$@ && $ok && $ran ? "ok 1 - case and match syntax\n"
                          : "not ok 1 - case and match syntax\n";
 
-my $off = eval q{ case (1) { match (1) {} } 1 };
+my $off = eval q{ dispatch (1) { on (1) {} } 1 };
 print $@ ? "ok 2 - feature gated\n" : "not ok 2 - feature gated\n";
 
 my $nested = eval q{
-    use feature 'case_match';
-    case (2) {
-        match (1) { die 'wrong arm'; }
-        match (2) { $ran = 2; }
+    use feature 'dispatch';
+    dispatch (2) {
+        on (1) { die 'wrong arm'; }
+        on (2) { $ran = 2; }
     }
     1;
 };
@@ -37,18 +37,18 @@ print $_ eq 'outside' ? "ok 4 - does not leak $_\n"
 
 my ($numeric, $string) = (0, 0);
 my $typed_numeric = eval q{
-    use feature 'case_match';
-    case (123) {
-        match (123) { $numeric = 1; }
-        match ('123') { $string = 1; }
+    use feature 'dispatch';
+    dispatch (123) {
+        on (123) { $numeric = 1; }
+        on ('123') { $string = 1; }
     }
     1;
 };
 my $typed_string = eval q{
-    use feature 'case_match';
-    case ('123') {
-        match (123) { $numeric = 2; }
-        match ('123') { $string = 2; }
+    use feature 'dispatch';
+    dispatch ('123') {
+        on (123) { $numeric = 2; }
+        on ('123') { $string = 2; }
     }
     1;
 };
@@ -58,18 +58,18 @@ print !$@ && $typed_numeric && $typed_string
     : "not ok 5 - typed literals\n";
 
 my $wildcard = eval q{
-    use feature 'case_match';
-    case (999) {
-        match (_) { 1; }
+    use feature 'dispatch';
+    dispatch (999) {
+        on (_) { 1; }
     }
 };
 print !$@ && $wildcard ? "ok 6 - wildcard\n" : "not ok 6 - wildcard\n";
 
 my ($first, $second, $nested_first, $nested_second);
 my $nested = eval q{
-    use feature 'case_match';
-    case ([ { foo => 1 }, { foo => 2 } ]) {
-        match ([ { foo => $first }, { foo => $second } ]) {
+    use feature 'dispatch';
+    dispatch ([ { foo => 1 }, { foo => 2 } ]) {
+        on ([ { foo => $first }, { foo => $second } ]) {
             $nested_first = $first;
             $nested_second = $second;
             1;
@@ -80,9 +80,9 @@ print !$@ && $nested && $nested_first == 1 && $nested_second == 2
     ? "ok 7 - nested captures\n" : "not ok 7 - nested captures\n";
 
 my $rollback = eval q{
-    use feature 'case_match';
-    case ([ { foo => 1 }, { bar => 2 } ]) {
-        match ([ { foo => $first }, { foo => $second } ]) { 1; }
+    use feature 'dispatch';
+    dispatch ([ { foo => 1 }, { bar => 2 } ]) {
+        on ([ { foo => $first }, { foo => $second } ]) { 1; }
     }
 };
 print !$@ && !defined($rollback)
@@ -90,9 +90,9 @@ print !$@ && !defined($rollback)
     : "not ok 8 - failed match rolls back\n";
 
 my $open_array = eval q{
-    use feature 'case_match';
-    case ([ 1, 2, 3 ]) {
-        match ([ 1, ... ]) { 1; }
+    use feature 'dispatch';
+    dispatch ([ 1, 2, 3 ]) {
+        on ([ 1, ... ]) { 1; }
     }
     1;
 };
@@ -100,9 +100,9 @@ print !$@ && $open_array ? "ok 9 - open array pattern\n"
                          : "not ok 9 - open array pattern\n";
 
 my $open_hash = eval q{
-    use feature 'case_match';
-    case ({ foo => 1, bar => 2 }) {
-        match ({ foo => 1, ... }) { 1; }
+    use feature 'dispatch';
+    dispatch ({ foo => 1, bar => 2 }) {
+        on ({ foo => 1, ... }) { 1; }
     }
     1;
 };
@@ -110,9 +110,9 @@ print !$@ && $open_hash ? "ok 10 - open hash pattern\n"
                         : "not ok 10 - open hash pattern\n";
 
 my $open_prefix = eval q{
-    use feature 'case_match';
-    case ([ 1, 2, 3 ]) {
-        match ([ ..., 3 ]) { 1; }
+    use feature 'dispatch';
+    dispatch ([ 1, 2, 3 ]) {
+        on ([ ..., 3 ]) { 1; }
     }
     1;
 };
@@ -122,9 +122,9 @@ print !$@ && $open_prefix ? "ok 11 - open prefix pattern\n"
 my $subsequence;
 my $subsequence_result;
 my $open_both = eval q{
-    use feature 'case_match';
-    case ([ 0, 'foo', 10, 'bar', 20, 'foo', 30, 'bar' ]) {
-        match ([ ..., 'foo', $subsequence, 'bar', ... ]) {
+    use feature 'dispatch';
+    dispatch ([ 0, 'foo', 10, 'bar', 20, 'foo', 30, 'bar' ]) {
+        on ([ ..., 'foo', $subsequence, 'bar', ... ]) {
             $subsequence_result = $subsequence;
             1;
         }
@@ -139,9 +139,9 @@ my $nested_open;
 my $nested_value;
 my $nested_value_result;
 my $nested_open_ok = eval q{
-    use feature 'case_match';
-    case ([ { foo => 1 }, { foo => 2 }, { foo => 3 } ]) {
-        match ([ { foo => $nested_value }, ... ]) {
+    use feature 'dispatch';
+    dispatch ([ { foo => 1 }, { foo => 2 }, { foo => 3 } ]) {
+        on ([ { foo => $nested_value }, ... ]) {
             $nested_open = 1;
             $nested_value_result = $nested_value;
         }
@@ -153,10 +153,10 @@ print !$@ && $nested_open_ok && $nested_open && $nested_value_result == 1
     : "not ok 13 - nested open pattern\n";
 
 my $dynamic_array = eval q{
-    use feature 'case_match';
+    use feature 'dispatch';
     my $offset = 2;
-    case ([ 3 ]) {
-        match ([ $offset + 1 ]) { 1; }
+    dispatch ([ 3 ]) {
+        on ([ $offset + 1 ]) { 1; }
     }
     1;
 };
@@ -164,10 +164,10 @@ print !$@ && $dynamic_array ? "ok 14 - dynamic nested array pattern\n"
                             : "not ok 14 - dynamic nested array pattern\n";
 
 my $dynamic_hash = eval q{
-    use feature 'case_match';
+    use feature 'dispatch';
     my $offset = 2;
-    case ({ foo => 3 }) {
-        match ({ foo => $offset + 1 }) { 1; }
+    dispatch ({ foo => 3 }) {
+        on ({ foo => $offset + 1 }) { 1; }
     }
     1;
 };
@@ -175,9 +175,9 @@ print !$@ && $dynamic_hash ? "ok 15 - dynamic nested hash pattern\n"
                            : "not ok 15 - dynamic nested hash pattern\n";
 
 my $regex_match = eval q{
-    use feature 'case_match';
-    case ('abc') {
-        match (/b/) { 1; }
+    use feature 'dispatch';
+    dispatch ('abc') {
+        on (/b/) { 1; }
     }
     1;
 };
@@ -196,9 +196,9 @@ my $subject;
 tie $subject, 'CaseMatch::Tie';
 my $changed;
 my $snapshot = eval q{
-    use feature 'case_match';
-    case ($subject) {
-        match (7) { $subject = 9; $changed = 1; }
+    use feature 'dispatch';
+    dispatch ($subject) {
+        on (7) { $subject = 9; $changed = 1; }
     }
     1;
 };
@@ -209,10 +209,10 @@ print $subject == 7 ? "ok 18 - arm can write subject\n"
                     : "not ok 18 - arm can write subject\n";
 
 my $arm_result = eval q{
-    use feature 'case_match';
+    use feature 'dispatch';
     do {
-        case (1) {
-            match (1) { 7; 42; }
+    dispatch (1) {
+            on (1) { 7; 42; }
         }
     }
 };
@@ -221,10 +221,10 @@ print !$@ && defined($arm_result) && $arm_result == 42
     : "not ok 19 - case returns the arm's last expression\n";
 
 my @arm_result = eval q{
-    use feature 'case_match';
+    use feature 'dispatch';
     do {
-        case (1) {
-            match (1) { (7, 42) }
+    dispatch (1) {
+            on (1) { (7, 42) }
         }
     }
 };
@@ -233,18 +233,18 @@ print !$@ && @arm_result == 2 && $arm_result[0] == 7 && $arm_result[1] == 42
     : "not ok 20 - case preserves list context\n";
 
 my $no_match = eval q{
-    use feature 'case_match';
+    use feature 'dispatch';
     do {
-        case (2) {
-            match (1) { 42 }
+        dispatch (2) {
+            on (1) { 42 }
         }
     }
 };
 my @no_match = eval q{
-    use feature 'case_match';
+    use feature 'dispatch';
     do {
-        case (2) {
-            match (1) { 42 }
+        dispatch (2) {
+            on (1) { 42 }
         }
     }
 };
@@ -253,11 +253,11 @@ print !$@ && !defined($no_match) && !@no_match
     : "not ok 21 - no match returns undef or an empty list\n";
 
 my $default = eval q{
-    use feature 'case_match';
+    use feature 'dispatch';
     do {
-        case ('other') {
-            match ('expected') { die 'wrong arm'; }
-            match (_) { 99 }
+        dispatch ('other') {
+            on ('expected') { die 'wrong arm'; }
+            on (_) { 99 }
         }
     }
 };
@@ -266,10 +266,10 @@ print !$@ && defined($default) && $default == 99
     : "not ok 22 - wildcard arm is the default\n";
 
 my $named_subject = eval q{
-    use feature qw(case_match namespaces);
+    use feature qw(dispatch namespaces);
     do {
-        case (21 as $bound) {
-            match (21) { $bound }
+        dispatch (21 as $bound) {
+            on (21) { $bound }
         }
     }
 };
@@ -278,11 +278,11 @@ print !$@ && defined($named_subject) && $named_subject == 21
     : "not ok 23 - case binds a named subject\n";
 
 my $scope_error = eval q{
-    use feature qw(case_match namespaces);
+    use feature qw(dispatch namespaces);
     no warnings 'syntax';
     do {
-        case (21 as $bound) {
-            match (21) { 1 }
+        dispatch (21 as $bound) {
+            on (21) { 1 }
         }
     }
     $bound;
@@ -292,11 +292,11 @@ print $@ ? "ok 24 - named subject is case-local\n"
 
 my $guard_capture;
 my $guard_fallback = eval q{
-    use feature 'case_match';
+    use feature 'dispatch';
     do {
-        case ([1]) {
-            match ([$guard_capture] if $guard_capture == 2) { die 'wrong arm'; }
-            match (_) { 88 }
+        dispatch ([1]) {
+            on ([$guard_capture] if $guard_capture == 2) { die 'wrong arm'; }
+            on (_) { 88 }
         }
     }
 };
@@ -305,10 +305,10 @@ print !$@ && $guard_fallback == 88 && !defined($guard_capture)
     : "not ok 25 - failed guard rolls back captures\n";
 
 my $guard_success = eval q{
-    use feature 'case_match';
+    use feature 'dispatch';
     do {
-        case ([1]) {
-            match ([$guard_capture] if $guard_capture == 1) { $guard_capture }
+        dispatch ([1]) {
+            on ([$guard_capture] if $guard_capture == 1) { $guard_capture }
         }
     }
 };
@@ -318,9 +318,9 @@ print !$@ && defined($guard_success) && $guard_success == 1
 
 undef $guard_capture;
 my $guard_exception = eval q{
-    use feature 'case_match';
-    case ([1]) {
-        match ([$guard_capture] if die 'guard failure') { 1 }
+    use feature 'dispatch';
+    dispatch ([1]) {
+        on ([$guard_capture] if die 'guard failure') { 1 }
     }
 };
 print $@ && !defined($guard_capture)
@@ -328,20 +328,20 @@ print $@ && !defined($guard_capture)
     : "not ok 27 - guard exceptions restore captures\n";
 
 my $with_ok = eval q{
-    use feature 'case_match';
+    use feature 'dispatch';
     my ($left, $right) = (1, 2);
-    case ({ left => 1, right => 2 }) with ($left, $right) {
-        match ({ left => $left, right => $right }) { 1 }
+    dispatch ({ left => 1, right => 2 }) with ($left, $right) {
+        on ({ left => $left, right => $right }) { 1 }
     }
 };
 print !$@ && $with_ok == 1 ? "ok 28 - with pins lexical values\n"
                            : "not ok 28 - with pins lexical values\n";
 
 my $with_mismatch = eval q{
-    use feature 'case_match';
+    use feature 'dispatch';
     my $left = 9;
-    case ({ left => 1 }) with ($left) {
-        match ({ left => $left }) { 1 }
+    dispatch ({ left => 1 }) with ($left) {
+        on ({ left => $left }) { 1 }
     }
 };
 print !$@ && !defined($with_mismatch)
@@ -349,20 +349,20 @@ print !$@ && !defined($with_mismatch)
     : "not ok 29 - with rejects a mismatched pin\n";
 
 my $ordinary_case_statement = eval q{
-    use feature 'case_match';
-    case (1) {
+    use feature 'dispatch';
+    dispatch (1) {
         1;
-        match (1) { 2 }
+        on (1) { 2 }
     }
 };
-print $@ =~ /only match arms are allowed directly in a case/
+print $@ =~ /only on clauses are allowed directly in a dispatch/
     ? "ok 30 - case body rejects ordinary statements\n"
     : "not ok 30 - case body rejects ordinary statements\n";
 
 my $ordinary_arm_block = eval q{
-    use feature 'case_match';
-    case (1) {
-        match (1) {
+    use feature 'dispatch';
+    dispatch (1) {
+        on (1) {
             my $value = 0;
             for (1 .. 2) {
                 $value += $_;
@@ -376,12 +376,12 @@ print !$@ && defined($ordinary_arm_block) && $ordinary_arm_block == 3
     : "not ok 31 - match arm retains ordinary block syntax\n";
 
 my $nested_case_in_arm = eval q{
-    use feature 'case_match';
+    use feature 'dispatch';
     my $value;
-    case (1) {
-        match (1) {
-            case (2) {
-                match (2) { $value = 7 }
+    dispatch (1) {
+        on (1) {
+            dispatch (2) {
+                on (2) { $value = 7 }
             }
         }
     }
@@ -392,34 +392,34 @@ print !$@ && defined($nested_case_in_arm) && $nested_case_in_arm == 7
     : "not ok 32 - nested case is valid inside an arm\n";
 
 my $nested_case_as_arm = eval q{
-    use feature 'case_match';
-    case (1) {
-        case (1) { match (1) { 7 } }
+    use feature 'dispatch';
+    dispatch (1) {
+        dispatch (1) { on (1) { 7 } }
     }
 };
-print $@ =~ /only match arms are allowed directly in a case/
+print $@ =~ /only on clauses are allowed directly in a dispatch/
     ? "ok 33 - nested case is not an arm\n"
     : "not ok 33 - nested case is not an arm\n";
 
 my ($coerced_int, $coerced_float, $coerced_string) = (0, 0, 0);
 my ($coerced_undef, $coerced_ref) = (0, 0);
 my $typed_subjects = eval q{
-    use feature 'case_match';
-    case (IntVal '12') {
-        match (12) { $coerced_int = 1 }
+    use feature 'dispatch';
+    dispatch (IntVal '12') {
+        on (12) { $coerced_int = 1 }
     }
-    case (FloatVal '2.5') {
-        match (2.5) { $coerced_float = 1 }
+    dispatch (FloatVal '2.5') {
+        on (2.5) { $coerced_float = 1 }
     }
-    case (StrVal 12) {
-        match ('12') { $coerced_string = 1 }
+    dispatch (StrVal 12) {
+        on ('12') { $coerced_string = 1 }
     }
-    case (StrVal undef) {
-        match (undef) { $coerced_undef = 1 }
+    dispatch (StrVal undef) {
+        on (undef) { $coerced_undef = 1 }
     }
     my $ref = [];
-    case (IntVal $ref) {
-        match (_) { $coerced_ref = ref($ref) eq 'ARRAY' }
+    dispatch (IntVal $ref) {
+        on (_) { $coerced_ref = ref($ref) eq 'ARRAY' }
     }
     1;
 };
@@ -429,9 +429,9 @@ print !$@ && $typed_subjects && $coerced_int && $coerced_float
     : "not ok 34 - typed case subjects\n";
 
 my $undef_pattern = eval q{
-    use feature 'case_match';
-    case (undef) {
-        match (undef) { 1 }
+    use feature 'dispatch';
+    dispatch (undef) {
+        on (undef) { 1 }
     }
 };
 print !$@ && defined($undef_pattern) && $undef_pattern == 1
@@ -440,9 +440,9 @@ print !$@ && defined($undef_pattern) && $undef_pattern == 1
 
 my $typed_reference = [];
 my $typed_reference_result = eval q{
-    use feature 'case_match';
-    case (StrVal $typed_reference) {
-        match ($typed_reference) { 1 }
+    use feature 'dispatch';
+    dispatch (StrVal $typed_reference) {
+        on ($typed_reference) { 1 }
     }
 };
 print !$@ && $typed_reference_result
@@ -451,13 +451,13 @@ print !$@ && $typed_reference_result
 
 my ($typed_expression, $typed_parenthesized) = (undef, undef);
 my $typed_expression_result = eval q{
-    use feature qw(case_match namespaces);
+    use feature qw(dispatch namespaces);
     my $x = 1;
-    case (StrVal $x + 1 as $bound) {
-        match ('2') { $typed_expression = $bound }
+    dispatch (StrVal $x + 1 as $bound) {
+        on ('2') { $typed_expression = $bound }
     }
-    case (StrVal($x + 1) as $bound) {
-        match ('2') { $typed_parenthesized = $bound }
+    dispatch (StrVal($x + 1) as $bound) {
+        on ('2') { $typed_parenthesized = $bound }
     }
     1;
 };
@@ -467,11 +467,11 @@ print !$@ && $typed_expression_result
     : "not ok 37 - typed subject expressions bind equivalently\n";
 
 my $with_expression = eval q{
-    use feature qw(case_match namespaces);
+    use feature qw(dispatch namespaces);
     my $base = 4;
     my $evaluations = 0;
-    case (8) with (++$evaluations + $base as $expected) {
-        match ($expected) { 1 }
+    dispatch (8) with (++$evaluations + $base as $expected) {
+        on ($expected) { 1 }
     }
     $evaluations == 1;
 };
@@ -481,11 +481,11 @@ print !$@ && $with_expression
 
 my ($bool_yes, $bool_no, $bool_number) = (0, 0, 0);
 my $typed_boolean = eval q{
-    use feature 'case_match';
+    use feature 'dispatch';
     use builtin qw(true false);
-    case (true)  { match (true)  { $bool_yes = 1 } }
-    case (false) { match (false) { $bool_no = 1 } }
-    case (1)     { match (true)  { $bool_number = 1 } }
+    dispatch (true)  { on (true)  { $bool_yes = 1 } }
+    dispatch (false) { on (false) { $bool_no = 1 } }
+    dispatch (1)     { on (true)  { $bool_number = 1 } }
     1;
 };
 print !$@ && $typed_boolean && $bool_yes && $bool_no && $bool_number
@@ -494,19 +494,19 @@ print !$@ && $typed_boolean && $bool_yes && $bool_no && $bool_number
 
 my ($dispatch_order, $dispatch_duplicate, $dispatch_miss) = (0, 0, 0);
 my $constant_dispatch = eval q{
-    use feature 'case_match';
+    use feature 'dispatch';
     use builtin qw(true false);
-    case (1) {
-        match ('1') { $dispatch_order = 1 }
-        match (true) { $dispatch_order = 2 }
-        match (1) { $dispatch_order = 3 }
+    dispatch (1) {
+        on ('1') { $dispatch_order = 1 }
+        on (true) { $dispatch_order = 2 }
+        on (1) { $dispatch_order = 3 }
     }
-    case (1) {
-        match (1) { $dispatch_duplicate++ }
-        match (1) { $dispatch_duplicate += 10 }
+    dispatch (1) {
+        on (1) { $dispatch_duplicate++ }
+        on (1) { $dispatch_duplicate += 10 }
     }
-    case (3) {
-        match (1) { $dispatch_miss = 1 }
+    dispatch (3) {
+        on (1) { $dispatch_miss = 1 }
     }
     1;
 };
@@ -517,14 +517,14 @@ print !$@ && $constant_dispatch && $dispatch_order == 2
 
 my ($dispatch_default, $dispatch_early_default) = (0, 0);
 my $constant_dispatch_default = eval q{
-    use feature 'case_match';
-    case (99) {
-        match (1) { $dispatch_default = 1 }
-        match (_) { $dispatch_default = 2 }
+    use feature 'dispatch';
+    dispatch (99) {
+        on (1) { $dispatch_default = 1 }
+        on (_) { $dispatch_default = 2 }
     }
-    case (99) {
-        match (_)  { $dispatch_early_default = 3 }
-        match (99) { $dispatch_early_default = 4 }
+    dispatch (99) {
+        on (_)  { $dispatch_early_default = 3 }
+        on (99) { $dispatch_early_default = 4 }
     }
     1;
 };
@@ -535,17 +535,17 @@ print !$@ && $constant_dispatch_default
 
 my ($empty_default_scalar, @empty_default_list);
 my $empty_default_result = eval q{
-    use feature 'case_match';
+    use feature 'dispatch';
     $empty_default_scalar = sub {
-        case (99) {
-            match (1) { 1 }
-            match (_) { () }
+        dispatch (99) {
+            on (1) { 1 }
+            on (_) { () }
         }
     }->();
     @empty_default_list = sub {
-        case (99) {
-            match (1) { 1 }
-            match (_) { () }
+        dispatch (99) {
+            on (1) { 1 }
+            on (_) { () }
         }
     }->();
     1;
@@ -557,17 +557,17 @@ print !$@ && $empty_default_result && !defined($empty_default_scalar)
 
 my ($last_label, $next_label, $redo_label) = (0, 0, 0);
 my $label_control = eval q{
-    use feature 'case_match';
-    LABEL_LAST: case (1) {
-        match (1) { $last_label = 1; last LABEL_LAST; $last_label = 2 }
+    use feature 'dispatch';
+    LABEL_LAST: dispatch (1) {
+        on (1) { $last_label = 1; last LABEL_LAST; $last_label = 2 }
     }
-    LABEL_NEXT: case (1) {
-        match (1) { $next_label = 1; next LABEL_NEXT; $next_label = 2 }
+    LABEL_NEXT: dispatch (1) {
+        on (1) { $next_label = 1; next LABEL_NEXT; $next_label = 2 }
     }
     my $n = 0;
-    LABEL_REDO: case (++$n) {
-        match (1) { redo LABEL_REDO }
-        match (_) { $redo_label = $n }
+    LABEL_REDO: dispatch (++$n) {
+        on (1) { redo LABEL_REDO }
+        on (_) { $redo_label = $n }
     }
     1;
 };
@@ -579,23 +579,23 @@ print !$@ && $label_control && $last_label == 1 && $next_label == 1
 my ($captured_suffix, $unchanged_suffix, $empty_suffix) = ();
 my ($captured_suffix_result, $empty_suffix_result);
 my $concat_capture = eval q{
-    use feature 'case_match';
+    use feature 'dispatch';
     my $text = 'foo_bar';
-    case ($text) {
-        match ('foo_' . $captured_suffix) {
+    dispatch ($text) {
+        on ('foo_' . $captured_suffix) {
             $captured_suffix_result = $captured_suffix;
         }
     }
     $text = 'foo_';
-    case ($text) {
-        match ('foo_' . $empty_suffix) {
+    dispatch ($text) {
+        on ('foo_' . $empty_suffix) {
             $empty_suffix_result = $empty_suffix;
         }
     }
     $text = 'not_bar';
     $unchanged_suffix = 'OLD';
-    case ($text) {
-        match ('foo_' . $unchanged_suffix) { 1 }
+    dispatch ($text) {
+        on ('foo_' . $unchanged_suffix) { 1 }
     }
     1;
 };
@@ -606,14 +606,14 @@ print !$@ && $concat_capture && $captured_suffix_result eq 'bar'
 
 my ($pinned_match, $pinned_miss) = (0, 0);
 my $concat_pin = eval q{
-    use feature 'case_match';
+    use feature 'dispatch';
     my $p = 'bar';
-    case ('foo_bar') with ($p) {
-        match ('foo_' . $p) { $pinned_match = $p eq 'bar' }
+    dispatch ('foo_bar') with ($p) {
+        on ('foo_' . $p) { $pinned_match = $p eq 'bar' }
     }
     $p = 'baz';
-    case ('foo_bar') with ($p) {
-        match ('foo_' . $p) { $pinned_miss = 1 }
+    dispatch ('foo_bar') with ($p) {
+        on ('foo_' . $p) { $pinned_miss = 1 }
     }
     1;
 };
@@ -624,15 +624,15 @@ print !$@ && $concat_pin && $pinned_match && !$pinned_miss
 my ($sandwich, $leading, $trailing) = ();
 my ($sandwich_result, $leading_result, $trailing_result);
 my $concat_shapes = eval q{
-    use feature 'case_match';
-    case ('xmiddlez') {
-        match ('x' . $sandwich . 'z') { $sandwich_result = $sandwich }
+    use feature 'dispatch';
+    dispatch ('xmiddlez') {
+        on ('x' . $sandwich . 'z') { $sandwich_result = $sandwich }
     }
-    case ('middlez') {
-        match ($leading . 'z') { $leading_result = $leading }
+    dispatch ('middlez') {
+        on ($leading . 'z') { $leading_result = $leading }
     }
-    case ('xmiddle') {
-        match ('x' . $trailing) { $trailing_result = $trailing }
+    dispatch ('xmiddle') {
+        on ('x' . $trailing) { $trailing_result = $trailing }
     }
     1;
 };
@@ -643,9 +643,9 @@ print !$@ && $concat_shapes && $sandwich_result eq 'middle'
 
 my $strict_wildcard = eval q{
     use v5.45.3;
-    use feature 'case_match';
-    case (10) {
-        match (_) { 1 }
+    use feature 'dispatch';
+    dispatch (10) {
+        on (_) { 1 }
     }
 };
 print !$@ && $strict_wildcard
@@ -660,14 +660,14 @@ my $implicit_bindings;
     $implicit_bindings = eval q{
         use strict;
         use warnings;
-        use feature 'case_match';
-        case ('pfx_whatzit_thing') {
-            match ('pfx_' . $label . '_thing' if $label eq 'whatzit') {
+    use feature 'dispatch';
+        dispatch ('pfx_whatzit_thing') {
+            on ('pfx_' . $label . '_thing' if $label eq 'whatzit') {
                 $scope_label = $label;
             }
         }
-        case (['a', 1, 2]) {
-            match (['a', $p, $q] if $p == 1) {
+        dispatch (['a', 1, 2]) {
+            on (['a', $p, $q] if $p == 1) {
                 $scope_p = $p;
                 $scope_q = $q;
             }
@@ -681,9 +681,9 @@ print !$@ && $implicit_bindings && !@pattern_warnings
     : "not ok 48 - pattern names are implicit arm-local bindings\n";
 
 my $match_outside_case = eval q{
-    use feature 'case_match';
-    match (1) { 1 }
+    use feature 'dispatch';
+    on (1) { 1 }
 };
-print $match_outside_case eq '' && $@ =~ /only allowed directly in a case/
-    ? "ok 49 - match is forbidden outside case\n"
-    : "not ok 49 - match is forbidden outside case\n";
+print $match_outside_case eq '' && $@ =~ /on clause outside a dispatch/
+    ? "ok 49 - on is forbidden outside dispatch\n"
+    : "not ok 49 - on is forbidden outside dispatch\n";

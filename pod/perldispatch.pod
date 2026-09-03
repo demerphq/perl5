@@ -2,7 +2,7 @@
 
 =head1 NAME
 
-perlcasematch - a gentle introduction to experimental case and data-shape matching
+perldispatch - a gentle introduction to experimental dispatch and data-shape matching
 
 =head1 DESCRIPTION
 
@@ -18,33 +18,33 @@ pattern matching.
 
 The feature is enabled with:
 
-    use feature 'case_match';
+    use feature 'dispatch';
 
 It is experimental, so its spelling and behaviour may change.
 
 =head1 THE BASIC IDEA
 
-A C<case> examines one subject and tries its C<match> arms from top to
-bottom.  The first matching arm runs.  Arms do not fall through.  The outer
-case block may contain only direct C<match> arms; an ordinary statement or a
-nested C<case> is not allowed there.  Each arm's attached block is an
+A C<dispatch> examines one subject and tries its C<on> clauses from top to
+bottom.  The first matching clause runs.  Clauses do not fall through.  The outer
+dispatch block may contain only direct C<on> clauses; an ordinary statement or a
+nested C<dispatch> is not allowed there.  Each clause's attached block is an
 ordinary Perl block and may contain normal Perl statements, loops, and nested
 cases.
 
-    use feature 'case_match';
+    use feature 'dispatch';
 
-    case ($value) {
-        match (1) { say "one" }
-        match (2) { say "two" }
-        match (_) { say "something else" }
+    dispatch ($value) {
+        on (1) { say "one" }
+        on (2) { say "two" }
+        on (_) { say "something else" }
     }
 
 The underscore is a wildcard.  It matches any value and does not create a
-binding, so it is useful as a final default arm.
+binding, so it is useful as a final default clause.
 
-If no arm matches, the C<case> expression returns C<undef> in scalar context
-and an empty list in list context.  A wildcard arm is the usual way to give
-the case a default action.
+If no clause matches, the C<dispatch> expression returns C<undef> in scalar context
+and an empty list in list context.  A wildcard clause is the usual way to give
+the dispatch a default action.
 
 =head1 BINDING VALUES
 
@@ -52,8 +52,8 @@ A scalar variable in a data-shape description is an implicit lexical name to
 be filled in when the data shape matches.  You do not write a separate C<my>
 declaration for it:
 
-    case ($message) {
-        match ({ name => $name, age => $age, ... }) {
+    dispatch ($message) {
+        on ({ name => $name, age => $age, ... }) {
             say "$name is $age years old";
         }
     }
@@ -63,12 +63,12 @@ deciding whether the complete data shape matches.  If a later part fails,
 earlier bindings are discarded.  The names become available only after the
 complete data shape, and its guard if any, succeeds.
 
-Data-shape variables are lexical to the block attached to that C<match>.  They
+Data-shape variables are lexical to the block attached to that C<on>.  They
 are not accesses to a same-named variable in the surrounding scope, and they
-do not become variables there.  A name listed by the case's C<with> clause is
+do not become variables there.  A name listed by the dispatch's C<with> clause is
 the exception: it is pinned and is looked up as the existing lexical.
 
-The part inside C<match (...)> is a data-shape description, not an ordinary
+The part inside C<on (...)> is a data-shape description, not an ordinary
 Perl expression.  It has Perl-like punctuation and names, but its job is to
 describe the shape of the subject and introduce bindings.  It is not executed
 to produce a temporary Perl value.  The optional part after C<if> is
@@ -84,9 +84,9 @@ as C<@values> are not currently supported; bindings are scalar names.
 
 Literal numbers and literal strings are different data shapes:
 
-    case ($value) {
-        match (1)   { say "the number one" }
-        match ("1") { say "the string one" }
+    dispatch ($value) {
+        on (1)   { say "the number one" }
+        on ("1") { say "the string one" }
     }
 
 The number data shape is intended for a numeric scalar and the string data
@@ -95,16 +95,16 @@ comparison, where conversion may happen during the comparison.
 
 An undefined value can be matched directly:
 
-    case ($value) {
-        match (undef) { say "no value" }
-        match (_)     { say "some value" }
+    dispatch ($value) {
+        on (undef) { say "no value" }
+        on (_)     { say "some value" }
     }
 
 The boolean data shapes C<true> and C<false> use Perl's ordinary truth-value
 rules.  They match the subject according to C<SvTRUE>, rather than requiring
 the subject to be one of the internal boolean scalar objects.  For example,
-C<match (true)> also matches the number C<1>, while C<match (false)> matches
-C<0>.  Use C<match (undef)> when the distinction between an undefined value
+C<on (true)> also matches the number C<1>, while C<on (false)> matches
+C<0>.  Use C<on (undef)> when the distinction between an undefined value
 and a defined false value matters.
 
 =head2 Concatenated string data shapes
@@ -112,8 +112,8 @@ and a defined false value matters.
 A string data shape can combine literal text with one unpinned scalar name.  The
 name receives the part of the subject between the literal pieces:
 
-    case ($text) {
-        match ("x" . $middle . "z") {
+    dispatch ($text) {
+        on ("x" . $middle . "z") {
             say "middle is $middle";
         }
     }
@@ -127,13 +127,13 @@ The concatenation is interpreted as a data shape, not as an ordinary Perl
 expression.  A scalar named in a C<with> clause is pinned and contributes its
 existing value instead of capturing text:
 
-    case ($text) with ($wanted) {
-        match ("x" . $wanted) { say "it matched" }
+    dispatch ($text) with ($wanted) {
+        on ("x" . $wanted) { say "it matched" }
     }
 
 Multiple unpinned names and more general expression operands are not part of
 the current data-shape language.  In particular, a function call or an
-arithmetic expression inside C<match (...)> is not a general way to compute a
+arithmetic expression inside C<on (...)> is not a general way to compute a
 data shape.  Use the guard after C<if> for ordinary Perl computation.
 
 =head1 ARRAY AND HASH PATTERNS
@@ -141,24 +141,24 @@ data shape.  Use the guard after C<if> for ordinary Perl computation.
 An array data shape matches an array reference.  Without an ellipsis, it must
 have exactly the listed number of elements:
 
-    case ($point) {
-        match ([ $x, $y ]) { say "point: $x, $y" }
+    dispatch ($point) {
+        on ([ $x, $y ]) { say "point: $x, $y" }
     }
 
 A hash data shape lists keys which must be present.  A trailing C<...> allows
 additional keys:
 
-    case ($record) {
-        match ({ status => "ok", value => $value, ... }) {
+    dispatch ($record) {
+        on ({ status => "ok", value => $value, ... }) {
             use_value($value);
         }
     }
 
 For arrays, C<...> can be used at the beginning, at the end, or at both ends:
 
-    match ([ $first, ... ])
-    match ([ ..., $last ])
-    match ([ ..., "start", $middle, "end", ... ])
+    on ([ $first, ... ])
+    on ([ ..., $last ])
+    on ([ ..., "start", $middle, "end", ... ])
 
 The last form searches from the left and binds the first matching subsequence.
 Array and hash data shapes can be nested in one another.  An ellipsis may be
@@ -170,25 +170,25 @@ general wildcard for arbitrary positions.
 A guard is an ordinary Perl expression checked after the data shape has
 matched structurally:
 
-    case ($value) {
-    match ([ $number ] if $number > 0) {
+    dispatch ($value) {
+    on ([ $number ] if $number > 0) {
             say "positive: $number";
         }
-        match (_) { say "not a positive one-element array" }
+        on (_) { say "not a positive one-element array" }
     }
 
 The C<if> and everything after it belong to ordinary Perl.  Guards are
 unrestricted Perl expressions.  They may have side effects or
-throw exceptions.  If a guard is false, that arm's tentative bindings are
-discarded and the next arm is considered.  If a guard throws, the exception
+throw exceptions.  If a guard is false, that clause's tentative bindings are
+discarded and the next clause is considered.  If a guard throws, the exception
 is propagated in the usual way; the tentative bindings are still discarded.
 
 =head1 NAMING AND PINNING
 
-The subject can be given a case-local name with C<as>:
+The subject can be given a dispatch-local name with C<as>:
 
-    case (read_record() as $record) {
-        match ({ type => "ok", ... }) { use_record($record) }
+    dispatch (read_record() as $record) {
+        on ({ type => "ok", ... }) { use_record($record) }
     }
 
 This evaluates the subject once and does not assign to an outer variable.
@@ -197,39 +197,39 @@ A C<with> clause pins an existing value.  A pinned variable is checked rather
 than filled in by the data shape:
 
     my $wanted = "ok";
-    case ($record) with ($wanted) {
-        match ({ type => $wanted, ... }) { use_record($record) }
+    dispatch ($record) with ($wanted) {
+        on ({ type => $wanted, ... }) { use_record($record) }
     }
 
-An expression can be evaluated once and made into a case-local pin:
+An expression can be evaluated once and made into a dispatch-local pin:
 
-    case ($record) with (expected_type() as $wanted) {
-        match ({ type => $wanted, ... }) { use_record($record) }
+    dispatch ($record) with (expected_type() as $wanted) {
+        on ({ type => $wanted, ... }) { use_record($record) }
     }
 
 =head1 EXPLICIT SUBJECT CONVERSION
 
 The grammar provides three explicit subject conversions:
 
-    case (IntVal  $value) { ... }
-    case (FloatVal $value) { ... }
-    case (StrVal   $value) { ... }
+    dispatch (IntVal  $value) { ... }
+    dispatch (FloatVal $value) { ... }
+    dispatch (StrVal   $value) { ... }
 
-The subject is evaluated once and converted before any arm is tested.  An
+The subject is evaluated once and converted before any clause is tested.  An
 undefined value remains undefined, and references pass through unchanged.
 
 =head1 A COMPLETE EXAMPLE
 
 This example classifies a small message represented by an array reference:
 
-    use feature 'case_match';
+    use feature 'dispatch';
 
     my $value = [ "ok", 42 ];
 
-    case ($value) {
-        match ([ "ok", $number ]) { say "received $number" }
-        match ([ "error", $message ]) { warn $message }
-        match (_) { say "unrecognised value" }
+    dispatch ($value) {
+        on ([ "ok", $number ]) { say "received $number" }
+        on ([ "error", $message ]) { warn $message }
+        on (_) { say "unrecognised value" }
     }
 
 =head1 WHAT WORKS NOW
@@ -239,7 +239,7 @@ bindings and pins, wildcards, regular-expression predicate shapes, nested
 array and hash references, open composite shapes, guards, and explicit scalar
 subject conversion.  Constant-only cases without guards also have optimized
 dispatch paths.  The selected dispatch strategy is an implementation detail;
-the first matching arm in source order still wins.
+the first matching clause in source order still wins.
 
 =head1 WHAT IS LEFT TO DO
 
@@ -270,13 +270,13 @@ A user-defined data-shape protocol.
 Richer data-shape forms, additional binding forms, and further dispatch
 optimizations remain under consideration.  Constant-only dispatch currently
 accepts duplicate clauses; the earliest matching clause wins, just as it does
-in the ordinary arm walk.  This behavior may be tightened in a future
+in the ordinary clause walk.  This behavior may be tightened in a future
 experimental version.
 
 =item *
 
 More precise diagnostics that identify the source location of a particular
-data shape or arm when compilation fails.
+data shape or clause when compilation fails.
 
 =back
 

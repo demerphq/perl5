@@ -4435,8 +4435,8 @@ Perl_cx_pushgiven(pTHX_ PERL_CONTEXT *cx, SV *orig_defsv)
     cx->blk_givwhen.leave_op = cLOGOP->op_other;
     cx->blk_givwhen.defsv_save = orig_defsv;
     cx->blk_givwhen.is_case = FALSE;
-    cx->blk_givwhen.case_dispatch_active = FALSE;
-    cx->blk_givwhen.case_dispatch_arm = CASE_DISPATCH_NO_ARM;
+    cx->blk_givwhen.dispatch_active = FALSE;
+    cx->blk_givwhen.dispatch_clause = CASE_DISPATCH_NO_ARM;
     cx->blk_givwhen.case_bindings = NULL;
     cx->blk_givwhen.case_pins = NULL;
 }
@@ -4475,32 +4475,32 @@ Perl_cx_popgiven(pTHX_ PERL_CONTEXT *cx)
 
 
 PERL_STATIC_INLINE void
-Perl_cx_pushcase(pTHX_ PERL_CONTEXT *cx, SV *orig_defsv)
+Perl_cx_pushdispatch(pTHX_ PERL_CONTEXT *cx, SV *orig_defsv)
 {
-    PERL_ARGS_ASSERT_CX_PUSHCASE;
+    PERL_ARGS_ASSERT_CX_PUSHDISPATCH;
 
-    cx->blk_case.leave_op = cLOGOP->op_other;
-    cx->blk_case.defsv_save = orig_defsv;
-    cx->blk_case.case_dispatch_active = FALSE;
-    cx->blk_case.case_dispatch_arm = CASE_DISPATCH_NO_ARM;
-    cx->blk_case.case_bindings = NULL;
-    cx->blk_case.case_pins = NULL;
-    cx->blk_case.redo_op = cLOGOP->op_redoop
+    cx->blk_dispatch.leave_op = cLOGOP->op_other;
+    cx->blk_dispatch.defsv_save = orig_defsv;
+    cx->blk_dispatch.dispatch_active = FALSE;
+    cx->blk_dispatch.dispatch_clause = CASE_DISPATCH_NO_ARM;
+    cx->blk_dispatch.case_bindings = NULL;
+    cx->blk_dispatch.case_pins = NULL;
+    cx->blk_dispatch.redo_op = cLOGOP->op_redoop
         ? cLOGOP->op_redoop : cLOGOP->op_first;
 }
 
 
 PERL_STATIC_INLINE void
-Perl_cx_popcase(pTHX_ PERL_CONTEXT *cx)
+Perl_cx_popdispatch(pTHX_ PERL_CONTEXT *cx)
 {
-    PERL_ARGS_ASSERT_CX_POPCASE;
-    assert(CxTYPE(cx) == CXt_CASE);
+    PERL_ARGS_ASSERT_CX_POPDISPATCH;
+    assert(CxTYPE(cx) == CXt_DISPATCH);
     SV *sv = GvSV(PL_defgv);
-    GvSV(PL_defgv) = cx->blk_case.defsv_save;
-    cx->blk_case.defsv_save = NULL;
+    GvSV(PL_defgv) = cx->blk_dispatch.defsv_save;
+    cx->blk_dispatch.defsv_save = NULL;
     SvREFCNT_dec(sv);
-    if (cx->blk_case.case_bindings) {
-        AV *bindings = cx->blk_case.case_bindings;
+    if (cx->blk_dispatch.case_bindings) {
+        AV *bindings = cx->blk_dispatch.case_bindings;
         SSize_t i;
         for (i = 0; i + 1 <= av_len(bindings); i += 2) {
             SV **padix_sv = av_fetch(bindings, i, FALSE);
@@ -4509,30 +4509,30 @@ Perl_cx_popcase(pTHX_ PERL_CONTEXT *cx)
                 sv_setsv(PAD_SV((PADOFFSET)SvUV(*padix_sv)), *old_value_sv);
         }
         SvREFCNT_dec((SV *)bindings);
-        cx->blk_case.case_bindings = NULL;
+        cx->blk_dispatch.case_bindings = NULL;
     }
-    if (cx->blk_case.case_pins) {
-        SvREFCNT_dec((SV *)cx->blk_case.case_pins);
-        cx->blk_case.case_pins = NULL;
+    if (cx->blk_dispatch.case_pins) {
+        SvREFCNT_dec((SV *)cx->blk_dispatch.case_pins);
+        cx->blk_dispatch.case_pins = NULL;
     }
 }
 
 
 PERL_STATIC_INLINE void
-Perl_cx_pushcasematch(pTHX_ PERL_CONTEXT *cx)
+Perl_cx_pushon(pTHX_ PERL_CONTEXT *cx)
 {
-    PERL_ARGS_ASSERT_CX_PUSHCASEMATCH;
+    PERL_ARGS_ASSERT_CX_PUSHON;
 
-    cx->blk_casematch.leave_op = cLOGOP->op_other;
+    cx->blk_on.leave_op = cLOGOP->op_other;
 }
 
 
 PERL_STATIC_INLINE void
-Perl_cx_popcasematch(pTHX_ PERL_CONTEXT *cx)
+Perl_cx_popon(pTHX_ PERL_CONTEXT *cx)
 {
-    PERL_ARGS_ASSERT_CX_POPCASEMATCH;
+    PERL_ARGS_ASSERT_CX_POPON;
     PERL_UNUSED_CONTEXT;
-    assert(CxTYPE(cx) == CXt_CASEMATCH);
+    assert(CxTYPE(cx) == CXt_ON);
 }
 
 
