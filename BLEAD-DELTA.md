@@ -145,7 +145,12 @@ Scalar shapes include `undef`, literal strings, literal numbers, `true`, and
 `false`.  Strings and numbers are deliberately distinct, so `match (1)` and
 `match ("1")` express different cases.  Boolean shapes use Perl's normal
 truth-value rules.  Regular-expression values can be used as scalar matching
-criteria.  The special criteria `RefVal()`, `ScalarVal()`, and `ObjectVal()`
+criteria.  Regular-expression shapes update Perl's ordinary capture variables
+and make named captures available as clause-local scalar bindings.  For
+example, `match (/^user: (?<name>[[:word:]]+)$/) { say $name }` binds `$name`
+when the subject matches; a named capture that does not participate is bound
+to `undef`.
+The special criteria `RefVal()`, `ScalarVal()`, and `ObjectVal()`
 test, respectively, for any reference, any non-reference scalar, and a
 blessed reference.  They can each take one binding target, such as
 `ObjectVal($object)`.
@@ -195,7 +200,7 @@ fall-through semantics and does not reuse the `given`/`when` execution model.
 
 Related POD: [`pod/perlcasematch.pod`](https://github.com/demerphq/perl5/blob/xperl/main/pod/perlcasematch.pod) is the beginner-oriented feature guide.  [`pod/perlsyn.pod`](https://github.com/demerphq/perl5/blob/xperl/main/pod/perlsyn.pod) documents the syntax and current semantics, while [`pod/perldiag.pod`](https://github.com/demerphq/perl5/blob/xperl/main/pod/perldiag.pod) documents its diagnostics.  [`pod/perlexperiment.pod`](https://github.com/demerphq/perl5/blob/xperl/main/pod/perlexperiment.pod) and [`pod/perldelta.pod`](https://github.com/demerphq/perl5/blob/xperl/main/pod/perldelta.pod) record its experimental status and release notes.
 
-The implementation is tested in [`t/comp/case_match.t`](https://github.com/demerphq/perl5/blob/xperl/main/t/comp/case_match.t), with design notes in [`planning/perl-pattern-matching.md`](https://github.com/demerphq/perl5/blob/xperl/main/planning/perl-pattern-matching.md).  Dispatch benchmarks are kept in [`planning/scripts/case_dispatch_compare.pl`](https://github.com/demerphq/perl5/blob/xperl/main/planning/scripts/case_dispatch_compare.pl), [`planning/scripts/case_dispatch_weight.pl`](https://github.com/demerphq/perl5/blob/xperl/main/planning/scripts/case_dispatch_weight.pl), and [`planning/scripts/case_given_compare.pl`](https://github.com/demerphq/perl5/blob/xperl/main/planning/scripts/case_given_compare.pl).
+The implementation is tested in [`t/comp/case_match.t`](https://github.com/demerphq/perl5/blob/xperl/main/t/comp/case_match.t) and demonstrated in [`t/comp/case_match_examples.t`](https://github.com/demerphq/perl5/blob/xperl/main/t/comp/case_match_examples.t), with design notes in [`planning/perl-pattern-matching.md`](https://github.com/demerphq/perl5/blob/xperl/main/planning/perl-pattern-matching.md).  Dispatch benchmarks are kept in [`planning/scripts/case_dispatch_compare.pl`](https://github.com/demerphq/perl5/blob/xperl/main/planning/scripts/case_dispatch_compare.pl), [`planning/scripts/case_dispatch_weight.pl`](https://github.com/demerphq/perl5/blob/xperl/main/planning/scripts/case_dispatch_weight.pl), and [`planning/scripts/case_given_compare.pl`](https://github.com/demerphq/perl5/blob/xperl/main/planning/scripts/case_given_compare.pl).
 
 ### Lexical namespaces
 
